@@ -52,7 +52,7 @@ bootstrap:
 
 access:
   # Rauthy defaults refresh-token `nbf = iat + access_token_lifetime - 60`,
-  # validated with clock-skew=0. Stagecraft's spec 106 callback refreshes
+  # validated with clock-skew=0. Statecraft's spec 106 callback refreshes
   # immediately after the code exchange to materialise the `oap` scope
   # custom claims, which lands inside that lockout and fails with
   # `401 JwtToken "Token is not valid yet"`. Keep this `true` so refresh
@@ -61,7 +61,7 @@ access:
 
   # deployd-api's `create_deployment` handler (routes.rs) rejects any bearer
   # token that carries no `sub` claim ("token missing subject claim"). Rauthy's
-  # `client_credentials` grant (stagecraft's machine-to-machine deploy dispatch,
+  # `client_credentials` grant (statecraft's machine-to-machine deploy dispatch,
   # api/deploy/oidcM2m.ts) sets `sub = None` by default because that grant has
   # no end-user subject. Enabling this maps `sub = <client id>` onto those M2M
   # tokens, satisfying deployd's owner-bind guard (auth.rs `is_owner_or_admin`)
@@ -96,6 +96,6 @@ resources:
 # Upstream auth providers are managed via Rauthy's admin API, not Helm
 # values. Rauthy 0.35 stores providers in its hiqlite DB; there is no
 # `[[upstream_auth_provider]]` TOML section in RauthyConfig.Vars. The
-# stagecraft Rauthy seeder (spec 106 FR-002) is the authoritative
+# statecraft Rauthy seeder (spec 106 FR-002) is the authoritative
 # provisioner — it runs as a Helm pre-install/pre-upgrade hook against
-# stagecraft's chart and calls POST/PUT /auth/v1/providers.
+# statecraft's chart and calls POST/PUT /auth/v1/providers.

@@ -42,7 +42,7 @@ summary: >
   each entry carries a `unit:` pointing at a logical unit in the
   codebase (crate, symbol, module, section, directory, file). That
   shape covers in-tree code but not the two external derivation
-  sources the OAP architecture already produces — stagecraft
+  sources the OAP architecture already produces — statecraft
   knowledge objects and xray content-addressed fingerprints. Citing
   those today requires inventing prose hyperlinks the indexer cannot
   see and a structural reverse-lookup cannot answer.
@@ -60,7 +60,7 @@ summary: >
   is the load-bearing artifact, not source liveness.
 
   The grammar's load-bearing property is **structural reverse
-  lookup**: `git grep "stagecraft://project/<uuid>/knowledge/<uuid>"`
+  lookup**: `git grep "statecraft://project/<uuid>/knowledge/<uuid>"`
   across `specs/` answers *"which specs were derived from this
   source?"* deterministically and without an LLM. That property is
   what makes the provenance edge the substrate the OWASP ASI06
@@ -88,8 +88,8 @@ identifiers over in-tree code. The OAP architecture already produces
 two derivation sources that are not in-tree code and have no place in
 that grammar:
 
-- **Knowledge objects** — stagecraft's `knowledge_objects` table
-  (`platform/services/stagecraft/api/db/schema.ts:602`) holds
+- **Knowledge objects** — statecraft's `knowledge_objects` table
+  (`platform/services/statecraft/api/db/schema.ts:602`) holds
   canonical normalised documents under a project's storage bucket
   (project lineage from intake → extraction → classification →
   available). When a draft spec is derived from a knowledge item —
@@ -162,7 +162,7 @@ references:
   - role: derivation
     provenance:
       kind: knowledge
-      ref: "stagecraft://project/8c4f.../knowledge/2a91..."
+      ref: "statecraft://project/8c4f.../knowledge/2a91..."
 
   - role: derivation
     provenance:
@@ -188,7 +188,7 @@ The six unit kinds in spec 154 §3 share three properties:
    confers authority over its resolved locations.
 
 Knowledge URIs and xray fingerprints share none of these. A knowledge
-object lives in stagecraft's DB, not the worktree. A fingerprint is
+object lives in statecraft's DB, not the worktree. A fingerprint is
 over a historical tree state, not the current one. Provenance edges
 never confer authority — they are non-owning by inheritance from
 spec 154 §4. Modelling them as a seventh unit kind would force the
@@ -201,7 +201,7 @@ sibling-field shape keeps the populations separate at the type level.
 
 | `kind`             | URI scheme                                            | Resolves against           |
 |--------------------|-------------------------------------------------------|----------------------------|
-| `knowledge`        | `stagecraft://project/<project-uuid>/knowledge/<knowledge-uuid>` | Stagecraft DB (`knowledge_objects`) |
+| `knowledge`        | `statecraft://project/<project-uuid>/knowledge/<knowledge-uuid>` | Statecraft DB (`knowledge_objects`) |
 | `code-fingerprint` | `xray-fingerprint://<sha256>`                          | xray content-addressed store |
 
 The set is deliberately small. Future kinds (sbom, cve,
@@ -213,7 +213,7 @@ authoring extension.
 ### 3.4 Knowledge URI — project-scoped
 
 The knowledge URI carries the project segment inline:
-`stagecraft://project/<project-uuid>/knowledge/<knowledge-uuid>`.
+`statecraft://project/<project-uuid>/knowledge/<knowledge-uuid>`.
 
 Rationale (per reconciliation #3a of the design pass): spec 102
 FR-007 establishes that the auditor's verifier does not trust the
@@ -221,13 +221,13 @@ producer. A self-locating URI saves the verifier a project-context
 lookup it may not have when resolving a provenance ref against a
 tenant DB whose project shape it does not already know.
 `knowledge_objects.id` is globally unique by virtue of being a UUID
-(`platform/services/stagecraft/api/db/schema.ts:603`), but the
+(`platform/services/statecraft/api/db/schema.ts:603`), but the
 verifier's locator path benefits from the project context being
 present in the URI itself.
 
 V-027 (see §5) widens the scheme-alignment check accordingly: the
 URI must carry the `/project/<uuid>/knowledge/<uuid>/` segment shape,
-not just match the `stagecraft://` scheme prefix.
+not just match the `statecraft://` scheme prefix.
 
 ### 3.5 Code-fingerprint URI — flat, scope deferred
 
@@ -256,7 +256,7 @@ The lax-on-dangler rule (reconciliation #5 of the design pass)
 follows directly:
 
 - If a `provenance:` entry's `knowledge` URI references a knowledge
-  object that is later deleted from stagecraft (e.g. tenant
+  object that is later deleted from statecraft (e.g. tenant
   retention sweep), spec-lint MUST NOT emit a diagnostic.
 - If a `code-fingerprint` URI references a tree state no longer
   reachable from any branch in the project's repos, spec-lint MUST
@@ -284,7 +284,7 @@ V-025..V-029 — four errors and one advisory.
 |-------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | V-025 | error    | A `references:` entry MUST carry **exactly one** of `{unit:, provenance:}`. Both present → error; neither present → error (the entry has no target).                          |
 | V-026 | error    | `provenance.kind` MUST be one of `{knowledge, code-fingerprint}`. Other values reject at parse time (no silent normalisation).                                                |
-| V-027 | error    | `provenance.kind` ↔ `provenance.ref` scheme alignment: `knowledge` requires the `stagecraft://project/<uuid>/knowledge/<uuid>` shape; `code-fingerprint` requires `xray-fingerprint://<sha256>`. Scheme mismatch or missing project segment is an error. |
+| V-027 | error    | `provenance.kind` ↔ `provenance.ref` scheme alignment: `knowledge` requires the `statecraft://project/<uuid>/knowledge/<uuid>` shape; `code-fingerprint` requires `xray-fingerprint://<sha256>`. Scheme mismatch or missing project segment is an error. |
 | V-028 | error    | `provenance.ref` MUST be a syntactically well-formed URI matching its kind's scheme; the opaque body (UUID-pair for `knowledge`, hex digest for `code-fingerprint`) MUST be non-empty. |
 | V-029 | advisory | `provenance:` entries with `role:` unset emit an info-level lint recommending `role: derivation` for searchability and consistent rendering. Not blocking.                    |
 
@@ -304,7 +304,7 @@ the `spec154_unit_grammar_negative.rs` shape.
 This section is operationally critical (reconciliation #6 of the
 design pass). Without it the grammar compiles but the indexer's
 `resolved_units` field does not carry provenance through to
-consumers, breaking the stagecraft Requirements view's *"render the
+consumers, breaking the statecraft Requirements view's *"render the
 provenance link"* path (INTENT §3.4 + §6.2 stage 6) and the structural
 reverse-lookup substrate this spec exists to provide.
 
@@ -365,7 +365,7 @@ each `UnitEntry` and produces a `ResolvedUnit` with deterministic
   claiming any in-tree location for it.
 
 The dangling-provenance lax rule lives entirely in the resolver
-short-circuit: there is no lookup against the stagecraft DB or the
+short-circuit: there is no lookup against the statecraft DB or the
 xray store, so there is no path by which a deleted knowledge object
 or unreachable tree state can produce a diagnostic. (`I-008` /
 `I-108` advisory bands governing in-tree file existence do not
@@ -424,7 +424,7 @@ requires answering *"which artefacts derived from this poisoned
 source?"* deterministically. With typed provenance:
 
 ```bash
-git grep "stagecraft://project/<project-uuid>/knowledge/<knowledge-uuid>" specs/
+git grep "statecraft://project/<project-uuid>/knowledge/<knowledge-uuid>" specs/
 ```
 
 returns every spec carrying that derivation edge. The answer is
@@ -443,7 +443,7 @@ trust posture spec 102 takes (verifier does not trust the producer),
 applied one layer up: at **spec-authoring** time, not just at
 run-time artefact certification.
 
-The stagecraft Requirements view (INTENT §3.4) gets a typed
+The statecraft Requirements view (INTENT §3.4) gets a typed
 provenance link to render — *"this spec was derived from knowledge
 item X"* as a verifiable structural edge with a click-through to the
 source, rather than an LLM-narrative summary the user must trust on
@@ -502,13 +502,13 @@ posture cheap.
   INTENT candidate 3, a separate spec. Spec 156 is grammar-only:
   authored specs may carry provenance today; automated emission of
   specs that carry it is a downstream spec.
-- **Stagecraft / xray reader surfaces.** The Requirements view's
+- **Statecraft / xray reader surfaces.** The Requirements view's
   rendering of provenance links and the xray store's resolution of
   fingerprint URIs are downstream consumer concerns. Spec 156
   guarantees the substrate is queryable; consumers wire their own
   surfaces.
 - **Factory-engine relocation.** INTENT §8.1 names an in-flight
-  relocation of factory machinery into stagecraft. Spec 156 is
+  relocation of factory machinery into statecraft. Spec 156 is
   grammar-only and has no factory coupling (reconciliation #7).
 - **Scoped `xray-fingerprint://...?path=<subtree>`.** Deferred per
   §3.5; YAGNI until a concrete case surfaces.

@@ -22,7 +22,7 @@ purpose: >
 - **Repo A** — `legacy-factory` @ `eca9b5a` (HEAD on `main` at audit time), in-scope subpath `Factory Agent/`.
 - **Repo B** — `template` @ `e1de48c`, in-scope subpath `orchestration/` only (per spec 139 §3.2 non-goal "Mirroring the template scaffold tree").
 - **OAP-native adapters** — `open-agentic-platform/_tmp/factory/adapters/{next-prisma,rust-axum,encore-react}/`.
-- **agent_catalog schema** — `platform/services/stagecraft/api/db/schema.ts:1098-1168` + migration `30_agent_catalog_org_rescope.up.sql`.
+- **agent_catalog schema** — `platform/services/statecraft/api/db/schema.ts:1098-1168` + migration `30_agent_catalog_org_rescope.up.sql`.
 - **factory-engine** — `crates/factory-engine/` (and surrounding `factory-contracts`, `factory-platform-client`, `factory-project-detect`, `artifact-extract` crates).
 
 ---
@@ -131,7 +131,7 @@ The closest existing analog is `template-orchestrator.md` (Repo B) frontmatter, 
 
 ### 2.1 Schema-level invariants
 
-I do not have prod DB access from this session. The schema declarations (`platform/services/stagecraft/api/db/schema.ts:1098-1168`) and migration history (`30_agent_catalog_org_rescope.up.sql`) provide the load-bearing invariants without a live query:
+I do not have prod DB access from this session. The schema declarations (`platform/services/statecraft/api/db/schema.ts:1098-1168`) and migration history (`30_agent_catalog_org_rescope.up.sql`) provide the load-bearing invariants without a live query:
 
 | Column | Constraint | Implication for Phase 2 backfill |
 |---|---|---|

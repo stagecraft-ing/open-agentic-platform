@@ -12,5 +12,5 @@ az network watcher configure --enabled false --locations canadacentral
 
 # Delete the auto-created RG
 az group delete --name NetworkWatcherRG --yes --no-wait
-az group delete --name stagecraft-dev-rg --yes --no-wait
+az group delete --name statecraft-dev-rg --yes --no-wait
 ```

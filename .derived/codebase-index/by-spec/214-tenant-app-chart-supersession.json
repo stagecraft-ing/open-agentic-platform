@@ -34,7 +34,7 @@
     "dependsOn": [
       "136-tenant-hello-demo-service",
       "137-tenant-environment-access-gates",
-      "138-stagecraft-create-realised-scaffold",
+      "138-statecraft-create-realised-scaffold",
       "119-project-as-unit-of-governance",
       "199-factory-thin-consumer-sync"
     ],
@@ -84,39 +84,39 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/CLAUDE.md",
+        "path": "platform/services/statecraft/CLAUDE.md",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/deploy/chartSelector.test.ts",
+        "path": "platform/services/statecraft/api/deploy/chartSelector.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/deploy/chartSelector.ts",
+        "path": "platform/services/statecraft/api/deploy/chartSelector.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/deploy/deploy.ts",
+        "path": "platform/services/statecraft/api/deploy/deploy.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/deploy/deployResolve.test.ts",
+        "path": "platform/services/statecraft/api/deploy/deployResolve.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/deploy/deployResolve.ts",
+        "path": "platform/services/statecraft/api/deploy/deployResolve.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/deploy/hostname.test.ts",
+        "path": "platform/services/statecraft/api/deploy/hostname.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/deploy/hostname.ts",
+        "path": "platform/services/statecraft/api/deploy/hostname.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/templateCache.ts",
         "source": "spec-edge"
       },
       {
@@ -184,53 +184,53 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/deployResolve.test.ts"
+            "file": "platform/services/statecraft/api/deploy/deployResolve.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deployResolve.test.ts"
+          "path": "platform/services/statecraft/api/deploy/deployResolve.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/deployResolve.ts"
+            "file": "platform/services/statecraft/api/deploy/deployResolve.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deployResolve.ts"
+          "path": "platform/services/statecraft/api/deploy/deployResolve.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/hostname.test.ts"
+            "file": "platform/services/statecraft/api/deploy/hostname.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/hostname.test.ts"
+          "path": "platform/services/statecraft/api/deploy/hostname.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/hostname.ts"
+            "file": "platform/services/statecraft/api/deploy/hostname.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/hostname.ts"
+          "path": "platform/services/statecraft/api/deploy/hostname.ts"
         }
       },
       {
@@ -301,53 +301,53 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/CLAUDE.md"
+            "file": "platform/services/statecraft/CLAUDE.md"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/CLAUDE.md"
+          "path": "platform/services/statecraft/CLAUDE.md"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/chartSelector.test.ts"
+            "file": "platform/services/statecraft/api/deploy/chartSelector.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/chartSelector.test.ts"
+          "path": "platform/services/statecraft/api/deploy/chartSelector.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/chartSelector.ts"
+            "file": "platform/services/statecraft/api/deploy/chartSelector.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/chartSelector.ts"
+          "path": "platform/services/statecraft/api/deploy/chartSelector.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/deploy.ts"
+            "file": "platform/services/statecraft/api/deploy/deploy.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deploy.ts"
+          "path": "platform/services/statecraft/api/deploy/deploy.ts"
         }
       },
       {
@@ -415,14 +415,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/templateCache.ts"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/templateCache.ts"
         }
       },
       {

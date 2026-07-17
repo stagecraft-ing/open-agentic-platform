@@ -361,7 +361,7 @@ export const PipelineHistory: React.FC<{
   const selectedRun = runs.find((r) => r.runId === selectedRunId) ?? null;
   const adapterName = selectedRun?.adapter ?? bundle?.adapter?.name ?? null;
   // `list_factory_runs` returns an empty `projectPath` for platform-projected
-  // runs (they carry no local filesystem path, only a stagecraft UUID that must
+  // runs (they carry no local filesystem path, only a statecraft UUID that must
   // never be treated as a path). Normalise empties so the value falls back to
   // the open project's real clone path; when neither is a real path, treat the
   // run as needing a local clone rather than firing Resume against nothing.
@@ -383,7 +383,7 @@ export const PipelineHistory: React.FC<{
         runId: selectedRunId,
         projectPath: resumeProjectPath,
         adapterName,
-        stagecraftProjectId: bundle?.project?.id ?? null,
+        statecraftProjectId: bundle?.project?.id ?? null,
       });
     } catch (err) {
       // Tauri's `invoke` rejects with the raw string returned by the Rust

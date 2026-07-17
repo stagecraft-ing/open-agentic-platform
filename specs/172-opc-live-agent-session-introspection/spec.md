@@ -314,7 +314,7 @@ deferred concern); it surfaces what exists.
 - **Cross-workstation session aggregation.** The
   panel shows the workstation's sessions; aggregating
   across multiple developers' workstations is a
-  stagecraft-side concern (future spec).
+  statecraft-side concern (future spec).
 - **Predictive runaway detection.** Threshold-based
   highlighting is reactive. Predictive detection
   (ML-based anomaly detection on session behaviour)

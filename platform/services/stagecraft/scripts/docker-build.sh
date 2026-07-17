@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Fast docker build for stagecraft via the cancel-then-scrape technique
+# Fast docker build for statecraft via the cancel-then-scrape technique
 # documented in docs/encore-custom-dockerfile.md. The companion
 # Dockerfile is "minimal-swap": it starts FROM a previously-published
 # image and overlays only the freshly-bundled main.mjs. See the
@@ -14,14 +14,14 @@ set -euo pipefail
 #   ./scripts/docker-build.sh [IMAGE_TAG] [--arch amd64|arm64]
 #
 # Examples:
-#   ./scripts/docker-build.sh ghcr.io/.../stagecraft:hotfix-2026-05-07-x
-#   ./scripts/docker-build.sh ghcr.io/.../stagecraft:hotfix --arch amd64
+#   ./scripts/docker-build.sh ghcr.io/.../statecraft:hotfix-2026-05-07-x
+#   ./scripts/docker-build.sh ghcr.io/.../statecraft:hotfix --arch amd64
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$APP_DIR"
 
-IMAGE_TAG="${1:-ghcr.io/stagecraft-ing/open-agentic-platform/stagecraft:hotfix-local}"
+IMAGE_TAG="${1:-ghcr.io/statecrafting/open-agentic-platform/statecraft:hotfix-local}"
 ARCH="amd64"
 if [[ "${2:-}" == "--arch" ]]; then
   ARCH="${3:-amd64}"
@@ -29,7 +29,7 @@ fi
 
 MAIN_MJS=".encore/build/combined/combined/main.mjs"
 
-echo "==> Fast stagecraft docker build (minimal-swap)"
+echo "==> Fast statecraft docker build (minimal-swap)"
 echo "    Image: $IMAGE_TAG"
 echo "    Arch:  linux/$ARCH"
 

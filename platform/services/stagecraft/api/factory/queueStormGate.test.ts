@@ -32,7 +32,7 @@ const FACTORY_SHA = "c".repeat(40);
 
 const ORG_CTX = { orgId: ORG_ID, userID: USER_ID };
 
-const ENV_KEY = "STAGECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT";
+const ENV_KEY = "STATECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT";
 const ORIGINAL_ENV = process.env[ENV_KEY];
 const TEST_CEILING = 2;
 

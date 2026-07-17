@@ -21,7 +21,7 @@ amendment_record: |
   Input moves to a factory-source checkout via a now-required
   `--adapters-dir` (the in-repo `factory/adapters/` this spec originally
   read was retired by spec 108); output narrows to the single committed
-  stagecraft snapshot (the legacy `build/adapter-scopes.json` copy is
+  statecraft snapshot (the legacy `build/adapter-scopes.json` copy is
   retired, with the ci-parity-check PRODUCERS rule repointed under the
   spec 104 amendment of the same date). First derivation ran 2026-06-11
   against the admitted acme-vue-encore manifest
@@ -90,7 +90,7 @@ Each of these violates the same principle, in a different way:
    script reinvents YAML parsing in JavaScript because the Rust
    `factory-contracts` crate (spec 074) can already parse adapter manifests
    with a compile-time schema. A drift in manifest shape silently produces a
-   wrong `adapter-scopes.json` that ships into stagecraft.
+   wrong `adapter-scopes.json` that ships into statecraft.
 2. **Release-channel logic outside the governed tool surface.** The
    fetch script talks to the GitHub Releases API with ad-hoc auth, ad-hoc
    tarball extraction, ad-hoc asset-name conventions. This logic is a
@@ -144,8 +144,8 @@ The three migrations are independent and can ship in any order:
 
 **Phase 1 — `adapter-scopes-compiler` (real logic → Rust).**
 The script's output is committed
-(`platform/services/stagecraft/api/factory/adapter-scopes.json`) and
-consumed at build time by stagecraft. We regenerate with the new
+(`platform/services/statecraft/api/factory/adapter-scopes.json`) and
+consumed at build time by statecraft. We regenerate with the new
 binary, assert byte-identical output against the committed file (minus
 an intentionally-omitted `compiled_at` timestamp), then delete the JS.
 
@@ -196,7 +196,7 @@ A new Rust crate at `tools/oap/adapter-scopes-compiler/` MUST:
 - Read every `factory/adapters/*/manifest.yaml` using a YAML parser
   (`serde_yaml`) with a typed schema
 - Emit `build/adapter-scopes.json` and
-  `platform/services/stagecraft/api/factory/adapter-scopes.json` with
+  `platform/services/statecraft/api/factory/adapter-scopes.json` with
   byte-identical output to the pre-migration script
 - Include an integration test that runs against the committed manifests
   and asserts the emitted JSON matches a golden file
@@ -263,7 +263,7 @@ MUST return zero hits in active pipeline files.
 
 ### SC-01: adapter-scopes.json Is Byte-Identical Pre/Post Phase 1
 
-`git diff platform/services/stagecraft/api/factory/adapter-scopes.json`
+`git diff platform/services/statecraft/api/factory/adapter-scopes.json`
 on the Phase 1 migration commit MUST produce no content changes —
 only the `compiled_at` timestamp is permitted to differ, and the
 compiler output SHOULD make that field deterministic by omitting or
@@ -302,8 +302,8 @@ Each migration PR MUST include a before/after trace showing:
 - **Unifying `platform/Makefile` and the root Makefile.** Platform's
   Makefile is a Terraform/Helm harness; merging it would bloat the
   surface without clear benefit.
-- **Killing `platform/services/stagecraft/scripts/docker-build.sh`.**
-  That lives under the stagecraft service, not the repo root, and is
+- **Killing `platform/services/statecraft/scripts/docker-build.sh`.**
+  That lives under the statecraft service, not the repo root, and is
   scoped to its own deployment harness.
 - **Porting the Makefile itself to a Rust runner.** Make remains the
   right tool for recipe orchestration; this spec only migrates the

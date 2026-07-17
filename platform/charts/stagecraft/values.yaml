@@ -1,6 +1,6 @@
 image:
   # TODO: Set to your GHCR (or other registry) image path before deploying
-  repository: ghcr.io/your-org/open-agentic-platform/stagecraft
+  repository: ghcr.io/your-org/open-agentic-platform/statecraft
   tag: dev
 
 imagePullSecrets: []
@@ -8,11 +8,11 @@ imagePullSecrets: []
 ingress:
   enabled: true
   className: nginx
-  host: stagecraft.localdev.online
+  host: statecraft.localdev.online
   annotations: {}
 
 serviceAccount:
-  name: stagecraft-api-sa
+  name: statecraft-api-sa
   annotations: {}
 
 # Rauthy seed hook (spec 106 FR-002). Disabled by default until the GHCR
@@ -36,8 +36,8 @@ secrets:
     name: ""
     kind: ClusterSecretStore
   keys:
-    - key: STAGECRAFT_DB_URL
-      remoteKey: stagecraft-db-url
+    - key: STATECRAFT_DB_URL
+      remoteKey: statecraft-db-url
     - key: OIDC_M2M_CLIENT_ID
       remoteKey: oidc-m2m-client-id
     - key: OIDC_M2M_CLIENT_SECRET
@@ -65,7 +65,7 @@ keyVault:
 
 oidc:
   endpoint: "https://rauthy.localdev.online"
-  deploydAudience: "https://api.stagecraft.localdev.online"
+  deploydAudience: "https://api.statecraft.localdev.online"
   deploydScope: "deployd:deploy"
 
 resources:
@@ -89,9 +89,9 @@ nodeOptions: "--max-old-space-size=896"
 
 # Spec 112 §5.3 — workspace dir for the scaffold subflow.
 #
-# Stagecraft's Create flow keeps a clone of the upstream `template` repo
+# Statecraft's Create flow keeps a clone of the upstream `template` repo
 # (~150MB after `npm install`) plus four prebuilt profile trees in a
-# workspace directory. The dir is mounted at `STAGECRAFT_WORKSPACE_DIR`
+# workspace directory. The dir is mounted at `STATECRAFT_WORKSPACE_DIR`
 # and survives pod restarts so warmup is skipped when on-disk state matches
 # the upstream HEAD.
 #
@@ -102,7 +102,7 @@ nodeOptions: "--max-old-space-size=896"
 #   Per-cloud overrides land in values-{azure,aws,gcp,do,hetzner}.yaml
 #   (e.g. "managed-csi" on Azure, "do-block-storage" on DigitalOcean).
 workspace:
-  dir: /var/stagecraft/workspace
+  dir: /var/statecraft/workspace
   persistence:
     enabled: true
     size: 10Gi

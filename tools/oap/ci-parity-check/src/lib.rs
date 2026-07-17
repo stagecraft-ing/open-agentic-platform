@@ -69,11 +69,11 @@ pub const ENFORCING_WORKFLOWS: &[&str] = &[
     // the `ci-schema-parity` target (cargo fingerprints + bun walker).
     "ci-schema-parity.yml",
     "ci-spec-code-coupling.yml",
-    "ci-stagecraft.yml",
+    "ci-statecraft.yml",
     // spec 211 — the DB-bound encore-test lane; `make ci-strict` mirrors it
-    // via the `ci-stagecraft-encore` target (lane derivation + encore test +
+    // via the `ci-statecraft-encore` target (lane derivation + encore test +
     // the skip-as-pass coverage guard).
-    "ci-stagecraft-encore.yml",
+    "ci-statecraft-encore.yml",
     "ci-supply-chain.yml",
     "spec-conformance.yml",
 ];
@@ -333,7 +333,7 @@ const PRODUCERS: &[ProducerRule] = &[
     },
     ProducerRule {
         pattern: "adapter-scopes-compiler",
-        artifact: "platform/services/stagecraft/api/factory/adapter-scopes.json",
+        artifact: "platform/services/statecraft/api/factory/adapter-scopes.json",
     },
 ];
 

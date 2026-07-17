@@ -43,7 +43,7 @@ references:
   - role: historical
     unit: { kind: file, path: crates/provenance-validator/src/anchor.rs }
   - role: historical
-    unit: { kind: file, path: platform/services/stagecraft/api/governance/provenancePolicy.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/governance/provenancePolicy.ts }
   - role: historical
     unit: { kind: file, path: crates/factory-engine/src/stages/s1_business_requirements.rs }
   - role: historical
@@ -105,7 +105,7 @@ This spec introduces the invariant: every claim that names external reality must
 
 ## 3. Non-Goals
 
-- **Spec 120 carrier work.** Schema mirror, `s-1-extract` stage, stagecraft endpoint — all delivered by 120. This spec consumes 120's outputs.
+- **Spec 120 carrier work.** Schema mirror, `s-1-extract` stage, statecraft endpoint — all delivered by 120. This spec consumes 120's outputs.
 - **Stage CD inversion and the stakeholder-doc grammar.** Reclassifying `client-document.md` and `project_charter.md` from outputs to authored inputs, and the section-anchor / citation-syntax grammar for those docs, lives in **spec 122**. This spec's validator is reused by 122 at the Stage CD comparator gate, but the inversion itself is a separate concern.
 - **LLM-side prompt engineering to reduce fabrication.** The validator is the safety net regardless of how the model is prompted. Improvements to the Stage 1 prompt that lower the fabrication rate are independent and welcome but not in scope.
 - **Per-stage prompt versioning.** Prompt-assembly cache (spec 070) handles fingerprinting. This spec records `extractor.agentRun.promptFingerprint` from spec 120's typed output but does not version Stage 1 prompts itself.
@@ -234,7 +234,7 @@ A project has `BR-031` `DERIVED` from `extracted/Business Case.docx.txt` lines 2
   - `Citation { source: PathBuf, lineRange: (u32, u32), quote: String, quoteHash: QuoteHash }`
   - `AssumptionTag { owner: String, rationale: String, expiresAt: DateTime }`
   - `IdRegistry { anchors: BTreeMap<AnchorHash, ClaimId>, entries: BTreeMap<ClaimId, IdRegistryEntry> }`
-- **FR-007**: The provenance schema version MUST be a compile-time const `pub const PROVENANCE_SCHEMA_VERSION: &str = "1.0.0"`. The schema parity check from spec 120 MUST be extended to cover `provenance.rs` against any TypeScript mirror in stagecraft (currently `platform/services/stagecraft/api/governance/provenancePolicy.ts` reserved for the mirror).
+- **FR-007**: The provenance schema version MUST be a compile-time const `pub const PROVENANCE_SCHEMA_VERSION: &str = "1.0.0"`. The schema parity check from spec 120 MUST be extended to cover `provenance.rs` against any TypeScript mirror in statecraft (currently `platform/services/statecraft/api/governance/provenancePolicy.ts` reserved for the mirror).
 - **FR-008**: The validator MUST emit a single `provenance.json` per project to the artifact store, at a stable path resolved by `factory-engine`'s artifact-store conventions. The file is cumulative across runs (one file, append-on-mint, update-in-place per claim).
 - **FR-009**: A sibling `id-registry.json` MUST persist the `AnchorHash → ClaimId` mapping across runs. It MUST be checked into the project workspace (NOT regenerated from scratch on each run) so anchor stability survives a clean rebuild.
 - **FR-010**: A sibling `assumption-only-manifest.md` MUST be emitted listing every `ASSUMPTION`-tagged or `ASSUMPTION-orphaned` claim with `id`, `kind`, `owner`, `rationale`, `expiresAt`, and `pendingPromotionPath` (where to look on promotion).
@@ -351,12 +351,12 @@ A project has `BR-031` `DERIVED` from `extracted/Business Case.docx.txt` lines 2
 ## 8. Provenance
 
 - `crates/provenance-validator/` — new crate; the validator binary and library.
-- `crates/factory-contracts/src/provenance.rs` — new types module mirroring (when a TS mirror exists) `platform/services/stagecraft/api/governance/provenancePolicy.ts`.
+- `crates/factory-contracts/src/provenance.rs` — new types module mirroring (when a TS mirror exists) `platform/services/statecraft/api/governance/provenancePolicy.ts`.
 - `crates/factory-engine/src/stages/quality_gates.rs` — gate evaluator gains `evaluate_qg13`.
 - `crates/factory-engine/src/stages/s1_business_requirements.rs` — Stage 1 driver invokes validator after emission.
 - `crates/factory-engine/skills/validate.md` (or compiled equivalent) — adds `FAC-S1-011`.
 - `crates/factory-engine/skills/business-requirements-analyst.md` — annotated with the new validation expectations (Stage 1 MUST emit citations alongside claims).
-- `platform/services/stagecraft/api/governance/provenancePolicy.ts` — reserved path for future TS mirror; the schema parity check from spec 120 extends to cover it.
+- `platform/services/statecraft/api/governance/provenancePolicy.ts` — reserved path for future TS mirror; the schema parity check from spec 120 extends to cover it.
 - `requirements/audit/retroactive-provenance-report.md` (per-project, audit-mode only) — output path reserved.
 - Forensic record: `_tmp/acme-fabrication-forensic.md` (operator's local copy at `acme-example-portal/requirements/debug/Forensic-Analysis_ACME-Integration-Scope-Provenance.md`) — the in-the-wild contamination this spec prevents.
 - Spec 120 — typed extraction corpus this validator cites against.

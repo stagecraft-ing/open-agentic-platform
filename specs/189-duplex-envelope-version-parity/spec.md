@@ -32,7 +32,7 @@ summary: >
   Adds a scalar-constant parity check to the schema-parity walker (spec 125)
   that fails CI when the desktop's `ENVELOPE_SCHEMA_VERSION`
   (`product/apps/opc/src-tauri/src/commands/sync_client.rs`) does not equal the
-  stagecraft server's (`platform/services/stagecraft/api/sync/types.ts`). The
+  statecraft server's (`platform/services/statecraft/api/sync/types.ts`). The
   protocol-wide duplex envelope version is the one number both ends of the
   WebSocket must agree on, yet — unlike the per-kind mirror constants, which
   are kept honest by Rust↔TS fingerprint comparison — it had no automated
@@ -52,13 +52,13 @@ summary: >
 
 ## 1. Problem statement
 
-The duplex stream between the OPC desktop and stagecraft frames every
+The duplex stream between the OPC desktop and statecraft frames every
 message in an envelope whose `meta.v` MUST equal a single protocol-wide
 constant, `ENVELOPE_SCHEMA_VERSION`, declared independently on each side:
 
 - **desktop (Rust):** `product/apps/opc/src-tauri/src/commands/sync_client.rs`
   — `pub const ENVELOPE_SCHEMA_VERSION: u8 = 2;`
-- **server (TS):** `platform/services/stagecraft/api/sync/types.ts`
+- **server (TS):** `platform/services/statecraft/api/sync/types.ts`
   — `export const ENVELOPE_SCHEMA_VERSION: EnvelopeSchemaVersion = 2;`
 
 Both sides enforce **strict equality** at the boundary
@@ -160,7 +160,7 @@ envelope check passes.
 To stop a future relocation from re-darkening the gate the same way, the
 walker gains a **loud root guard**: immediately after computing
 `REPO_ROOT` it asserts that known repo subtrees
-(`crates/factory-contracts`, `platform/services/stagecraft`) exist under
+(`crates/factory-contracts`, `platform/services/statecraft`) exist under
 it, and `exit 2`s with a "REPO_ROOT does not resolve to the repo root"
 diagnostic otherwise — instead of the misleading downstream
 "fingerprint not found".
@@ -187,7 +187,7 @@ alias or a comment mention is never mistaken for the value.
 
 `index.mjs` gains an **envelope-version block run first**, before the
 structural-fingerprint checks. It is independent of the
-factory-contracts fingerprints and of the stagecraft TS imports, so it
+factory-contracts fingerprints and of the statecraft TS imports, so it
 reports even when an unrelated structural check would later error. On
 mismatch it exits `1` with a diagnostic naming both files and both
 values plus the remediation ("bump the desktop constant to match the
@@ -209,7 +209,7 @@ governed by their own specs and are named here for traceability:
 
 - `product/apps/opc/src-tauri/src/commands/sync_client.rs` — desktop
   envelope version (spec 183 refines; spec 110 establishes).
-- `platform/services/stagecraft/api/sync/types.ts` — server envelope
+- `platform/services/statecraft/api/sync/types.ts` — server envelope
   version (spec 087 / spec 119).
 
 This spec does not change either file; it only asserts they agree.

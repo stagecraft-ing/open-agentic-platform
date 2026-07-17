@@ -24,6 +24,6 @@ OAP currently supports four registered adapters:
 
 ## The Substrate (Spec 139)
 
-Historically, adapter manifests lived as files in the repository root. Spec 139 moved this data into the `factory_artifact_substrate` table within the `stagecraft` database.
+Historically, adapter manifests lived as files in the repository root. Spec 139 moved this data into the `factory_artifact_substrate` table within the `statecraft` database.
 
-This content-addressed substrate provides a universal pinning mechanism for factory templates and agent definitions. The file-backed snapshot at `platform/services/stagecraft/api/factory/adapter-scopes.json` serves as a static fallback for the codebase indexer, while the full manifest content is materialized at runtime from the database.
+This content-addressed substrate provides a universal pinning mechanism for factory templates and agent definitions. The file-backed snapshot at `platform/services/statecraft/api/factory/adapter-scopes.json` serves as a static fallback for the codebase indexer, while the full manifest content is materialized at runtime from the database.

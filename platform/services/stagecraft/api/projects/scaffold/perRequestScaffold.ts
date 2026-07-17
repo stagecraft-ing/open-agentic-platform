@@ -145,7 +145,7 @@ export async function scaffoldFromPrebuilt(
   // (the generator composed them, spec 112 §5.3.1), recorded in the copied
   // template.json. Filter those out so a profile default is never re-composed
   // (which would duplicate its migration); this mirrors the generator's own
-  // dedupe and stagecraft's extrasFor filtering of profile built-ins.
+  // dedupe and statecraft's extrasFor filtering of profile built-ins.
   const alreadyShipped = await readInstalledModules(dest);
   const extras =
     opts.profile === "dual"

@@ -7,7 +7,7 @@
 //!
 //! > **Distribution-shape note (spec 167 self-amend, 2026-06-11).** The
 //! > canonical born-with kernel is the published `spec-spine` npm
-//! > distribution, materialised by stagecraft's Create flow; this Rust path
+//! > distribution, materialised by statecraft's Create flow; this Rust path
 //! > is the fallback for non-npm adapters (OQ-6). The vendored-binary CI
 //! > workflow and the synthetic scaffold-claim spec it used to write are
 //! > retired — the npm shape ships CI from the prebuilt template and a
@@ -110,7 +110,7 @@ pub fn emit_kernel(
             factory_engine_version: factory_engine_version.clone(),
             emitted_at,
             // The non-npm engine fallback (OQ-6) carries no npm pin; the npm
-            // distribution path stamps spec_spine_version via stagecraft's TS
+            // distribution path stamps spec_spine_version via statecraft's TS
             // Create flow (spec 209 FR-004 / kernelVersionStamp.ts).
             spec_spine_version: None,
         },

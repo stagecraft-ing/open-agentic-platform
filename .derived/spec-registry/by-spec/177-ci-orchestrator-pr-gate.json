@@ -116,7 +116,7 @@
         "role": "trigger-consolidation",
         "unit": {
           "kind": "file",
-          "path": ".github/workflows/ci-stagecraft.yml"
+          "path": ".github/workflows/ci-statecraft.yml"
         }
       },
       {

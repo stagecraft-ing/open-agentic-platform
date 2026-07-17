@@ -1,7 +1,7 @@
-//! HTTP client for Stagecraft Platform API (Specs 077, 087).
+//! HTTP client for Statecraft Platform API (Specs 077, 087).
 //!
 //! Provides dual-write capability: the local Factory engine executes pipelines
-//! while this client mirrors lifecycle events to the Stagecraft control plane
+//! while this client mirrors lifecycle events to the Statecraft control plane
 //! for centralized audit, token tracking, and governance.
 //!
 //! Spec 087 Phase 5: auth_token is a Rauthy JWT (stored in OS keychain).
@@ -16,15 +16,15 @@ use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
-/// Tauri-managed wrapper for the optional Stagecraft HTTP client.
+/// Tauri-managed wrapper for the optional Statecraft HTTP client.
 ///
 /// Wrapped in a `RwLock` so the base URL can be swapped at runtime via the
-/// settings UI (see `commands::settings::set_stagecraft_base_url`). When the
+/// settings UI (see `commands::settings::set_statecraft_base_url`). When the
 /// URL is unset, the inner `Option` is `None` and factory commands run
 /// local-only.
-pub struct StagecraftState(pub RwLock<Option<Arc<StagecraftClient>>>);
+pub struct StatecraftState(pub RwLock<Option<Arc<StatecraftClient>>>);
 
-impl StagecraftState {
+impl StatecraftState {
     /// Return a shared handle to the current client, if any.
     ///
     /// The client is held in an `Arc` so every holder — the boot-gate status
@@ -35,13 +35,13 @@ impl StagecraftState {
     /// type, `current()` returned a snapshot clone, so a sign-in's
     /// `set_org_id` mutated a throwaway copy and the boot gate's in-memory
     /// `org_id` read stayed empty — wedging the cockpit at "Waiting for
-    /// stagecraft duplex handshake" even after `sync.hello` arrived.
-    pub fn current(&self) -> Option<Arc<StagecraftClient>> {
+    /// statecraft duplex handshake" even after `sync.hello` arrived.
+    pub fn current(&self) -> Option<Arc<StatecraftClient>> {
         match self.0.read() {
             Ok(g) => g.clone(),
             // A panic in some other holder poisons the lock, but the inner
             // `Option<Arc<…>>` is not corrupted by that. Recover and log rather
-            // than `.ok()` → `None`, which would silently disable Stagecraft
+            // than `.ok()` → `None`, which would silently disable Statecraft
             // (boot gate stuck "not ready", REST dual-write skipped) with no
             // trace of why.
             Err(poisoned) => {
@@ -50,7 +50,7 @@ impl StagecraftState {
                 // poisoned after into_inner()). The inner Option<Arc<…>> is not
                 // corrupted by an unrelated holder's panic.
                 log::error!(
-                    "StagecraftState RwLock poisoned (read) — recovering inner and clearing poison"
+                    "StatecraftState RwLock poisoned (read) — recovering inner and clearing poison"
                 );
                 let value = poisoned.into_inner().clone();
                 self.0.clear_poison();
@@ -60,12 +60,12 @@ impl StagecraftState {
     }
 
     /// Replace the current client (used when the base URL changes).
-    pub fn replace(&self, client: Option<Arc<StagecraftClient>>) {
+    pub fn replace(&self, client: Option<Arc<StatecraftClient>>) {
         match self.0.write() {
             Ok(mut g) => *g = client,
             Err(poisoned) => {
                 log::error!(
-                    "StagecraftState RwLock poisoned (write) — recovering inner and clearing poison"
+                    "StatecraftState RwLock poisoned (write) — recovering inner and clearing poison"
                 );
                 *poisoned.into_inner() = client;
                 self.0.clear_poison();
@@ -75,11 +75,11 @@ impl StagecraftState {
 }
 
 // ---------------------------------------------------------------------------
-// Stage ID mapping — local engine uses longer names than Stagecraft
+// Stage ID mapping — local engine uses longer names than Statecraft
 // ---------------------------------------------------------------------------
 
-/// Map local pipeline stage IDs to Stagecraft's canonical stage IDs.
-pub fn to_stagecraft_stage_id(local_id: &str) -> &str {
+/// Map local pipeline stage IDs to Statecraft's canonical stage IDs.
+pub fn to_statecraft_stage_id(local_id: &str) -> &str {
     match local_id {
         "s4-api-specification" => "s4-api-spec",
         "s5-ui-specification" => "s5-ui-spec",
@@ -110,7 +110,7 @@ pub(super) fn decode_jwt_claims(token: &str) -> Option<serde_json::Value> {
 ///
 /// Rauthy nests the OAP custom user attributes (`oap_org_id`, `oap_user_id`,
 /// `oap_org_slug`, `github_login`, …) under a top-level `custom` object — see
-/// stagecraft `api/auth/sessionMint.ts` ("carries the attributes under
+/// statecraft `api/auth/sessionMint.ts` ("carries the attributes under
 /// `custom.oap_*`") and the `oap` scope's `attr_include_access` mapping in
 /// `scripts/seed-rauthy.mjs`. Standard OIDC claims (`email`, `sub`, …) stay at
 /// the top level. This accessor checks `custom` first, then falls back to the
@@ -140,13 +140,13 @@ pub(super) fn claim_str<'a>(claims: &'a serde_json::Value, key: &str) -> Option<
 // Client
 // ---------------------------------------------------------------------------
 
-/// Thin HTTP wrapper around the Stagecraft Platform API.
+/// Thin HTTP wrapper around the Statecraft Platform API.
 ///
 /// Held as Tauri managed state so all commands share one connection pool.
 /// Org-aware: carries the active org ID and a Rauthy JWT for authenticated
 /// platform endpoints (spec 087 Phase 5, renamed by spec 119). The JWT is stored in the OS
 /// keychain via the `keychain` module.
-pub struct StagecraftClient {
+pub struct StatecraftClient {
     client: Client,
     base_url: String,
     /// Default actor identity sent on mutating requests.
@@ -157,7 +157,7 @@ pub struct StagecraftClient {
     auth_token: RwLock<Option<String>>,
 }
 
-impl Clone for StagecraftClient {
+impl Clone for StatecraftClient {
     fn clone(&self) -> Self {
         Self {
             client: self.client.clone(),
@@ -170,12 +170,12 @@ impl Clone for StagecraftClient {
 }
 
 /// OS-keychain entry names this client persists under service
-/// `dev.opc.stagecraft`. Single source of truth so the logout path
+/// `dev.opc.statecraft`. Single source of truth so the logout path
 /// (`clear_auth`) and the settings URL-change cleanup cannot drift — a new
 /// credential added here is cleared by both at once.
 const KEYCHAIN_ENTRIES: &[&str] = &["session", "refresh_token"];
 
-impl StagecraftClient {
+impl StatecraftClient {
     /// Build a new client.  Returns `None` when `base_url` is empty (integration disabled).
     pub fn new(base_url: &str, actor_user_id: &str) -> Option<Self> {
         if base_url.is_empty() {
@@ -211,7 +211,7 @@ impl StagecraftClient {
     pub fn set_auth_token(&self, token: &str) {
         self.apply_token(token);
         // Best-effort persist to keychain
-        if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", "session") {
+        if let Ok(entry) = keyring::Entry::new("dev.opc.statecraft", "session") {
             let _ = entry.set_password(token);
         }
     }
@@ -242,7 +242,7 @@ impl StagecraftClient {
 
     /// Load the auth token from the OS keychain (called on startup).
     pub fn load_token_from_keychain(&self) -> bool {
-        if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", "session")
+        if let Ok(entry) = keyring::Entry::new("dev.opc.statecraft", "session")
             && let Ok(token) = entry.get_password()
         {
             self.apply_token(&token);
@@ -278,11 +278,11 @@ impl StagecraftClient {
     /// Delete every persisted OS-keychain entry for this client (the old
     /// server's session). Single source of truth for the entry list, so the
     /// `clear_auth` logout path and the settings URL-change cleanup
-    /// (`set_stagecraft_base_url`) cannot drift — a credential added to
+    /// (`set_statecraft_base_url`) cannot drift — a credential added to
     /// `KEYCHAIN_ENTRIES` is cleared by both at once.
     pub(crate) fn clear_keychain_entries() {
         for key in KEYCHAIN_ENTRIES {
-            if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", key) {
+            if let Ok(entry) = keyring::Entry::new("dev.opc.statecraft", key) {
                 let _ = entry.delete_credential();
             }
         }
@@ -316,12 +316,12 @@ impl StagecraftClient {
     /// `pub(crate)` so the duplex sync consumer (spec 110 / 183) can drive the
     /// same silent refresh when its WebSocket upgrade is rejected 401, rather
     /// than retrying an expired bearer forever.
-    pub(crate) async fn refresh_jwt(&self) -> Result<(), StagecraftError> {
-        let refresh_token = keyring::Entry::new("dev.opc.stagecraft", "refresh_token")
+    pub(crate) async fn refresh_jwt(&self) -> Result<(), StatecraftError> {
+        let refresh_token = keyring::Entry::new("dev.opc.statecraft", "refresh_token")
             .ok()
             .and_then(|e| e.get_password().ok())
             .ok_or_else(|| {
-                StagecraftError::Api(401, "no refresh_token in keychain".into())
+                StatecraftError::Api(401, "no refresh_token in keychain".into())
             })?;
 
         let url = format!("{}/auth/desktop/refresh", self.base_url);
@@ -332,17 +332,17 @@ impl StagecraftClient {
             .json(&body)
             .send()
             .await
-            .map_err(StagecraftError::Network)?;
+            .map_err(StatecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
+            return Err(StatecraftError::Api(
                 resp.status().as_u16(),
                 resp.text().await.unwrap_or_default(),
             ));
         }
         let data: RefreshTokenResponse =
-            resp.json().await.map_err(StagecraftError::Decode)?;
+            resp.json().await.map_err(StatecraftError::Decode)?;
         self.set_auth_token(&data.access_token);
-        if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", "refresh_token") {
+        if let Ok(entry) = keyring::Entry::new("dev.opc.statecraft", "refresh_token") {
             let _ = entry.set_password(&data.refresh_token);
         }
         Ok(())
@@ -355,7 +355,7 @@ impl StagecraftClient {
         project_id: &str,
         adapter: &str,
         business_docs: &[BusinessDocRef],
-    ) -> Result<InitResponse, StagecraftError> {
+    ) -> Result<InitResponse, StatecraftError> {
         let url = format!("{}/api/projects/{}/factory/init", self.base_url, project_id);
         let body = InitRequest {
             adapter: adapter.into(),
@@ -374,14 +374,14 @@ impl StagecraftClient {
             .json(&body)
             .send()
             .await
-            .map_err(StagecraftError::Network)?;
+            .map_err(StatecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
+            return Err(StatecraftError::Api(
                 resp.status().as_u16(),
                 resp.text().await.unwrap_or_default(),
             ));
         }
-        resp.json().await.map_err(StagecraftError::Decode)
+        resp.json().await.map_err(StatecraftError::Decode)
     }
 
     // -- FR-004: Confirm Stage ------------------------------------------------
@@ -391,8 +391,8 @@ impl StagecraftClient {
         project_id: &str,
         stage_id: &str,
         notes: Option<&str>,
-    ) -> Result<ConfirmResponse, StagecraftError> {
-        let sc_stage = to_stagecraft_stage_id(stage_id);
+    ) -> Result<ConfirmResponse, StatecraftError> {
+        let sc_stage = to_statecraft_stage_id(stage_id);
         let url = format!(
             "{}/api/projects/{}/factory/stage/{}/confirm",
             self.base_url, project_id, sc_stage
@@ -407,14 +407,14 @@ impl StagecraftClient {
             .json(&body)
             .send()
             .await
-            .map_err(StagecraftError::Network)?;
+            .map_err(StatecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
+            return Err(StatecraftError::Api(
                 resp.status().as_u16(),
                 resp.text().await.unwrap_or_default(),
             ));
         }
-        resp.json().await.map_err(StagecraftError::Decode)
+        resp.json().await.map_err(StatecraftError::Decode)
     }
 
     // -- FR-005: Reject Stage -------------------------------------------------
@@ -424,8 +424,8 @@ impl StagecraftClient {
         project_id: &str,
         stage_id: &str,
         feedback: &str,
-    ) -> Result<RejectResponse, StagecraftError> {
-        let sc_stage = to_stagecraft_stage_id(stage_id);
+    ) -> Result<RejectResponse, StatecraftError> {
+        let sc_stage = to_statecraft_stage_id(stage_id);
         let url = format!(
             "{}/api/projects/{}/factory/stage/{}/reject",
             self.base_url, project_id, sc_stage
@@ -440,14 +440,14 @@ impl StagecraftClient {
             .json(&body)
             .send()
             .await
-            .map_err(StagecraftError::Network)?;
+            .map_err(StatecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
+            return Err(StatecraftError::Api(
                 resp.status().as_u16(),
                 resp.text().await.unwrap_or_default(),
             ));
         }
-        resp.json().await.map_err(StagecraftError::Decode)
+        resp.json().await.map_err(StatecraftError::Decode)
     }
 
     // -- FR-009: Pipeline Status Update -----------------------------------------
@@ -460,7 +460,7 @@ impl StagecraftClient {
         current_stage: Option<&str>,
         error: Option<&str>,
         phase: Option<&str>,
-    ) -> Result<StatusUpdateResponse, StagecraftError> {
+    ) -> Result<StatusUpdateResponse, StatecraftError> {
         let url = format!(
             "{}/api/projects/{}/factory/status-update",
             self.base_url, project_id
@@ -479,14 +479,14 @@ impl StagecraftClient {
             .json(&body)
             .send()
             .await
-            .map_err(StagecraftError::Network)?;
+            .map_err(StatecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
+            return Err(StatecraftError::Api(
                 resp.status().as_u16(),
                 resp.text().await.unwrap_or_default(),
             ));
         }
-        resp.json().await.map_err(StagecraftError::Decode)
+        resp.json().await.map_err(StatecraftError::Decode)
     }
 
     // -- FR-010: Scaffold Progress ---------------------------------------------
@@ -496,7 +496,7 @@ impl StagecraftClient {
         project_id: &str,
         pipeline_id: &str,
         features: &[ScaffoldFeatureReport],
-    ) -> Result<ScaffoldProgressResponse, StagecraftError> {
+    ) -> Result<ScaffoldProgressResponse, StatecraftError> {
         let url = format!(
             "{}/api/projects/{}/factory/scaffold-progress",
             self.base_url, project_id
@@ -512,14 +512,14 @@ impl StagecraftClient {
             .json(&body)
             .send()
             .await
-            .map_err(StagecraftError::Network)?;
+            .map_err(StatecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
+            return Err(StatecraftError::Api(
                 resp.status().as_u16(),
                 resp.text().await.unwrap_or_default(),
             ));
         }
-        resp.json().await.map_err(StagecraftError::Decode)
+        resp.json().await.map_err(StatecraftError::Decode)
     }
 
     // -- FR-012: Cancel Pipeline -------------------------------------------------
@@ -528,7 +528,7 @@ impl StagecraftClient {
         &self,
         project_id: &str,
         reason: &str,
-    ) -> Result<CancelResponse, StagecraftError> {
+    ) -> Result<CancelResponse, StatecraftError> {
         let url = format!(
             "{}/api/projects/{}/factory/cancel",
             self.base_url, project_id
@@ -543,14 +543,14 @@ impl StagecraftClient {
             .json(&body)
             .send()
             .await
-            .map_err(StagecraftError::Network)?;
+            .map_err(StatecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
+            return Err(StatecraftError::Api(
                 resp.status().as_u16(),
                 resp.text().await.unwrap_or_default(),
             ));
         }
-        resp.json().await.map_err(StagecraftError::Decode)
+        resp.json().await.map_err(StatecraftError::Decode)
     }
 
     // -- FR-011: Batch Event Ingestion ------------------------------------------
@@ -560,7 +560,7 @@ impl StagecraftClient {
         project_id: &str,
         pipeline_id: &str,
         events: &[OrchestratorEventReport],
-    ) -> Result<EventIngestionResponse, StagecraftError> {
+    ) -> Result<EventIngestionResponse, StatecraftError> {
         let url = format!(
             "{}/api/projects/{}/factory/events",
             self.base_url, project_id
@@ -575,14 +575,14 @@ impl StagecraftClient {
             .json(&body)
             .send()
             .await
-            .map_err(StagecraftError::Network)?;
+            .map_err(StatecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
+            return Err(StatecraftError::Api(
                 resp.status().as_u16(),
                 resp.text().await.unwrap_or_default(),
             ));
         }
-        resp.json().await.map_err(StagecraftError::Decode)
+        resp.json().await.map_err(StatecraftError::Decode)
     }
 
     // -- 082 FR-023: Record Artifacts ------------------------------------------
@@ -593,7 +593,7 @@ impl StagecraftClient {
         pipeline_id: &str,
         stage_id: &str,
         artifacts: &[ArtifactRecord],
-    ) -> Result<RecordArtifactsResponse, StagecraftError> {
+    ) -> Result<RecordArtifactsResponse, StatecraftError> {
         let url = format!(
             "{}/api/projects/{}/factory/artifacts",
             self.base_url, project_id
@@ -609,14 +609,14 @@ impl StagecraftClient {
             .json(&body)
             .send()
             .await
-            .map_err(StagecraftError::Network)?;
+            .map_err(StatecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
+            return Err(StatecraftError::Api(
                 resp.status().as_u16(),
                 resp.text().await.unwrap_or_default(),
             ));
         }
-        resp.json().await.map_err(StagecraftError::Decode)
+        resp.json().await.map_err(StatecraftError::Decode)
     }
 
     // -- Spec 120 FR-021: Extraction-Output Endpoints ---------------------------
@@ -629,7 +629,7 @@ impl StagecraftClient {
         object_id: &str,
         schema_version: &str,
         output: &serde_json::Value,
-    ) -> Result<PostExtractionOutputResponse, StagecraftError> {
+    ) -> Result<PostExtractionOutputResponse, StatecraftError> {
         let url = format!(
             "{}/api/projects/{}/knowledge/objects/{}/extraction-output",
             self.base_url, project_id, object_id
@@ -646,14 +646,14 @@ impl StagecraftClient {
             .json(&body)
             .send()
             .await
-            .map_err(StagecraftError::Network)?;
+            .map_err(StatecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
+            return Err(StatecraftError::Api(
                 resp.status().as_u16(),
                 resp.text().await.unwrap_or_default(),
             ));
         }
-        resp.json().await.map_err(StagecraftError::Decode)
+        resp.json().await.map_err(StatecraftError::Decode)
     }
 
     /// Spec 120 FR-018 — request a server-side agent extraction.
@@ -664,7 +664,7 @@ impl StagecraftClient {
         content_hash: &str,
         requested_kind: Option<&str>,
         reason: &str,
-    ) -> Result<YieldExtractionResponse, StagecraftError> {
+    ) -> Result<YieldExtractionResponse, StatecraftError> {
         let url = format!(
             "{}/api/projects/{}/knowledge/objects/{}/yield-extraction",
             self.base_url, project_id, object_id
@@ -684,14 +684,14 @@ impl StagecraftClient {
             .json(&body)
             .send()
             .await
-            .map_err(StagecraftError::Network)?;
+            .map_err(StatecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
+            return Err(StatecraftError::Api(
                 resp.status().as_u16(),
                 resp.text().await.unwrap_or_default(),
             ));
         }
-        resp.json().await.map_err(StagecraftError::Decode)
+        resp.json().await.map_err(StatecraftError::Decode)
     }
 
     /// Spec 120 FR-019 — fetch the most-recent successful extraction record
@@ -701,7 +701,7 @@ impl StagecraftClient {
         project_id: &str,
         object_id: &str,
         content_hash: &str,
-    ) -> Result<Option<FetchExtractionOutputResponse>, StagecraftError> {
+    ) -> Result<Option<FetchExtractionOutputResponse>, StatecraftError> {
         let url = format!(
             "{}/api/projects/{}/knowledge/objects/{}/extraction-output?contentHash={}",
             self.base_url, project_id, object_id, content_hash,
@@ -710,18 +710,18 @@ impl StagecraftClient {
             .authed_get(&url)
             .send()
             .await
-            .map_err(StagecraftError::Network)?;
+            .map_err(StatecraftError::Network)?;
         if resp.status().as_u16() == 404 {
             return Ok(None);
         }
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
+            return Err(StatecraftError::Api(
                 resp.status().as_u16(),
                 resp.text().await.unwrap_or_default(),
             ));
         }
         let parsed: FetchExtractionOutputResponse =
-            resp.json().await.map_err(StagecraftError::Decode)?;
+            resp.json().await.map_err(StatecraftError::Decode)?;
         Ok(Some(parsed))
     }
 
@@ -732,7 +732,7 @@ impl StagecraftClient {
         project_id: &str,
         content_hash: &str,
         stage_id: &str,
-    ) -> Result<LookupArtifactResponse, StagecraftError> {
+    ) -> Result<LookupArtifactResponse, StatecraftError> {
         let url = format!(
             "{}/api/projects/{}/factory/artifacts/lookup?content_hash={}&stage_id={}",
             self.base_url,
@@ -744,14 +744,14 @@ impl StagecraftClient {
             .authed_get(&url)
             .send()
             .await
-            .map_err(StagecraftError::Network)?;
+            .map_err(StatecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
+            return Err(StatecraftError::Api(
                 resp.status().as_u16(),
                 resp.text().await.unwrap_or_default(),
             ));
         }
-        resp.json().await.map_err(StagecraftError::Decode)
+        resp.json().await.map_err(StatecraftError::Decode)
     }
 
     // -- Spec 111 Phase 6: one-click local→remote agent publishing -----------
@@ -759,7 +759,7 @@ impl StagecraftClient {
     /// Create a draft in the org's agent catalog.
     ///
     /// The server scopes the draft to the orgId embedded in the Rauthy
-    /// JWT (see auth middleware in stagecraft's catalog.ts), so the
+    /// JWT (see auth middleware in statecraft's catalog.ts), so the
     /// desktop only needs a valid Bearer token plus the payload. Returns the
     /// new catalog row identifiers so the caller can link the user to the
     /// web-UI publish page.
@@ -768,7 +768,7 @@ impl StagecraftClient {
         name: &str,
         frontmatter: serde_json::Value,
         body_markdown: &str,
-    ) -> Result<CreateAgentDraftResponse, StagecraftError> {
+    ) -> Result<CreateAgentDraftResponse, StatecraftError> {
         let url = format!("{}/api/agents", self.base_url);
         let body = CreateAgentDraftRequest {
             name: name.to_string(),
@@ -780,14 +780,14 @@ impl StagecraftClient {
             .json(&body)
             .send()
             .await
-            .map_err(StagecraftError::Network)?;
+            .map_err(StatecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
+            return Err(StatecraftError::Api(
                 resp.status().as_u16(),
                 resp.text().await.unwrap_or_default(),
             ));
         }
-        resp.json().await.map_err(StagecraftError::Decode)
+        resp.json().await.map_err(StatecraftError::Decode)
     }
 
     // -- FR-008: Token Spend --------------------------------------------------
@@ -800,8 +800,8 @@ impl StagecraftClient {
         prompt_tokens: u64,
         completion_tokens: u64,
         model: &str,
-    ) -> Result<(), StagecraftError> {
-        let sc_stage = to_stagecraft_stage_id(stage_id);
+    ) -> Result<(), StatecraftError> {
+        let sc_stage = to_statecraft_stage_id(stage_id);
         let url = format!(
             "{}/api/projects/{}/factory/token-spend",
             self.base_url, project_id
@@ -819,9 +819,9 @@ impl StagecraftClient {
             .json(&body)
             .send()
             .await
-            .map_err(StagecraftError::Network)?;
+            .map_err(StatecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
+            return Err(StatecraftError::Api(
                 resp.status().as_u16(),
                 resp.text().await.unwrap_or_default(),
             ));
@@ -843,7 +843,7 @@ impl StagecraftClient {
     pub async fn get_project_opc_bundle(
         &self,
         project_id: &str,
-    ) -> Result<OpcBundleResponse, StagecraftError> {
+    ) -> Result<OpcBundleResponse, StatecraftError> {
         let url = format!(
             "{}/api/projects/{}/opc-bundle",
             self.base_url, project_id
@@ -862,7 +862,7 @@ impl StagecraftClient {
     pub async fn refresh_project_clone_token(
         &self,
         project_id: &str,
-    ) -> Result<CloneTokenResponse, StagecraftError> {
+    ) -> Result<CloneTokenResponse, StatecraftError> {
         let url = format!(
             "{}/api/projects/{}/clone-token",
             self.base_url, project_id
@@ -884,27 +884,27 @@ impl StagecraftClient {
     /// before accepting any factory run. Fail-closed: `Err` prevents the run.
     pub async fn fetch_factory_jwks(
         &self,
-    ) -> Result<factory_engine::platform_jws::PlatformJwks, StagecraftError> {
+    ) -> Result<factory_engine::platform_jws::PlatformJwks, StatecraftError> {
         let url = format!("{}/api/factory/.well-known/jwks.json", self.base_url);
         let resp = self
             .client
             .get(&url)
             .send()
             .await
-            .map_err(StagecraftError::Network)?;
+            .map_err(StatecraftError::Network)?;
         if !resp.status().is_success() {
-            return Err(StagecraftError::Api(
+            return Err(StatecraftError::Api(
                 resp.status().as_u16(),
                 resp.text().await.unwrap_or_default(),
             ));
         }
-        resp.json().await.map_err(StagecraftError::Decode)
+        resp.json().await.map_err(StatecraftError::Decode)
     }
 
     async fn authed_json_get_with_refresh<T>(
         &self,
         url: &str,
-    ) -> Result<T, StagecraftError>
+    ) -> Result<T, StatecraftError>
     where
         T: for<'de> Deserialize<'de>,
     {
@@ -912,15 +912,15 @@ impl StagecraftClient {
             .authed_get(url)
             .send()
             .await
-            .map_err(StagecraftError::Network)?;
+            .map_err(StatecraftError::Network)?;
         if resp.status().as_u16() != 401 {
             if !resp.status().is_success() {
-                return Err(StagecraftError::Api(
+                return Err(StatecraftError::Api(
                     resp.status().as_u16(),
                     resp.text().await.unwrap_or_default(),
                 ));
             }
-            return resp.json().await.map_err(StagecraftError::Decode);
+            return resp.json().await.map_err(StatecraftError::Decode);
         }
 
         // 401: try to refresh once, then retry. Carry forward the
@@ -928,7 +928,7 @@ impl StagecraftClient {
         // error to the inbox banner.
         let original_body = resp.text().await.unwrap_or_default();
         if let Err(refresh_err) = self.refresh_jwt().await {
-            return Err(StagecraftError::Api(
+            return Err(StatecraftError::Api(
                 401,
                 format!(
                     "{} (refresh failed: {})",
@@ -945,31 +945,31 @@ impl StagecraftClient {
             .authed_get(url)
             .send()
             .await
-            .map_err(StagecraftError::Network)?;
+            .map_err(StatecraftError::Network)?;
         if !retry.status().is_success() {
-            return Err(StagecraftError::Api(
+            return Err(StatecraftError::Api(
                 retry.status().as_u16(),
                 retry.text().await.unwrap_or_default(),
             ));
         }
-        retry.json().await.map_err(StagecraftError::Decode)
+        retry.json().await.map_err(StatecraftError::Decode)
     }
 }
 
 /// Blocking keychain read of the persisted session token. Free function (no
 /// `&self`) because the entry coordinates are constant, so it is safe to hand
 /// to `tokio::task::spawn_blocking` without borrowing a client across the
-/// thread boundary. Pair with [`StagecraftClient::adopt_token`] to apply the
+/// thread boundary. Pair with [`StatecraftClient::adopt_token`] to apply the
 /// result in-memory once it has been read off the async executor
 /// (spec 110 / 183 duplex consumer).
 pub(crate) fn read_session_token_from_keychain() -> Option<String> {
-    keyring::Entry::new("dev.opc.stagecraft", "session")
+    keyring::Entry::new("dev.opc.statecraft", "session")
         .ok()
         .and_then(|e| e.get_password().ok())
 }
 
 // ---------------------------------------------------------------------------
-// Request / Response types (mirror Stagecraft's TypeScript shapes)
+// Request / Response types (mirror Statecraft's TypeScript shapes)
 // ---------------------------------------------------------------------------
 
 #[derive(Serialize)]
@@ -983,9 +983,9 @@ struct InitRequest {
     actor_user_id: String,
     #[serde(rename = "orgId")]
     org_id: String,
-    // Spec 110 §8 Phase 6: server default is now "stagecraft". The desktop's
+    // Spec 110 §8 Phase 6: server default is now "statecraft". The desktop's
     // dual-write path is already running the engine locally, so it must pin
-    // `source` to "opc-direct" to prevent stagecraft from dispatching a
+    // `source` to "opc-direct" to prevent statecraft from dispatching a
     // `factory.run.request` envelope back to the same (or another) OPC.
     source: &'static str,
 }
@@ -1217,7 +1217,7 @@ pub struct FetchExtractionOutputResponse {
 
 #[tauri::command]
 pub async fn post_extraction_output(
-    state: tauri::State<'_, StagecraftState>,
+    state: tauri::State<'_, StatecraftState>,
     project_id: String,
     object_id: String,
     schema_version: String,
@@ -1228,7 +1228,7 @@ pub async fn post_extraction_output(
         .read()
         .unwrap()
         .as_ref()
-        .ok_or_else(|| "stagecraft client not configured".to_string())?
+        .ok_or_else(|| "statecraft client not configured".to_string())?
         .clone();
     client
         .post_extraction_output(&project_id, &object_id, &schema_version, &output)
@@ -1238,7 +1238,7 @@ pub async fn post_extraction_output(
 
 #[tauri::command]
 pub async fn request_extraction_yield(
-    state: tauri::State<'_, StagecraftState>,
+    state: tauri::State<'_, StatecraftState>,
     project_id: String,
     object_id: String,
     content_hash: String,
@@ -1250,7 +1250,7 @@ pub async fn request_extraction_yield(
         .read()
         .unwrap()
         .as_ref()
-        .ok_or_else(|| "stagecraft client not configured".to_string())?
+        .ok_or_else(|| "statecraft client not configured".to_string())?
         .clone();
     client
         .request_extraction_yield(
@@ -1266,7 +1266,7 @@ pub async fn request_extraction_yield(
 
 #[tauri::command]
 pub async fn fetch_extraction_output(
-    state: tauri::State<'_, StagecraftState>,
+    state: tauri::State<'_, StatecraftState>,
     project_id: String,
     object_id: String,
     content_hash: String,
@@ -1276,7 +1276,7 @@ pub async fn fetch_extraction_output(
         .read()
         .unwrap()
         .as_ref()
-        .ok_or_else(|| "stagecraft client not configured".to_string())?
+        .ok_or_else(|| "statecraft client not configured".to_string())?
         .clone();
     client
         .fetch_extraction_output(&project_id, &object_id, &content_hash)
@@ -1300,7 +1300,7 @@ pub struct CreateAgentDraftResponse {
     pub agent: CatalogAgentWire,
 }
 
-/// Subset of stagecraft's `CatalogAgent` that the desktop cares about after a
+/// Subset of statecraft's `CatalogAgent` that the desktop cares about after a
 /// draft create. Fields mirror the snake_cased wire shape defined in
 /// `catalog.ts`.
 #[derive(Debug, Deserialize)]
@@ -1325,7 +1325,7 @@ pub struct ArtifactInfo {
 }
 
 // ---------------------------------------------------------------------------
-// Spec 112 §6.3 — OPC bundle types (mirrors stagecraft's OpcBundleResponse)
+// Spec 112 §6.3 — OPC bundle types (mirrors statecraft's OpcBundleResponse)
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -1393,7 +1393,7 @@ pub struct OpcBundleAgent {
 /// `expires_at` is set for `github_installation` (~1h TTL) and null for
 /// `project_github_pat`. The bundle returns `clone_token: None` for
 /// public repos (anonymous clone path); a hard-resolution failure on
-/// the stagecraft side surfaces as a 503 instead.
+/// the statecraft side surfaces as a 503 instead.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct OpcBundleCloneToken {
@@ -1427,7 +1427,7 @@ pub struct OpcBundleAdmission {
 }
 
 /// Spec 198 FR-013(c) — one override the run will consume. Mirrors
-/// stagecraft `opcBundleHelpers.ts::OpcBundleConsumedOverride`.
+/// statecraft `opcBundleHelpers.ts::OpcBundleConsumedOverride`.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct OpcBundleConsumedOverride {
@@ -1456,7 +1456,7 @@ pub struct OpcBundleResponse {
     pub agents: Vec<OpcBundleAgent>,
     pub clone_token: Option<OpcBundleCloneToken>,
     /// Spec 198 FR-005 / ASI04 m1 — admission seal block. Absent on bundles
-    /// from pre-198 stagecraft builds; desktop treats absence as unverified
+    /// from pre-198 statecraft builds; desktop treats absence as unverified
     /// and fails closed before any factory run.
     #[serde(default)]
     pub admission: Option<OpcBundleAdmission>,
@@ -1489,23 +1489,23 @@ struct RefreshTokenResponse {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug)]
-pub enum StagecraftError {
+pub enum StatecraftError {
     /// Transport-level failure (DNS, timeout, connection refused).
     Network(reqwest::Error),
-    /// Stagecraft returned a non-2xx status.
+    /// Statecraft returned a non-2xx status.
     Api(u16, String),
     /// Response body could not be decoded.
     Decode(reqwest::Error),
 }
 
-impl std::fmt::Display for StagecraftError {
+impl std::fmt::Display for StatecraftError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Network(e) => write!(f, "stagecraft network error: {e}"),
+            Self::Network(e) => write!(f, "statecraft network error: {e}"),
             Self::Api(status, body) => {
-                write!(f, "stagecraft API error {status}: {body}")
+                write!(f, "statecraft API error {status}: {body}")
             }
-            Self::Decode(e) => write!(f, "stagecraft decode error: {e}"),
+            Self::Decode(e) => write!(f, "statecraft decode error: {e}"),
         }
     }
 }
@@ -1514,7 +1514,7 @@ impl std::fmt::Display for StagecraftError {
 mod tests {
     use super::*;
 
-    /// Spec 112 §6.3 — pin the wire format. The stagecraft endpoint
+    /// Spec 112 §6.3 — pin the wire format. The statecraft endpoint
     /// returns camelCase fields; the desktop's serde rename_all must
     /// keep up. If this test starts failing, the TS side likely renamed
     /// a field on `OpcBundleResponse` and the desktop is decoding the
@@ -1704,7 +1704,7 @@ mod tests {
     /// this test to nest its claims, or the fallback path loses coverage.
     #[test]
     fn set_auth_token_populates_org_id_from_jwt_claim() {
-        let client = StagecraftClient::new("http://example.test", "actor-1")
+        let client = StatecraftClient::new("http://example.test", "actor-1")
             .expect("client builds");
         assert_eq!(client.org_id(), "");
 
@@ -1728,7 +1728,7 @@ mod tests {
     /// this; this test pins the REAL Rauthy wire shape.
     #[test]
     fn apply_token_derives_org_id_from_nested_custom_claim() {
-        let client = StagecraftClient::new("http://example.test", "actor-1")
+        let client = StatecraftClient::new("http://example.test", "actor-1")
             .expect("client builds");
 
         let token = fake_jwt(&serde_json::json!({
@@ -1787,7 +1787,7 @@ mod tests {
     /// silent overwrite to empty, which would itself trigger the bug.
     #[test]
     fn apply_token_leaves_org_id_when_claim_missing() {
-        let client = StagecraftClient::new("http://example.test", "actor-1")
+        let client = StatecraftClient::new("http://example.test", "actor-1")
             .expect("client builds");
         client.set_org_id("org-prior");
 
@@ -1801,19 +1801,19 @@ mod tests {
         assert_eq!(client.org_id(), "org-prior");
     }
 
-    /// Pin the spec 183 boot-gate fix: `StagecraftState` holds ONE shared
-    /// `Arc<StagecraftClient>`, so a write through any `current()` handle is
+    /// Pin the spec 183 boot-gate fix: `StatecraftState` holds ONE shared
+    /// `Arc<StatecraftClient>`, so a write through any `current()` handle is
     /// visible through every other handle and through a fresh read. Before
     /// this was an `Arc`, `current()` returned a value-snapshot clone — a
     /// sign-in's `set_org_id` mutated a throwaway copy while the boot gate's
     /// in-memory `org_id` read stayed empty, wedging the cockpit at "Waiting
-    /// for stagecraft duplex handshake (sync.hello)…" even after `sync.hello`
+    /// for statecraft duplex handshake (sync.hello)…" even after `sync.hello`
     /// had been received.
     #[test]
-    fn stagecraft_state_shares_one_client_across_current_handles() {
-        let client = StagecraftClient::new("http://example.test", "actor-1")
+    fn statecraft_state_shares_one_client_across_current_handles() {
+        let client = StatecraftClient::new("http://example.test", "actor-1")
             .expect("client builds");
-        let state = StagecraftState(std::sync::RwLock::new(Some(std::sync::Arc::new(client))));
+        let state = StatecraftState(std::sync::RwLock::new(Some(std::sync::Arc::new(client))));
 
         let handle_a = state.current().expect("client present");
         let handle_b = state.current().expect("client present");
@@ -1835,14 +1835,14 @@ mod tests {
         assert_eq!(state.current().unwrap().org_id(), "org-from-token");
     }
 
-    /// A poisoned `StagecraftState` lock must NOT silently disable Stagecraft.
+    /// A poisoned `StatecraftState` lock must NOT silently disable Statecraft.
     /// `current()`/`replace()` recover the inner value AND clear the poison, so
     /// a panicked holder logs once per poison event (not on every op) and never
     /// wedges the boot gate ("not ready") or silently skips REST dual-write —
     /// a broader blast radius now that all callers share one Arc.
     #[test]
-    fn stagecraft_state_recovers_from_poisoned_lock() {
-        fn poison(st: &std::sync::Arc<StagecraftState>) {
+    fn statecraft_state_recovers_from_poisoned_lock() {
+        fn poison(st: &std::sync::Arc<StatecraftState>) {
             let p = st.clone();
             let _ = std::thread::spawn(move || {
                 let _g = p.0.write().unwrap();
@@ -1852,9 +1852,9 @@ mod tests {
             assert!(st.0.is_poisoned(), "lock should be poisoned");
         }
 
-        let state = std::sync::Arc::new(StagecraftState(std::sync::RwLock::new(Some(
+        let state = std::sync::Arc::new(StatecraftState(std::sync::RwLock::new(Some(
             std::sync::Arc::new(
-                StagecraftClient::new("http://example.test", "actor-1").expect("client builds"),
+                StatecraftClient::new("http://example.test", "actor-1").expect("client builds"),
             ),
         ))));
 

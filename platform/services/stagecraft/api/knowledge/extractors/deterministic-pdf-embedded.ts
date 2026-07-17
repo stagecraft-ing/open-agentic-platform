@@ -4,7 +4,7 @@
 // embedded text. The dispatcher's `canHandle` predicate checks only mime
 // type + size cap; the per-page text-density threshold is enforced inside
 // `extract` by throwing a typed `extractor_failed` when the median per-page
-// length falls below `STAGECRAFT_EXTRACT_PDF_MIN_MEDIAN_CHARS` (default
+// length falls below `STATECRAFT_EXTRACT_PDF_MIN_MEDIAN_CHARS` (default
 // 80). On retry the dispatcher re-picks based on policy and routes to the
 // agent vision path (Phase 2) — the broken extraction never auto-loops.
 
@@ -20,7 +20,7 @@ const MAX_BYTES = 200 * 1024 * 1024; // 200MB
 const DEFAULT_MIN_MEDIAN_CHARS = 80;
 
 function getMinMedianChars(): number {
-  const v = process.env.STAGECRAFT_EXTRACT_PDF_MIN_MEDIAN_CHARS;
+  const v = process.env.statecraft_EXTRACT_PDF_MIN_MEDIAN_CHARS;
   if (!v) return DEFAULT_MIN_MEDIAN_CHARS;
   const n = Number.parseInt(v, 10);
   return Number.isFinite(n) && n >= 0 ? n : DEFAULT_MIN_MEDIAN_CHARS;

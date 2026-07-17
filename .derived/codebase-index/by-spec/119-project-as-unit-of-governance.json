@@ -4,8 +4,8 @@
     "warnings": [
       {
         "code": "W-002",
-        "message": "spec '119-project-as-unit-of-governance' directory unit 'platform/services/stagecraft/api/workspaces' is not a directory",
-        "path": "platform/services/stagecraft/api/workspaces"
+        "message": "spec '119-project-as-unit-of-governance' directory unit 'platform/services/statecraft/api/workspaces' is not a directory",
+        "path": "platform/services/statecraft/api/workspaces"
       }
     ]
   },
@@ -23,7 +23,7 @@
       "092-workspace-runtime-threading",
       "094-unified-artifact-store",
       "099-workspace-scoped-persistence",
-      "113-stagecraft-projects-rename-and-clone",
+      "113-statecraft-projects-rename-and-clone",
       "114-async-project-clone-pipeline",
       "115-knowledge-extraction-pipeline"
     ],
@@ -41,19 +41,19 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db",
+        "path": "platform/services/statecraft/api/db",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge",
+        "path": "platform/services/statecraft/api/knowledge",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects",
+        "path": "platform/services/statecraft/api/projects",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/sync",
+        "path": "platform/services/statecraft/api/sync",
         "source": "spec-edge"
       },
       {
@@ -89,53 +89,53 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/db"
+            "file": "platform/services/statecraft/api/db"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "directory",
-          "path": "platform/services/stagecraft/api/db"
+          "path": "platform/services/statecraft/api/db"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge"
+            "file": "platform/services/statecraft/api/knowledge"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "directory",
-          "path": "platform/services/stagecraft/api/knowledge"
+          "path": "platform/services/statecraft/api/knowledge"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects"
+            "file": "platform/services/statecraft/api/projects"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "directory",
-          "path": "platform/services/stagecraft/api/projects"
+          "path": "platform/services/statecraft/api/projects"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync"
+            "file": "platform/services/statecraft/api/sync"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "directory",
-          "path": "platform/services/stagecraft/api/sync"
+          "path": "platform/services/statecraft/api/sync"
         }
       },
       {
@@ -274,7 +274,7 @@
         "sourceField": "references",
         "unit": {
           "kind": "directory",
-          "path": "platform/services/stagecraft/api/workspaces"
+          "path": "platform/services/statecraft/api/workspaces"
         }
       }
     ],

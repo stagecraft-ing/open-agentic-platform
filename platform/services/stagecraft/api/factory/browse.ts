@@ -267,7 +267,7 @@ export const getContract = api(
 // Processes — opaque by kind (FR-004). One process per admitted factory
 // origin; its name is the envelope's declared process.id. "What is a
 // process" is answered by "whatever files a valid envelope" — never by a
-// stagecraft-assembled categorical object.
+// statecraft-assembled categorical object.
 // ---------------------------------------------------------------------------
 
 const PROCESS_KINDS = [

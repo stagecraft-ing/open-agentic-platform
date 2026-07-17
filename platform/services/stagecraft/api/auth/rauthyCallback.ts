@@ -494,7 +494,7 @@ async function findOrCreateUserByRauthySub(opts: {
 
 /**
  * Mutate each ResolvedOrg and upsert org_memberships so the Rauthy-managed
- * role is reflected everywhere stagecraft reads role state. The membership
+ * role is reflected everywhere statecraft reads role state. The membership
  * rows exist by this point (afterResolution inserted them) so a plain UPDATE
  * is enough.
  */

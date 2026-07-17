@@ -1,7 +1,7 @@
-// Spec 112 §5.3.1 parity: stagecraft's warmup must produce a prebuild tree
+// Spec 112 §5.3.1 parity: statecraft's warmup must produce a prebuild tree
 // byte-identical to running the factory-encore generator directly.
 //
-// stagecraft's value is that it is a thin orchestrator: the produced app is
+// statecraft's value is that it is a thin orchestrator: the produced app is
 // whatever `setup-app.ts --profile <p> --source <template>` emits. This test
 // proves that, by running the REAL `ensurePrebuilts` (the sha-stamped snapshot
 // layout, the factory-cache generator, the `--source` baseline, `--profile`
@@ -45,8 +45,8 @@ function resolveCheckout(envVar: string, sibling: string): string | null {
   return null;
 }
 
-const FACTORY = resolveCheckout("STAGECRAFT_PARITY_FACTORY", "factory-encore");
-const TEMPLATE = resolveCheckout("STAGECRAFT_PARITY_TEMPLATE", "template-encore");
+const FACTORY = resolveCheckout("STATECRAFT_PARITY_FACTORY", "factory-encore");
+const TEMPLATE = resolveCheckout("STATECRAFT_PARITY_TEMPLATE", "template-encore");
 const TSX = FACTORY
   ? join(FACTORY, "node_modules", "tsx", "dist", "cli.mjs")
   : "";
@@ -195,6 +195,6 @@ maybe("spec 112 §5.3.1 parity: warmup tree == generator tree", () => {
 if (!READY) {
   // eslint-disable-next-line no-console
   console.warn(
-    "[parity.test] skipped: set STAGECRAFT_PARITY_FACTORY / STAGECRAFT_PARITY_TEMPLATE to local factory-encore / template-encore checkouts (with node_modules) to run"
+    "[parity.test] skipped: set STATECRAFT_PARITY_FACTORY / STATECRAFT_PARITY_TEMPLATE to local factory-encore / template-encore checkouts (with node_modules) to run"
   );
 }

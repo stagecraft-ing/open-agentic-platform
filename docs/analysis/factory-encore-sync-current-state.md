@@ -1,9 +1,9 @@
 # Factory-Encore Sync — Current-State Analysis
 
-> Investigation date: 2026-06-09. Scope: how the stagecraft factory
+> Investigation date: 2026-06-09. Scope: how the statecraft factory
 > sync/projection layer operates **today** after the upstream sources were
-> repointed to the owned `Stagecraft-ing/factory` +
-> `template` repos. Lens: the operator's thesis that **stagecraft
+> repointed to the owned `statecrafting/factory` +
+> `template` repos. Lens: the operator's thesis that **statecraft
 > should be a thin consumer of owned content, not a translator** — and that
 > the "encore" suffix is a greenfield to set an OAP-controlled, future-proof
 > open standard. No backward-compat weight; current shapes are baseline,
@@ -13,7 +13,7 @@
 >
 > **SUPERSEDED 2026-06-24. Historical snapshot, retained for provenance;
 > do not read its findings as current state.** Both axes it analysed have
-> since moved: (1) the stagecraft projection bugs (synthetic `acme-vue-node`,
+> since moved: (1) the statecraft projection bugs (synthetic `acme-vue-node`,
 > hardcoded origins, dropped `acme-vue-encore`) were fixed by the spec 199
 > thin-consumer cutover (`projection.ts` deleted; adapters served by their
 > own manifest identity; `adapter-scopes.json` keyed on `acme-vue-encore`),
@@ -32,8 +32,8 @@
 ## 0. One-sentence diagnosis
 
 The GitHub **sources** were switched to the owned factory/template
-repos, but the stagecraft **translation + projection layer was never moved off
-the dead `legacy-factory` layout** — so stagecraft is still *translating*
+repos, but the statecraft **translation + projection layer was never moved off
+the dead `legacy-factory` layout** — so statecraft is still *translating*
 (re-bucketing, synthesizing, hardcoding identities for) content it now *owns*,
 against a directory shape that no longer exists, while the verbatim-mirror
 substrate that should make all of that translation unnecessary already exists
@@ -130,7 +130,7 @@ GitHub repo create + commit #1 + push (`gitInitAndPush.ts`).
 This path consumes **only template** (clone target resolved via
 `scaffold_source_id` → `factory_upstreams(org, source_id)` → `(repo, ref)`,
 `scheduler.ts:64-85`). factory contributes **zero bytes** to scaffolding.
-The `scaffold_source_id` itself is injected by stagecraft at sync time as the
+The `scaffold_source_id` itself is injected by statecraft at sync time as the
 literal `"acme-vue-node"` (`oapNativeSanitise.ts:65` / `translator.ts:336`), not
 read from factory's manifest.
 
@@ -164,7 +164,7 @@ read from factory's manifest.
 
 ---
 
-## 3. The unifying structural finding: stagecraft translates what it now owns
+## 3. The unifying structural finding: statecraft translates what it now owns
 
 ### 3.1 Translate-vs-mirror ledger
 
@@ -172,7 +172,7 @@ read from factory's manifest.
 |---|---|---|
 | git clone | `clone.ts:44-88` | **mirror** |
 | `FACTORY_SOURCE_EXCLUDES` / `TEMPLATE_EXCLUDES` walk filter | `translator.ts:77-107` | **translate** (decides inclusion; written for old layout) |
-| `classifyArtifactKind` | `translator.ts:773-860` | **translate** (stagecraft vocabulary, load-bearing) |
+| `classifyArtifactKind` | `translator.ts:773-860` | **translate** (statecraft vocabulary, load-bearing) |
 | body + sha + contentHash | `translator.ts:893-903` | **mirror** |
 | origin id assignment | `translator.ts:883-884` | **translate** (static `legacy-factory`/`acme-vue-node`) |
 | OAP contract schema ingest | `oapContracts.ts:95-125` | **mirror** |
@@ -200,12 +200,12 @@ shape.** `pipeline-state.schema.yaml` uses an open-ended `<stage_id>` map — it
 is deliberately agnostic about which stages exist. The
 `{orchestrator, stages[], agents.{controllers, client_interface,
 requirements.{system,service,client}, database, other}, references}` structure
-that `buildProcess` emits is a **pure stagecraft invention** with zero contract
+that `buildProcess` emits is a **pure statecraft invention** with zero contract
 backing, named `"7-stage-build"` hardcoded at `projection.ts:305` (the only two
 emission sites in the whole tree are `translator.ts:249` and `projection.ts:305`).
 
 Of the 11 `ArtifactKind`s, only **2** map to a contract schema
-(`adapter-manifest`, `contract-schema`). The other 9 are stagecraft-internal
+(`adapter-manifest`, `contract-schema`). The other 9 are statecraft-internal
 classification vocabulary over verbatim files.
 
 So the projection layer is authority for a shape that the open standard never
@@ -245,7 +245,7 @@ A thin-consumer target, stated structurally:
 - **The pipeline-run path needs factory.** `process/{stages,agents,skills}`
   + `adapters/<n>/manifest.yaml` + `contract/schemas` are consumed at pipeline
   execution time by the **OPC desktop factory engine** (via the substrate /
-  bundle), not by stagecraft's scaffold path.
+  bundle), not by statecraft's scaffold path.
 - **Therefore the split is load-bearing only for pipeline execution**, and even
   there the boundary is "process/contract/adapter content (factory)" vs
   "the app skeleton that gets cloned (template)." Merging is *possible*
@@ -288,7 +288,7 @@ Stale/dead surfaced (lower stakes):
 - `adapter-scopes.json` keyed on `acme-vue-node` with `file_write_scope`
   including `scripts/` (not an Encore output dir).
 - CLAUDE.md references `api/factory/process-stages/*` — **never created**.
-- The naming divergence `acme-vue-node` (everything stagecraft injects/hardcodes)
+- The naming divergence `acme-vue-node` (everything statecraft injects/hardcodes)
   vs `acme-vue-encore` (factory's actual adapter name) is live and
   pervasive.
 - Rust test fixtures (`run_replay.rs`, `kernel_emission_integration.rs`,
@@ -301,11 +301,11 @@ Stale/dead surfaced (lower stakes):
 
 Surfaced for discussion — not decisions:
 
-1. **The contract should own shape; stagecraft should consume.** Today the
+1. **The contract should own shape; statecraft should consume.** Today the
    projection owns a process shape the contract never defined. A future-proof
    standard would either (a) add a contract schema for "process/pipeline
    definition" (so any third-party factory declares its stages explicitly), or
-   (b) decide the process is *not* a stagecraft concern at all and is read
+   (b) decide the process is *not* a statecraft concern at all and is read
    directly by the execution engine from `kind`-classified substrate rows.
    The fact that `pipeline-state.schema.yaml` already uses open-ended stage keys
    suggests the standard *intends* (a)-style openness.
@@ -316,9 +316,9 @@ Surfaced for discussion — not decisions:
    `(orgId, origin, path)` prune key is already origin-parameterized — only the
    default constants are the problem.
 
-3. **Adapter identity should come from the manifest, not from stagecraft.** The
+3. **Adapter identity should come from the manifest, not from statecraft.** The
    manifest already declares `adapter.name: acme-vue-encore` and `schema_version`.
-   Stagecraft hardcoding `acme-vue-node` is the single largest source of the
+   Statecraft hardcoding `acme-vue-node` is the single largest source of the
    user-visible breakage.
 
 4. **"Owned source" ⇒ no sanitise step.** `oapNativeSanitise` mutates manifests

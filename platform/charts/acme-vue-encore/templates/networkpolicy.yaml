@@ -5,7 +5,7 @@
 # deployd-api creates each tenant/preview namespace dynamically (helm
 # upgrade --install --create-namespace); there is no static Flux
 # Kustomization entry point for a namespace whose name isn't known ahead
-# of time (unlike platform/k8s/policies/{stagecraft,deployd,rauthy},
+# of time (unlike platform/k8s/policies/{statecraft,deployd,rauthy},
 # which ARE statically wired). Riding this NetworkPolicy along with the
 # tenant workload chart itself means every tenant namespace gets the same
 # default-deny + necessary-allow posture the moment `helm upgrade

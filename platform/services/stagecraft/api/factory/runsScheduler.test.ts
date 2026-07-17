@@ -11,7 +11,7 @@
 //     through with the first stage_started)
 //   * fresh `running` row is NOT swept
 //   * terminal rows (ok / failed / cancelled) are never touched
-//   * env knob honoured: a small STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC
+//   * env knob honoured: a small STATECRAFT_FACTORY_RUN_STALE_AFTER_SEC
 //     value sweeps a row that would otherwise be young
 //
 // adapter_id / process_id are plain TEXT since migration 38 (dropped FK
@@ -115,7 +115,7 @@ describe("spec 124 — sweepStaleFactoryRuns", () => {
     await db.execute(sql`DELETE FROM projects WHERE id = ${PROJECT_ID}`);
     await db.execute(sql`DELETE FROM users WHERE id = ${USER_ID}`);
     await db.execute(sql`DELETE FROM organizations WHERE id = ${ORG_ID}`);
-    delete process.env.STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC;
+    delete process.env.statecraft_FACTORY_RUN_STALE_AFTER_SEC;
   });
 
   beforeEach(async () => {
@@ -123,11 +123,11 @@ describe("spec 124 — sweepStaleFactoryRuns", () => {
     // into the SELECT result. Audit rows persist across tests; the
     // assertions key on target_id so cross-test interference is moot.
     await db.execute(sql`DELETE FROM factory_runs WHERE org_id = ${ORG_ID}`);
-    delete process.env.STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC;
+    delete process.env.statecraft_FACTORY_RUN_STALE_AFTER_SEC;
   });
 
   it("sweeps a stale `running` row and emits a factory.run.swept audit", async () => {
-    process.env.STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC = "60";
+    process.env.statecraft_FACTORY_RUN_STALE_AFTER_SEC = "60";
     const id = "55555555-0000-0000-0000-0000000000b1";
     await seedRun({
       id,
@@ -149,7 +149,7 @@ describe("spec 124 — sweepStaleFactoryRuns", () => {
   });
 
   it("also sweeps a stale `queued` row (desktop never started a stage)", async () => {
-    process.env.STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC = "60";
+    process.env.statecraft_FACTORY_RUN_STALE_AFTER_SEC = "60";
     const id = "55555555-0000-0000-0000-0000000000b2";
     await seedRun({
       id,
@@ -166,7 +166,7 @@ describe("spec 124 — sweepStaleFactoryRuns", () => {
   });
 
   it("leaves a fresh `running` row alone", async () => {
-    process.env.STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC = "60";
+    process.env.statecraft_FACTORY_RUN_STALE_AFTER_SEC = "60";
     const id = "55555555-0000-0000-0000-0000000000b3";
     await seedRun({
       id,
@@ -183,7 +183,7 @@ describe("spec 124 — sweepStaleFactoryRuns", () => {
   });
 
   it("never touches terminal rows (ok / failed / cancelled)", async () => {
-    process.env.STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC = "60";
+    process.env.statecraft_FACTORY_RUN_STALE_AFTER_SEC = "60";
     const okId = "55555555-0000-0000-0000-0000000000b4";
     const failedId = "55555555-0000-0000-0000-0000000000b5";
     const cancelledId = "55555555-0000-0000-0000-0000000000b6";
@@ -202,10 +202,10 @@ describe("spec 124 — sweepStaleFactoryRuns", () => {
     expect(result.ids).not.toContain(cancelledId);
   });
 
-  it("honours STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC override", async () => {
+  it("honours STATECRAFT_FACTORY_RUN_STALE_AFTER_SEC override", async () => {
     // Use a 5s window so an age-10s row qualifies as stale despite being
     // far below the 30-min default.
-    process.env.STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC = "5";
+    process.env.statecraft_FACTORY_RUN_STALE_AFTER_SEC = "5";
     const id = "55555555-0000-0000-0000-0000000000b7";
     await seedRun({
       id,
@@ -235,7 +235,7 @@ describe("spec 124 — sweepStaleFactoryRuns", () => {
   });
 
   it("a second sweep over an already-swept run is idempotent (no second audit)", async () => {
-    process.env.STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC = "60";
+    process.env.statecraft_FACTORY_RUN_STALE_AFTER_SEC = "60";
     const id = "55555555-0000-0000-0000-0000000000b9";
     await seedRun({
       id,

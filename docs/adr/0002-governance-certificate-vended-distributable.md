@@ -70,7 +70,7 @@ The dependency was declared with that single purpose: "Cut D W-10 (spec 102 G-2 
 ### What the core paths actually depend on
 
 - `CertificateBuilder::build()` / `build_tenant()` and `verify_certificate()` have zero spec-spine dependency. Their imports are crypto and serde only: `ed25519_dalek`, `sha2`, `base64`, `chrono`, `serde` (OAP `governance_certificate.rs:11-19`), plus factory-engine-internal modules `inter_stage_manifest` (spec 170 chain), `pipeline_state::FactoryPipelineState`, and `platform_jws` (spec 198 countersign).
-- `platform_jws` is a self-contained Ed25519 JWS verifier ("Rust twin of stagecraft's `api/factory/signing-pure.ts`"), importing only `base64`, `ed25519_dalek`, `serde` (OAP `crates/factory-engine/src/platform_jws.rs:3, 15-18`). No database, no stagecraft import. Cleanly extractable.
+- `platform_jws` is a self-contained Ed25519 JWS verifier ("Rust twin of statecraft's `api/factory/signing-pure.ts`"), importing only `base64`, `ed25519_dalek`, `serde` (OAP `crates/factory-engine/src/platform_jws.rs:3, 15-18`). No database, no statecraft import. Cleanly extractable.
 - The two binaries confirm the same surface. `build_certificate.rs` imports the builder, persist, and `validate_spec_id_resolution` (OAP `crates/factory-engine/src/bin/build_certificate.rs:40-49, 218`). `verify_certificate.rs` imports `verify_certificate_with_platform`, `PlatformJwks`, and `validate_spec_id_resolution` (OAP `crates/factory-engine/src/bin/verify_certificate.rs:22-26, 119, 131`).
 - There is one certificate implementation. The OPC-side path reuses it rather than reimplementing: "Reuses factory-engine's `GovernanceCertificate` (spec 102 / 168)" (OAP `crates/opc-decomposition-pipeline/src/certificate.rs:7, 24-26`).
 

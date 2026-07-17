@@ -154,7 +154,7 @@ export const runScheduledSyncs = api(
 //
 // Runs every minute. Picks up any `knowledge_extraction_runs` row in
 // `running` state whose `running_at` is older than
-// STAGECRAFT_EXTRACT_STALE_AFTER_SEC (default 600s) and flips it to
+// STATECRAFT_EXTRACT_STALE_AFTER_SEC (default 600s) and flips it to
 // `failed` with `worker_crashed`, reverting the corresponding object to
 // `imported`. Closes the recovery loop for worker crashes mid-extraction
 // so a single crash never permanently strands an object.

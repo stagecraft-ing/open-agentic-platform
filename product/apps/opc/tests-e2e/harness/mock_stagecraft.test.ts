@@ -1,12 +1,12 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { WebSocket } from "ws";
-import { MockStagecraft, ENVELOPE_SCHEMA_VERSION } from "./mock_stagecraft";
+import { MockStatecraft, ENVELOPE_SCHEMA_VERSION } from "./mock_statecraft";
 
 // Spec 187 FR-T2 + 187 AC-6. A real ws client connects to the mock and asserts
 // the observable behaviour of each of the four modes. The handshake query
 // string mirrors the Encore streamInOut convention the desktop client uses.
 
-let server: MockStagecraft | undefined;
+let server: MockStatecraft | undefined;
 afterEach(async () => {
   await server?.stop();
   server = undefined;
@@ -51,9 +51,9 @@ function waitForError(ws: WebSocket): Promise<Error> {
   });
 }
 
-describe("FR-T2 mock-stagecraft duplex server", () => {
+describe("FR-T2 mock-statecraft duplex server", () => {
   it("healthy: emits a v2 sync.hello after handshake and keeps the socket open", async () => {
-    server = new MockStagecraft({ mode: "healthy", orgId: "org_test" });
+    server = new MockStatecraft({ mode: "healthy", orgId: "org_test" });
     const { url } = await server.start();
     const ws = new WebSocket(`${url}${HANDSHAKE}`, {
       headers: { Authorization: "Bearer test" },
@@ -69,7 +69,7 @@ describe("FR-T2 mock-stagecraft duplex server", () => {
   });
 
   it("handshake-rejects: accepts the connection then closes before any sync.hello", async () => {
-    server = new MockStagecraft({ mode: "handshake-rejects" });
+    server = new MockStatecraft({ mode: "handshake-rejects" });
     const { url } = await server.start();
     const ws = new WebSocket(`${url}${HANDSHAKE}`);
     const outcome = await observeUntilClose(ws);
@@ -78,7 +78,7 @@ describe("FR-T2 mock-stagecraft duplex server", () => {
   });
 
   it("mid-session-drop: emits sync.hello then drops the connection", async () => {
-    server = new MockStagecraft({ mode: "mid-session-drop", orgId: "org_drop" });
+    server = new MockStatecraft({ mode: "mid-session-drop", orgId: "org_drop" });
     const { url } = await server.start();
     const ws = new WebSocket(`${url}${HANDSHAKE}`);
     const hello = await firstMessage(ws);
@@ -88,14 +88,14 @@ describe("FR-T2 mock-stagecraft duplex server", () => {
   });
 
   it("network-unreachable: refuses the connection at the transport layer", async () => {
-    server = new MockStagecraft({ mode: "network-unreachable" });
+    server = new MockStatecraft({ mode: "network-unreachable" });
     const { url } = await server.start();
     const ws = new WebSocket(`${url}${HANDSHAKE}`);
     await expect(waitForError(ws)).resolves.toBeInstanceOf(Error);
   });
 
   it("exposes a ws:// url on the canonical duplex path", async () => {
-    server = new MockStagecraft({ mode: "healthy" });
+    server = new MockStatecraft({ mode: "healthy" });
     const { url, port } = await server.start();
     expect(url).toMatch(/^ws:\/\/127\.0\.0\.1:\d+\/api\/sync\/duplex$/);
     expect(port).toBeGreaterThan(0);
@@ -107,7 +107,7 @@ describe("FR-T2 mock-stagecraft duplex server", () => {
 // awaits the client's org.halt.ack client->server.
 describe("FR-005 drill duplex extensions", () => {
   async function connectHealthy(): Promise<WebSocket> {
-    const s = new MockStagecraft({ mode: "healthy", orgId: "org_drill" });
+    const s = new MockStatecraft({ mode: "healthy", orgId: "org_drill" });
     server = s;
     const { url } = await s.start();
     const ws = new WebSocket(`${url}${HANDSHAKE}`, {
@@ -160,7 +160,7 @@ describe("FR-005 drill duplex extensions", () => {
   });
 
   it("push(): is a no-op when no client is connected (the disconnected leg)", async () => {
-    const s = new MockStagecraft({ mode: "healthy" });
+    const s = new MockStatecraft({ mode: "healthy" });
     server = s;
     await s.start();
     expect(() => s.push({ kind: "org.halt.activated" })).not.toThrow();

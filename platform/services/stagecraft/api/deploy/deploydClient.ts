@@ -215,7 +215,7 @@ export interface DeploydStatusResult {
   /**
    * Message of the most recent `failed` event, when present. deployd records
    * the real cause in a `failed` deployment event (e.g. `helm install
-   * failed: <helm stderr>`); surfacing it lets stagecraft store an actionable
+   * failed: <helm stderr>`); surfacing it lets statecraft store an actionable
    * diagnostic instead of a generic "see deployd logs" pointer.
    */
   failedReason?: string;

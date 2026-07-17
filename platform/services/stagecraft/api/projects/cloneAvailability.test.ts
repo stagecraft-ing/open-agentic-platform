@@ -83,7 +83,7 @@ describe("checkRepoAvailable", () => {
     const fetcher = vi.fn(async () => mockResp(404));
     const v = await checkRepoAvailable(
       "tok",
-      "stagecraft-ing",
+      "statecrafting",
       "foo",
       fetcher as unknown as FetchLike
     );
@@ -95,7 +95,7 @@ describe("checkRepoAvailable", () => {
     const fetcher = vi.fn(async () => mockResp(200));
     const v = await checkRepoAvailable(
       "tok",
-      "stagecraft-ing",
+      "statecrafting",
       "foo",
       fetcher as unknown as FetchLike
     );
@@ -108,7 +108,7 @@ describe("checkRepoAvailable", () => {
     );
     const v = await checkRepoAvailable(
       "tok",
-      "stagecraft-ing",
+      "statecrafting",
       "foo",
       fetcher as unknown as FetchLike
     );
@@ -129,7 +129,7 @@ describe("checkRepoAvailable", () => {
     );
     const v = await checkRepoAvailable(
       "tok",
-      "stagecraft-ing",
+      "statecrafting",
       "foo",
       fetcher as unknown as FetchLike
     );
@@ -142,7 +142,7 @@ describe("checkRepoAvailable", () => {
     const fetcher = vi.fn(async () => mockResp(403));
     const v = await checkRepoAvailable(
       "tok",
-      "stagecraft-ing",
+      "statecrafting",
       "foo",
       fetcher as unknown as FetchLike
     );
@@ -153,7 +153,7 @@ describe("checkRepoAvailable", () => {
     const fetcher = vi.fn(async () => mockResp(500));
     const v = await checkRepoAvailable(
       "tok",
-      "stagecraft-ing",
+      "statecrafting",
       "foo",
       fetcher as unknown as FetchLike
     );

@@ -1,13 +1,13 @@
 //! Desktop side of the workspace project catalog (spec 112 §7 / Phase 8).
 //!
-//! Stagecraft broadcasts `project.catalog.upsert` envelopes whenever a
+//! Statecraft broadcasts `project.catalog.upsert` envelopes whenever a
 //! project is created, imported, deleted, or replayed during a handshake
 //! snapshot. This module registers a dispatch-table handler that
 //! projects each frame onto a Tauri event the frontend listens for, so
 //! the OPC Projects panel updates without a restart and without polling.
 //!
 //! Authority invariant (spec 087 §5.3 / 112 §7): the desktop never
-//! originates the upsert — those are stagecraft-owned mutations. We
+//! originates the upsert — those are statecraft-owned mutations. We
 //! mirror state into an in-memory frontend store. Restart or
 //! reconnect re-runs the handshake snapshot, so a missed upsert never
 //! leaves the panel permanently stale.
@@ -97,7 +97,7 @@ pub fn extract_upsert(env: &ServerEnvelopeWire) -> Option<ProjectCatalogUpsertEv
         .clone()
         .or_else(|| {
             // Fall back to the meta org id if the payload omits the
-            // explicit field. Both stagecraft snapshots and live broadcasts
+            // explicit field. Both statecraft snapshots and live broadcasts
             // populate the payload form, but accepting the meta form keeps
             // the parser tolerant.
             let m = &env.meta.org_id;
@@ -141,7 +141,7 @@ pub fn extract_upsert(env: &ServerEnvelopeWire) -> Option<ProjectCatalogUpsertEv
 /// opens, and the boot gate opens only after `sync.hello`, i.e. after the
 /// snapshot was already sent). Tauri does not buffer events for listeners
 /// attached later, so a panel subscribing after the snapshot fired would
-/// otherwise never hydrate — the permanent "Connecting to stagecraft…"
+/// otherwise never hydrate — the permanent "Connecting to statecraft…"
 /// state. This cache lets a late subscriber pull the current catalog via
 /// [`get_project_catalog`] instead of waiting for the next duplex reconnect.
 #[derive(Default)]
@@ -204,8 +204,8 @@ pub struct ProjectCatalogSnapshot {
 /// panel calls this immediately after registering its duplex listeners so
 /// a snapshot that arrived during the handshake — before the listeners
 /// were attached — is recovered instead of leaving the panel stuck on
-/// "Connecting to stagecraft…". Idempotent and cheap; safe to call when
-/// stagecraft is disabled (returns an empty, un-hydrated snapshot).
+/// "Connecting to statecraft…". Idempotent and cheap; safe to call when
+/// statecraft is disabled (returns an empty, un-hydrated snapshot).
 #[tauri::command]
 pub fn get_project_catalog(app: AppHandle) -> ProjectCatalogSnapshot {
     match app.try_state::<ProjectCatalogCache>() {

@@ -1146,7 +1146,7 @@
         "opc",
         "platform"
       ],
-      "summary": "Consolidates five standalone crates and services (gitctx, blockoli, stackwalk, titor, github-app) into axiomregent and stagecraft. Migrates axiomregent from synchronous rusqlite to async hiqlite for unified storage, distributed coordination, and cross-session event propagation. Introduces GitHub organisation-level integration via a platform-brokered App inst..."
+      "summary": "Consolidates five standalone crates and services (gitctx, blockoli, stackwalk, titor, github-app) into axiomregent and statecraft. Migrates axiomregent from synchronous rusqlite to async hiqlite for unified storage, distributed coordination, and cross-session event propagation. Introduces GitHub organisation-level integration via a platform-brokered App inst..."
     },
     {
       "id": "074-factory-ingestion",
@@ -1192,9 +1192,9 @@
       "summary": "Adds an Factory Pipeline panel to the OPC desktop app with DAG stage visualization, real-time progress tracking, artifact inspection, gate confirm/reject dialogs, token spend dashboard, and scaffolding fan-out monitoring."
     },
     {
-      "id": "077-stagecraft-factory-api",
+      "id": "077-statecraft-factory-api",
       "num": "077",
-      "title": "Stagecraft Factory Lifecycle API: Project Init, Stage Confirmation, Audit Trail",
+      "title": "Statecraft Factory Lifecycle API: Project Init, Stage Confirmation, Audit Trail",
       "status": "approved",
       "implementation": "complete",
       "kind": "platform",
@@ -1203,7 +1203,7 @@
       "tags": [
         "platform"
       ],
-      "summary": "Extends the Stagecraft platform service with Factory-specific API endpoints for project initialization, adapter selection, stage confirmation/rejection, policy bundle compilation, audit trail capture, and deployment handoff."
+      "summary": "Extends the Statecraft platform service with Factory-specific API endpoints for project initialization, adapter selection, stage confirmation/rejection, policy bundle compilation, audit trail capture, and deployment handoff."
     },
     {
       "id": "078-platform-completion-plan",
@@ -1498,7 +1498,7 @@
         "opc",
         "platform"
       ],
-      "summary": "Elevate platform sync from fire-and-forget to promotion-grade. Define run promotion eligibility, add CompletedLocal status for local-only completions, create a Stagecraft promotion validation endpoint, and integrate eligibility checks into the orchestrator completion path."
+      "summary": "Elevate platform sync from fire-and-forget to promotion-grade. Define run promotion eligibility, add CompletedLocal status for local-only completions, create a Statecraft promotion validation endpoint, and integrate eligibility checks into the orchestrator completion path."
     },
     {
       "id": "098-governance-enforcement-stitching",
@@ -1528,7 +1528,7 @@
         "opc",
         "platform"
       ],
-      "summary": "Make persistence project-native and sync-trackable. Replace fire-and-forget Stagecraft calls with tracked acknowledgement, update SyncStatus in the promotion check, and add project_id columns to workflow persistence stores. Originally authored against workspace_id; amended by spec 119 when workspace was collapsed into project."
+      "summary": "Make persistence project-native and sync-trackable. Replace fire-and-forget Statecraft calls with tracked acknowledgement, update SyncStatus in the promotion check, and add project_id columns to workflow persistence stores. Originally authored against workspace_id; amended by spec 119 when workspace was collapsed into project."
     },
     {
       "id": "100-post-convergence-remediation",
@@ -1631,7 +1631,7 @@
       "tags": [
         "platform"
       ],
-      "summary": "Close the implementation gap between spec 080's design and what actually shipped. Move GitHub from stagecraft-direct OAuth to Rauthy's upstream IDP, remove the imaginary admin-mint JWT endpoint, drive custom claims through Rauthy's scope + user-attribute model, and resolve org memberships through a layered strategy: GitHub App installation token first, per-u..."
+      "summary": "Close the implementation gap between spec 080's design and what actually shipped. Move GitHub from statecraft-direct OAuth to Rauthy's upstream IDP, remove the imaginary admin-mint JWT endpoint, drive custom claims through Rauthy's scope + user-attribute model, and resolve org memberships through a layered strategy: GitHub App installation token first, per-u..."
     },
     {
       "id": "107-rauthy-client-redirect-convergence",
@@ -1645,7 +1645,7 @@
       "tags": [
         "platform"
       ],
-      "summary": "Close spec 106 FR-002's remaining manual gap: the seeder grants the `oap` scope to stagecraft-server / SPA / OPC clients but does not manage their allowed `redirect_uris`. A production outage on 2026-04-18 showed why: Rauthy rejected `/authorize` with \"Invalid redirect uri\" because the stagecraft-server client's allow-list did not include the current `APP_BA..."
+      "summary": "Close spec 106 FR-002's remaining manual gap: the seeder grants the `oap` scope to statecraft-server / SPA / OPC clients but does not manage their allowed `redirect_uris`. A production outage on 2026-04-18 showed why: Rauthy rejected `/authorize` with \"Invalid redirect uri\" because the statecraft-server client's allow-list did not include the current `APP_BA..."
     },
     {
       "id": "108-factory-as-platform-feature",
@@ -1659,7 +1659,7 @@
       "tags": [
         "platform"
       ],
-      "summary": "Removes the repo-rooted `factory/` directory and reimplements adapters, contracts, processes, and upstream-map configuration as first-class entities inside stagecraft. Factory becomes a governed, organisationally-scoped feature surfaced at `/app/factory`; Factory runs continue to execute via OPC but are orchestrated by the platform. Supersedes spec 088 for t..."
+      "summary": "Removes the repo-rooted `factory/` directory and reimplements adapters, contracts, processes, and upstream-map configuration as first-class entities inside statecraft. Factory becomes a governed, organisationally-scoped feature surfaced at `/app/factory`; Factory runs continue to execute via OPC but are orchestrated by the platform. Supersedes spec 088 for t..."
     },
     {
       "id": "109-factory-pat-and-pubsub-sync",
@@ -1676,9 +1676,9 @@
       "summary": "Finishes spec 108 §10 by making Factory sync asynchronous (PubSub-driven) and wires Personal Access Tokens into the two repo access surfaces the platform owns: (a) org-level PAT for the Factory upstream sources (legacy-factory + template), and (b) per-project PAT for project repos that live outside the org and cannot be reached via the OAP GitHub App. Resolv..."
     },
     {
-      "id": "110-stagecraft-to-opc-factory-trigger",
+      "id": "110-statecraft-to-opc-factory-trigger",
       "num": "110",
-      "title": "Stagecraft-initiated Factory Run Trigger over the Duplex Channel",
+      "title": "Statecraft-initiated Factory Run Trigger over the Duplex Channel",
       "status": "approved",
       "implementation": "complete",
       "kind": "platform",
@@ -1687,12 +1687,12 @@
       "tags": [
         "platform"
       ],
-      "summary": "Closes the \"no stagecraft → OPC trigger\" gap surfaced during the 2026-04-21 audit. Adds a `ServerEnvelope::factory.run.request` variant to the duplex sync channel (spec 087 §5.3), a paired `ClientEnvelope::factory.run.ack` for desktop acknowledgement, a tab-session model as the unit of execution dispatch on OPC, and a knowledge-bundle materialisation contrac..."
+      "summary": "Closes the \"no statecraft → OPC trigger\" gap surfaced during the 2026-04-21 audit. Adds a `ServerEnvelope::factory.run.request` variant to the duplex sync channel (spec 087 §5.3), a paired `ClientEnvelope::factory.run.ack` for desktop acknowledgement, a tab-session model as the unit of execution dispatch on OPC, and a knowledge-bundle materialisation contrac..."
     },
     {
       "id": "111-org-agent-catalog-sync",
       "num": "111",
-      "title": "Org-managed Agent Catalog Synced from Stagecraft to OPC",
+      "title": "Org-managed Agent Catalog Synced from Statecraft to OPC",
       "status": "approved",
       "implementation": "complete",
       "kind": "platform",
@@ -1701,7 +1701,7 @@
       "tags": [
         "platform"
       ],
-      "summary": "Treats agents as organisational assets stored in stagecraft and pushed to OPC via the duplex channel (spec 087 §5.3). Workspaces author, version, and govern agent definitions in the web UI; connected OPC instances receive them as a workspace-scoped catalog that local SQLite caches. The local `.claude/agents/` path remains available as a fallback for offline/..."
+      "summary": "Treats agents as organisational assets stored in statecraft and pushed to OPC via the duplex channel (spec 087 §5.3). Workspaces author, version, and govern agent definitions in the web UI; connected OPC instances receive them as a workspace-scoped catalog that local SQLite caches. The local `.claude/agents/` path remains available as a fallback for offline/..."
     },
     {
       "id": "112-factory-project-lifecycle",
@@ -1715,12 +1715,12 @@
       "tags": [
         "platform"
       ],
-      "summary": "Defines the contract-anchored lifecycle for factory-produced projects across three entry points: (1) OPC opens a local folder and recognises it as a factory project via ACP pipeline-state conformance; (2) Stagecraft creates a new project by scaffolding an adapter and pushing to GitHub; (3) Stagecraft imports an existing GitHub repo and registers it in the wo..."
+      "summary": "Defines the contract-anchored lifecycle for factory-produced projects across three entry points: (1) OPC opens a local folder and recognises it as a factory project via ACP pipeline-state conformance; (2) Statecraft creates a new project by scaffolding an adapter and pushing to GitHub; (3) Statecraft imports an existing GitHub repo and registers it in the wo..."
     },
     {
-      "id": "113-stagecraft-projects-rename-and-clone",
+      "id": "113-statecraft-projects-rename-and-clone",
       "num": "113",
-      "title": "Stagecraft Projects Rename + In-Org Project Clone",
+      "title": "Statecraft Projects Rename + In-Org Project Clone",
       "status": "approved",
       "implementation": "complete",
       "kind": "product",
@@ -1730,7 +1730,7 @@
         "platform",
         "product"
       ],
-      "summary": "Renames the stagecraft web \"Dashboard\" surface to \"Projects\" (page title, subtitle, top-nav label) and turns the existing copy-icon stub on each project row into a real Clone action. Clone opens a dialog where the user can rename the new project (project name, slug, GitHub repo name) with live, debounced availability checks against the destination org and wo..."
+      "summary": "Renames the statecraft web \"Dashboard\" surface to \"Projects\" (page title, subtitle, top-nav label) and turns the existing copy-icon stub on each project row into a real Clone action. Clone opens a dialog where the user can rename the new project (project name, slug, GitHub repo name) with live, debounced availability checks against the destination org and wo..."
     },
     {
       "id": "114-async-project-clone-pipeline",
@@ -1744,7 +1744,7 @@
       "tags": [
         "platform"
       ],
-      "summary": "Spec 113's `POST /api/projects/:id/clone` does the full mirror-clone + mirror-push + raw-artifact hydration synchronously inside the HTTP request. For non-trivial source repos this exceeds the stagecraft ingress's default ~60s read timeout (no `proxy-read-timeout` annotation on the chart) and the SSR proxy translates the upstream cut-off into a 502 in the br..."
+      "summary": "Spec 113's `POST /api/projects/:id/clone` does the full mirror-clone + mirror-push + raw-artifact hydration synchronously inside the HTTP request. For non-trivial source repos this exceeds the statecraft ingress's default ~60s read timeout (no `proxy-read-timeout` annotation on the chart) and the SSR proxy translates the upstream cut-off into a 502 in the br..."
     },
     {
       "id": "115-knowledge-extraction-pipeline",
@@ -1773,7 +1773,7 @@
         "tooling",
         "governance"
       ],
-      "summary": "Add governed supply-chain gates to CI. cargo-deny enforces a policy bundle for advisories, licenses, and banned crates across every Rust manifest in the repo; pnpm/npm audit covers the JavaScript surface (product/apps/opc + platform/services/stagecraft). Posture is blocking from day 0 (the 30-day warn-only window planned in §9.1 was collapsed on 2026-05-02 a..."
+      "summary": "Add governed supply-chain gates to CI. cargo-deny enforces a policy bundle for advisories, licenses, and banned crates across every Rust manifest in the repo; pnpm/npm audit covers the JavaScript surface (product/apps/opc + platform/services/statecraft). Posture is blocking from day 0 (the 30-day warn-only window planned in §9.1 was collapsed on 2026-05-02 a..."
     },
     {
       "id": "117-release-artifact-attestations",
@@ -1832,7 +1832,7 @@
       "tags": [
         "platform"
       ],
-      "summary": "Promote the orphan `crates/artifact-extract` to a canonical, deterministic pre-stage of the Factory Phase 1 pipeline. Mirror stagecraft's `ExtractionOutput` (spec 115) as Rust serde types in `factory-contracts` so the Rust producer and TypeScript consumer share one schema. Add an `s-1-extract` stage to `crates/factory-engine` that consumes the `KnowledgeBund..."
+      "summary": "Promote the orphan `crates/artifact-extract` to a canonical, deterministic pre-stage of the Factory Phase 1 pipeline. Mirror statecraft's `ExtractionOutput` (spec 115) as Rust serde types in `factory-contracts` so the Rust producer and TypeScript consumer share one schema. Add an `s-1-extract` stage to `crates/factory-engine` that consumes the `KnowledgeBund..."
     },
     {
       "id": "121-claim-provenance-enforcement",
@@ -2062,7 +2062,7 @@
     {
       "id": "136-tenant-hello-demo-service",
       "num": "136",
-      "title": "Tenant-hello: stagecraft-deployable tenant reference service",
+      "title": "Tenant-hello: statecraft-deployable tenant reference service",
       "status": "approved",
       "implementation": "complete",
       "kind": "platform",
@@ -2071,7 +2071,7 @@
       "tags": [
         "platform"
       ],
-      "summary": "Document `platform/services/tenant-hello` as the deliberately-minimal reference of what a project codebase looks like when stagecraft is responsible for deploying it. The express service itself is trivial; the spec exists to pin the contract a tenant codebase must honour to round-trip through stagecraft (containerised entrypoint, health probe, port-from-env,..."
+      "summary": "Document `platform/services/tenant-hello` as the deliberately-minimal reference of what a project codebase looks like when statecraft is responsible for deploying it. The express service itself is trivial; the spec exists to pin the contract a tenant codebase must honour to round-trip through statecraft (containerised entrypoint, health probe, port-from-env,..."
     },
     {
       "id": "137-tenant-environment-access-gates",
@@ -2085,12 +2085,12 @@
       "tags": [
         "platform"
       ],
-      "summary": "Per-environment access gating for projects deployed via deployd-api, applied above the tenant app so tenant codebases carry no auth logic. Passwordless OIDC via our existing Rauthy instance is the only mode: users authenticate by magic link or federated upstream IdP (Google, Microsoft Entra, GitHub, generic OIDC). Stagecraft and Rauthy clients for tenant gat..."
+      "summary": "Per-environment access gating for projects deployed via deployd-api, applied above the tenant app so tenant codebases carry no auth logic. Passwordless OIDC via our existing Rauthy instance is the only mode: users authenticate by magic link or federated upstream IdP (Google, Microsoft Entra, GitHub, generic OIDC). Statecraft and Rauthy clients for tenant gat..."
     },
     {
-      "id": "138-stagecraft-create-realised-scaffold",
+      "id": "138-statecraft-create-realised-scaffold",
       "num": "138",
-      "title": "Stagecraft Create: realised scaffold subflow (amendment of 112)",
+      "title": "Statecraft Create: realised scaffold subflow (amendment of 112)",
       "status": "approved",
       "implementation": "complete",
       "kind": "amendment",
@@ -2100,7 +2100,7 @@
         "platform",
         "amendment"
       ],
-      "summary": "Spec 112 §5 specified Create at the contract level but left four points where the landed implementation diverged from the literal spec text: (1) the prebuild profile set is stagecraft-owned, not adapter-driven; (2) the Create transaction also inserts an `environments` row; (3) the form gates on a new `GET /api/projects/scaffold-readiness` endpoint; (4) the w..."
+      "summary": "Spec 112 §5 specified Create at the contract level but left four points where the landed implementation diverged from the literal spec text: (1) the prebuild profile set is statecraft-owned, not adapter-driven; (2) the Create transaction also inserts an `environments` row; (3) the form gates on a new `GET /api/projects/scaffold-readiness` endpoint; (4) the w..."
     },
     {
       "id": "139-factory-artifact-substrate",
@@ -2368,7 +2368,7 @@
         "substrate",
         "governance"
       ],
-      "summary": "Spec 154 §4 introduces the ninth, non-owning `references:` edge: each entry carries a `unit:` pointing at a logical unit in the codebase (crate, symbol, module, section, directory, file). That shape covers in-tree code but not the two external derivation sources the OAP architecture already produces: stagecraft knowledge objects and xray content-addressed fi..."
+      "summary": "Spec 154 §4 introduces the ninth, non-owning `references:` edge: each entry carries a `unit:` pointing at a logical unit in the codebase (crate, symbol, module, section, directory, file). That shape covers in-tree code but not the two external derivation sources the OAP architecture already produces: statecraft knowledge objects and xray content-addressed fi..."
     },
     {
       "id": "157-opc-session-model",
@@ -2416,9 +2416,9 @@
       "summary": "Refine V-004's scan-path policy (defined in spec 000) to exempt lint test fixtures under `tools/*/tests/fixtures/**`. The exemption rests on a single principle: these fixtures derive their authority from the spec that establishes the consuming lint, not from themselves; they are not \"standalone authored YAML\" in the constitutional sense of V-004. The motivat..."
     },
     {
-      "id": "160-factory-adapter-stagecraft-relocation",
+      "id": "160-factory-adapter-statecraft-relocation",
       "num": "160",
-      "title": "Factory / adapter relocation into stagecraft",
+      "title": "Factory / adapter relocation into statecraft",
       "status": "approved",
       "implementation": "complete",
       "kind": "platform",
@@ -2427,7 +2427,7 @@
       "tags": [
         "platform"
       ],
-      "summary": "Closes out the in-flight migration named in `AIDE-VELOCITY-OAP-INTENT.md` §8.1: the canonical `factory/` directory (which carried per-adapter `manifest.yaml` files plus `factory/process/stages/*`) has been removed from this repo as part of relocating factory/adapter machinery into stagecraft as a first-class feature. The relocation is partial: the former dir..."
+      "summary": "Closes out the in-flight migration named in `AIDE-VELOCITY-OAP-INTENT.md` §8.1: the canonical `factory/` directory (which carried per-adapter `manifest.yaml` files plus `factory/process/stages/*`) has been removed from this repo as part of relocating factory/adapter machinery into statecraft as a first-class feature. The relocation is partial: the former dir..."
     },
     {
       "id": "161-knowledge-requirements-provenance-emission",
@@ -2442,7 +2442,7 @@
         "substrate",
         "governance"
       ],
-      "summary": "Spec 156 established the `references:` edge sibling `provenance:` field with two typed kinds (`knowledge`, `code-fingerprint`). The grammar exists; the two consumers don't. This spec specifies (a) the *emission contract* the OPC decomposition pipeline (spec 165) must follow when it lands a draft spec derived from a stagecraft knowledge item or an xray code f..."
+      "summary": "Spec 156 established the `references:` edge sibling `provenance:` field with two typed kinds (`knowledge`, `code-fingerprint`). The grammar exists; the two consumers don't. This spec specifies (a) the *emission contract* the OPC decomposition pipeline (spec 165) must follow when it lands a draft spec derived from a statecraft knowledge item or an xray code f..."
     },
     {
       "id": "162-sandbox-execution-contract",
@@ -2459,9 +2459,9 @@
       "summary": "OAP's single largest open OWASP ASI 2026 compliance gap is the absence of a hardened execution boundary for code the factory-engine emits and then exercises (lint/test/build/run-once). ASI05's prescription is **ephemeral micro-sandbox isolation**: and the prescription is substrate-agnostic: \"hardened containers with rigid network policies and low time-to-liv..."
     },
     {
-      "id": "163-stagecraft-requirements-view",
+      "id": "163-statecraft-requirements-view",
       "num": "163",
-      "title": "Spec-spine Requirements view in stagecraft",
+      "title": "Spec-spine Requirements view in statecraft",
       "status": "approved",
       "implementation": "complete",
       "kind": "platform",
@@ -2473,7 +2473,7 @@
       "summary": "The net-new `app.project.$projectId.requirements.tsx` route. Renders the spec-spine of the project: the authored specs that live under `<project>/specs/` inside the project repo: as the primary stakeholder-visible artifact of OAP's \"spec-spine as universal representation\" thesis (intent doc §2.4).\nGrouping is *derived*: the view walks the relationship graph..."
     },
     {
-      "id": "164-stagecraft-development-lifecycle-board",
+      "id": "164-statecraft-development-lifecycle-board",
       "num": "164",
       "title": "Pipelines → Development rename, lifecycle-state board over spec-spine states",
       "status": "approved",
@@ -2637,9 +2637,9 @@
       "summary": "AIDE-VELOCITY-HARNESS's centrepiece: the `check-finding-codified.mjs` Stop hook: closes the loop between *\"a CRITICAL finding was discovered\"* and *\"that class of finding can never silently recur.\"* Every CRITICAL / HIGH finding the harness's redteam or blueteam scans produce must write itself into `02-security.md` (a harness standards file) before the sessi..."
     },
     {
-      "id": "175-stagecraft-project-dashboard-observability",
+      "id": "175-statecraft-project-dashboard-observability",
       "num": "175",
-      "title": "Stagecraft project dashboard: observability refinement of `_index`",
+      "title": "Statecraft project dashboard: observability refinement of `_index`",
       "status": "approved",
       "implementation": "complete",
       "kind": "platform",
@@ -2648,7 +2648,7 @@
       "tags": [
         "platform"
       ],
-      "summary": "Refine `app.project.$projectId._index.tsx` from a six-tile navigation grid into the project's observability surface: the AIDE `ProjectDetailView` analogue named in AIDE-VELOCITY-OAP-INTENT.md §3.3 that was committed in intent but never scheduled in the §9 decomposition list.\nSix concrete panels, all backed by data already in stagecraft (no new tables): (1) p..."
+      "summary": "Refine `app.project.$projectId._index.tsx` from a six-tile navigation grid into the project's observability surface: the AIDE `ProjectDetailView` analogue named in AIDE-VELOCITY-OAP-INTENT.md §3.3 that was committed in intent but never scheduled in the §9 decomposition list.\nSix concrete panels, all backed by data already in statecraft (no new tables): (1) p..."
     },
     {
       "id": "176-amends-aware-section-satisfaction-parity",
@@ -2818,7 +2818,7 @@
     {
       "id": "187-opc-e2e-test-harness",
       "num": "187",
-      "title": "OPC end-to-end test harness: built-binary driver, mock-stagecraft, process-tree introspection",
+      "title": "OPC end-to-end test harness: built-binary driver, mock-statecraft, process-tree introspection",
       "status": "approved",
       "implementation": "in-progress",
       "kind": "capability",
@@ -2828,7 +2828,7 @@
         "opc",
         "capability"
       ],
-      "summary": "Establishes the test infrastructure required to execute spec-bound end-to-end acceptance criteria against a built OPC desktop binary. The canonical motivating consumer is spec 183 AC-7/8/9 (boot-screen stickiness when stagecraft is unreachable; mid-session restore on axiomregent kill; clean process-tree teardown on Quit) which were explicitly deferred to nig..."
+      "summary": "Establishes the test infrastructure required to execute spec-bound end-to-end acceptance criteria against a built OPC desktop binary. The canonical motivating consumer is spec 183 AC-7/8/9 (boot-screen stickiness when statecraft is unreachable; mid-session restore on axiomregent kill; clean process-tree teardown on Quit) which were explicitly deferred to nig..."
     },
     {
       "id": "188-derived-index-merge-serialization",
@@ -2858,7 +2858,7 @@
         "tooling",
         "governance"
       ],
-      "summary": "Adds a scalar-constant parity check to the schema-parity walker (spec 125) that fails CI when the desktop's `ENVELOPE_SCHEMA_VERSION` (`product/apps/opc/src-tauri/src/commands/sync_client.rs`) does not equal the stagecraft server's (`platform/services/stagecraft/api/sync/types.ts`). The protocol-wide duplex envelope version is the one number both ends of the..."
+      "summary": "Adds a scalar-constant parity check to the schema-parity walker (spec 125) that fails CI when the desktop's `ENVELOPE_SCHEMA_VERSION` (`product/apps/opc/src-tauri/src/commands/sync_client.rs`) does not equal the statecraft server's (`platform/services/statecraft/api/sync/types.ts`). The protocol-wide duplex envelope version is the one number both ends of the..."
     },
     {
       "id": "190-ci-desktop-route-path-fix",
@@ -2962,7 +2962,7 @@
       "tags": [
         "platform"
       ],
-      "summary": "Stand up a Prometheus + Grafana metrics stack for the platform control plane. Stagecraft (Encore.ts) already auto-instruments every API, PubSub, cron, and DB call but emits nowhere; deployd-api, Flux, and ingress-nginx already carry scrape annotations nobody consumes. This spec wires a full kube-prometheus-stack (Prometheus server + Grafana + node-exporter +..."
+      "summary": "Stand up a Prometheus + Grafana metrics stack for the platform control plane. Statecraft (Encore.ts) already auto-instruments every API, PubSub, cron, and DB call but emits nowhere; deployd-api, Flux, and ingress-nginx already carry scrape annotations nobody consumes. This spec wires a full kube-prometheus-stack (Prometheus server + Grafana + node-exporter +..."
     },
     {
       "id": "197-factory-contract-open-standard-extensions",
@@ -3004,7 +3004,7 @@
       "tags": [
         "platform"
       ],
-      "summary": "Move the stagecraft factory sync off the retired legacy-factory layout and make it a thin CONSUMER of the owned factory/template sources. Stagecraft stores upstream content verbatim in the substrate and serves it by kind and by the adapter's own (schema-validated) manifest: it stops TRANSLATING content OAP authors and controls. Adapter identity comes from th..."
+      "summary": "Move the statecraft factory sync off the retired legacy-factory layout and make it a thin CONSUMER of the owned factory/template sources. Statecraft stores upstream content verbatim in the substrate and serves it by kind and by the adapter's own (schema-validated) manifest: it stops TRANSLATING content OAP authors and controls. Adapter identity comes from th..."
     },
     {
       "id": "200-substrate-override-async-scanner",
@@ -3105,7 +3105,7 @@
       "tags": [
         "platform"
       ],
-      "summary": "Harden the OPC↔stagecraft duplex channel from version-parity to message integrity. Spec 189 guarantees both ends speak the same envelope schema version; transport security is TLS plus bearer auth at handshake. Within an authenticated stream nothing binds individual frames: no per-frame integrity check, no replay protection, no refusal of unauthenticated fram..."
+      "summary": "Harden the OPC↔statecraft duplex channel from version-parity to message integrity. Spec 189 guarantees both ends speak the same envelope schema version; transport security is TLS plus bearer auth at handshake. Within an authenticated stream nothing binds individual frames: no per-frame integrity check, no replay protection, no refusal of unauthenticated fram..."
     },
     {
       "id": "207-tamper-evident-audit-chain",
@@ -3180,7 +3180,7 @@
         "tooling",
         "governance"
       ],
-      "summary": "Close the encore-test CI gap: the bare-vitest exclude list in stagecraft's vite.config.ts assigns 22 DB-bound test files (specs 115, 124, 137, 139–143, 198, 201) to the `encore test` lane, but no CI job runs that lane: CI runs bare vitest only, so DB-bound acceptance suites never execute before merge. The gap already shipped a real violation invisibly (spec..."
+      "summary": "Close the encore-test CI gap: the bare-vitest exclude list in statecraft's vite.config.ts assigns 22 DB-bound test files (specs 115, 124, 137, 139–143, 198, 201) to the `encore test` lane, but no CI job runs that lane: CI runs bare vitest only, so DB-bound acceptance suites never execute before merge. The gap already shipped a real violation invisibly (spec..."
     },
     {
       "id": "212-factory-schema-lockstep-ci",
@@ -3226,9 +3226,9 @@
       "summary": "Supersede tenant-hello as the platform's reference tenant: the canonical deployable shape becomes the factory's own template scaffold (acme-vue-encore), so the surface CI proves and the surface tenants run are the same artifact. Today the chart registry has exactly one synthetic shape, the dispatch wire cannot carry application config, a pull secret, or the..."
     },
     {
-      "id": "215-stagecraft-deploy-trigger-ux",
+      "id": "215-statecraft-deploy-trigger-ux",
       "num": "215",
-      "title": "Stagecraft Deploy Trigger UX (Preview in Deployd / View Deployd)",
+      "title": "Statecraft Deploy Trigger UX (Preview in Deployd / View Deployd)",
       "status": "approved",
       "implementation": "complete",
       "kind": "platform",
@@ -3237,7 +3237,7 @@
       "tags": [
         "platform"
       ],
-      "summary": "Give the project-created page its deployment row: \"Preview in Deployd\" dispatches the scaffolded commit to the auto-provisioned development environment, and \"View Deployd\" lands on an environment page that shows real deployment state and the live URL. Underneath the buttons: a createDeployment client path, a stagecraft-side record of every dispatch (fixing t..."
+      "summary": "Give the project-created page its deployment row: \"Preview in Deployd\" dispatches the scaffolded commit to the auto-provisioned development environment, and \"View Deployd\" lands on an environment page that shows real deployment state and the live URL. Underneath the buttons: a createDeployment client path, a statecraft-side record of every dispatch (fixing t..."
     },
     {
       "id": "216-spec-spine-library-grammar-adoption",
@@ -3413,12 +3413,12 @@
       "tags": [
         "platform"
       ],
-      "summary": "The stagecraft \"Create New Project\" surface hand-mirrors the factory adapter's module catalog in two independently-maintained hardcoded copies (the frontend route and a backend module) that have drifted: they still offer a \"Redis\" module whose factory-encore source is an inert marker with a false label (it claims a Redis rate-limit backend that does not exis..."
+      "summary": "The statecraft \"Create New Project\" surface hand-mirrors the factory adapter's module catalog in two independently-maintained hardcoded copies (the frontend route and a backend module) that have drifted: they still offer a \"Redis\" module whose factory-encore source is an inert marker with a false label (it claims a Redis rate-limit backend that does not exis..."
     },
     {
-      "id": "228-stagecraft-public-marketing-site",
+      "id": "228-statecraft-public-marketing-site",
       "num": "228",
-      "title": "Stagecraft public marketing site: governed teal/mono port of the ecosystem + whitepaper",
+      "title": "Statecraft public marketing site: governed teal/mono port of the ecosystem + whitepaper",
       "status": "approved",
       "implementation": "complete",
       "kind": "platform",
@@ -3427,7 +3427,7 @@
       "tags": [
         "platform"
       ],
-      "summary": "Replaces the thin bounce-to-signin marketing surface of the stagecraft web app with a five-section public site, natively ported into the React Router 8 SSR app from two standalone Vite sites (oap-ecosystem and oap-whitepaper). The nav is Overview (product landing) + Products (architecture and repo catalog, merged) + Papers (a multi-paper reader hosting the c..."
+      "summary": "Replaces the thin bounce-to-signin marketing surface of the statecraft web app with a five-section public site, natively ported into the React Router 8 SSR app from two standalone Vite sites (oap-ecosystem and oap-whitepaper). The nav is Overview (product landing) + Products (architecture and repo catalog, merged) + Papers (a multi-paper reader hosting the c..."
     }
   ],
   "edges": [
@@ -3967,27 +3967,27 @@
       "type": "extends"
     },
     {
-      "source": "110-stagecraft-to-opc-factory-trigger",
+      "source": "110-statecraft-to-opc-factory-trigger",
       "target": "087-unified-workspace-architecture",
       "type": "extends"
     },
     {
-      "source": "110-stagecraft-to-opc-factory-trigger",
+      "source": "110-statecraft-to-opc-factory-trigger",
       "target": "087-unified-workspace-architecture",
       "type": "extends"
     },
     {
-      "source": "110-stagecraft-to-opc-factory-trigger",
+      "source": "110-statecraft-to-opc-factory-trigger",
       "target": "075-factory-workflow-engine",
       "type": "extends"
     },
     {
-      "source": "110-stagecraft-to-opc-factory-trigger",
+      "source": "110-statecraft-to-opc-factory-trigger",
       "target": "109-factory-pat-and-pubsub-sync",
       "type": "extends"
     },
     {
-      "source": "110-stagecraft-to-opc-factory-trigger",
+      "source": "110-statecraft-to-opc-factory-trigger",
       "target": "085-remote-control-cli",
       "type": "extends"
     },
@@ -4002,63 +4002,63 @@
       "type": "extends"
     },
     {
-      "source": "113-stagecraft-projects-rename-and-clone",
+      "source": "113-statecraft-projects-rename-and-clone",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "113-stagecraft-projects-rename-and-clone",
+      "source": "113-statecraft-projects-rename-and-clone",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "113-stagecraft-projects-rename-and-clone",
+      "source": "113-statecraft-projects-rename-and-clone",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "113-stagecraft-projects-rename-and-clone",
+      "source": "113-statecraft-projects-rename-and-clone",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "113-stagecraft-projects-rename-and-clone",
+      "source": "113-statecraft-projects-rename-and-clone",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "113-stagecraft-projects-rename-and-clone",
+      "source": "113-statecraft-projects-rename-and-clone",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "113-stagecraft-projects-rename-and-clone",
+      "source": "113-statecraft-projects-rename-and-clone",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "113-stagecraft-projects-rename-and-clone",
+      "source": "113-statecraft-projects-rename-and-clone",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "113-stagecraft-projects-rename-and-clone",
+      "source": "113-statecraft-projects-rename-and-clone",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
       "source": "114-async-project-clone-pipeline",
-      "target": "113-stagecraft-projects-rename-and-clone",
+      "target": "113-statecraft-projects-rename-and-clone",
       "type": "supersedes"
     },
     {
       "source": "114-async-project-clone-pipeline",
-      "target": "113-stagecraft-projects-rename-and-clone",
+      "target": "113-statecraft-projects-rename-and-clone",
       "type": "extends"
     },
     {
       "source": "114-async-project-clone-pipeline",
-      "target": "113-stagecraft-projects-rename-and-clone",
+      "target": "113-statecraft-projects-rename-and-clone",
       "type": "extends"
     },
     {
@@ -4382,82 +4382,82 @@
       "type": "extends"
     },
     {
-      "source": "138-stagecraft-create-realised-scaffold",
+      "source": "138-statecraft-create-realised-scaffold",
       "target": "112-factory-project-lifecycle",
       "type": "amends"
     },
     {
-      "source": "138-stagecraft-create-realised-scaffold",
+      "source": "138-statecraft-create-realised-scaffold",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "138-stagecraft-create-realised-scaffold",
+      "source": "138-statecraft-create-realised-scaffold",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "138-stagecraft-create-realised-scaffold",
+      "source": "138-statecraft-create-realised-scaffold",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "138-stagecraft-create-realised-scaffold",
+      "source": "138-statecraft-create-realised-scaffold",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "138-stagecraft-create-realised-scaffold",
+      "source": "138-statecraft-create-realised-scaffold",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "138-stagecraft-create-realised-scaffold",
+      "source": "138-statecraft-create-realised-scaffold",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "138-stagecraft-create-realised-scaffold",
+      "source": "138-statecraft-create-realised-scaffold",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "138-stagecraft-create-realised-scaffold",
+      "source": "138-statecraft-create-realised-scaffold",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "138-stagecraft-create-realised-scaffold",
+      "source": "138-statecraft-create-realised-scaffold",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "138-stagecraft-create-realised-scaffold",
+      "source": "138-statecraft-create-realised-scaffold",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "138-stagecraft-create-realised-scaffold",
+      "source": "138-statecraft-create-realised-scaffold",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "138-stagecraft-create-realised-scaffold",
+      "source": "138-statecraft-create-realised-scaffold",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "138-stagecraft-create-realised-scaffold",
+      "source": "138-statecraft-create-realised-scaffold",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "138-stagecraft-create-realised-scaffold",
+      "source": "138-statecraft-create-realised-scaffold",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "138-stagecraft-create-realised-scaffold",
+      "source": "138-statecraft-create-realised-scaffold",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
@@ -4912,12 +4912,12 @@
       "type": "amends"
     },
     {
-      "source": "160-factory-adapter-stagecraft-relocation",
+      "source": "160-factory-adapter-statecraft-relocation",
       "target": "101-codebase-index-mvp",
       "type": "amends"
     },
     {
-      "source": "160-factory-adapter-stagecraft-relocation",
+      "source": "160-factory-adapter-statecraft-relocation",
       "target": "108-factory-as-platform-feature",
       "type": "extends"
     },
@@ -4952,48 +4952,48 @@
       "type": "amends"
     },
     {
-      "source": "163-stagecraft-requirements-view",
+      "source": "163-statecraft-requirements-view",
       "target": "087-unified-workspace-architecture",
       "type": "extends"
     },
     {
-      "source": "163-stagecraft-requirements-view",
+      "source": "163-statecraft-requirements-view",
       "target": "087-unified-workspace-architecture",
       "type": "extends"
     },
     {
-      "source": "163-stagecraft-requirements-view",
+      "source": "163-statecraft-requirements-view",
       "target": "087-unified-workspace-architecture",
       "type": "extends"
     },
     {
-      "source": "164-stagecraft-development-lifecycle-board",
+      "source": "164-statecraft-development-lifecycle-board",
       "target": "087-unified-workspace-architecture",
       "type": "extends"
     },
     {
-      "source": "164-stagecraft-development-lifecycle-board",
+      "source": "164-statecraft-development-lifecycle-board",
       "target": "087-unified-workspace-architecture",
       "type": "extends"
     },
     {
-      "source": "164-stagecraft-development-lifecycle-board",
+      "source": "164-statecraft-development-lifecycle-board",
       "target": "087-unified-workspace-architecture",
       "type": "extends"
     },
     {
-      "source": "164-stagecraft-development-lifecycle-board",
-      "target": "163-stagecraft-requirements-view",
+      "source": "164-statecraft-development-lifecycle-board",
+      "target": "163-statecraft-requirements-view",
       "type": "extends"
     },
     {
-      "source": "164-stagecraft-development-lifecycle-board",
-      "target": "163-stagecraft-requirements-view",
+      "source": "164-statecraft-development-lifecycle-board",
+      "target": "163-statecraft-requirements-view",
       "type": "extends"
     },
     {
-      "source": "164-stagecraft-development-lifecycle-board",
-      "target": "163-stagecraft-requirements-view",
+      "source": "164-statecraft-development-lifecycle-board",
+      "target": "163-statecraft-requirements-view",
       "type": "extends"
     },
     {
@@ -5232,12 +5232,12 @@
       "type": "extends"
     },
     {
-      "source": "175-stagecraft-project-dashboard-observability",
-      "target": "163-stagecraft-requirements-view",
+      "source": "175-statecraft-project-dashboard-observability",
+      "target": "163-statecraft-requirements-view",
       "type": "extends"
     },
     {
-      "source": "175-stagecraft-project-dashboard-observability",
+      "source": "175-statecraft-project-dashboard-observability",
       "target": "034-featuregraph-registry-scanner-fix",
       "type": "extends"
     },
@@ -5783,7 +5783,7 @@
     },
     {
       "source": "213-tenant-repo-image-build",
-      "target": "138-stagecraft-create-realised-scaffold",
+      "target": "138-statecraft-create-realised-scaffold",
       "type": "extends"
     },
     {
@@ -5858,7 +5858,7 @@
     },
     {
       "source": "214-tenant-app-chart-supersession",
-      "target": "077-stagecraft-factory-api",
+      "target": "077-statecraft-factory-api",
       "type": "extends"
     },
     {
@@ -5873,41 +5873,41 @@
     },
     {
       "source": "214-tenant-app-chart-supersession",
-      "target": "138-stagecraft-create-realised-scaffold",
+      "target": "138-statecraft-create-realised-scaffold",
       "type": "extends"
     },
     {
-      "source": "215-stagecraft-deploy-trigger-ux",
+      "source": "215-statecraft-deploy-trigger-ux",
       "target": "112-factory-project-lifecycle",
       "type": "extends"
     },
     {
-      "source": "215-stagecraft-deploy-trigger-ux",
+      "source": "215-statecraft-deploy-trigger-ux",
       "target": "136-tenant-hello-demo-service",
       "type": "extends"
     },
     {
-      "source": "215-stagecraft-deploy-trigger-ux",
+      "source": "215-statecraft-deploy-trigger-ux",
       "target": "136-tenant-hello-demo-service",
       "type": "extends"
     },
     {
-      "source": "215-stagecraft-deploy-trigger-ux",
+      "source": "215-statecraft-deploy-trigger-ux",
       "target": "137-tenant-environment-access-gates",
       "type": "extends"
     },
     {
-      "source": "215-stagecraft-deploy-trigger-ux",
+      "source": "215-statecraft-deploy-trigger-ux",
       "target": "137-tenant-environment-access-gates",
       "type": "extends"
     },
     {
-      "source": "215-stagecraft-deploy-trigger-ux",
+      "source": "215-statecraft-deploy-trigger-ux",
       "target": "087-unified-workspace-architecture",
       "type": "extends"
     },
     {
-      "source": "215-stagecraft-deploy-trigger-ux",
+      "source": "215-statecraft-deploy-trigger-ux",
       "target": "034-featuregraph-registry-scanner-fix",
       "type": "extends"
     },
@@ -6352,37 +6352,37 @@
       "type": "extends"
     },
     {
-      "source": "228-stagecraft-public-marketing-site",
-      "target": "163-stagecraft-requirements-view",
+      "source": "228-statecraft-public-marketing-site",
+      "target": "163-statecraft-requirements-view",
       "type": "extends"
     },
     {
-      "source": "228-stagecraft-public-marketing-site",
-      "target": "160-factory-adapter-stagecraft-relocation",
+      "source": "228-statecraft-public-marketing-site",
+      "target": "160-factory-adapter-statecraft-relocation",
       "type": "extends"
     },
     {
-      "source": "228-stagecraft-public-marketing-site",
-      "target": "160-factory-adapter-stagecraft-relocation",
+      "source": "228-statecraft-public-marketing-site",
+      "target": "160-factory-adapter-statecraft-relocation",
       "type": "extends"
     },
     {
-      "source": "228-stagecraft-public-marketing-site",
-      "target": "160-factory-adapter-stagecraft-relocation",
+      "source": "228-statecraft-public-marketing-site",
+      "target": "160-factory-adapter-statecraft-relocation",
       "type": "extends"
     },
     {
-      "source": "228-stagecraft-public-marketing-site",
-      "target": "160-factory-adapter-stagecraft-relocation",
+      "source": "228-statecraft-public-marketing-site",
+      "target": "160-factory-adapter-statecraft-relocation",
       "type": "extends"
     },
     {
-      "source": "228-stagecraft-public-marketing-site",
-      "target": "160-factory-adapter-stagecraft-relocation",
+      "source": "228-statecraft-public-marketing-site",
+      "target": "160-factory-adapter-statecraft-relocation",
       "type": "extends"
     },
     {
-      "source": "228-stagecraft-public-marketing-site",
+      "source": "228-statecraft-public-marketing-site",
       "target": "034-featuregraph-registry-scanner-fix",
       "type": "extends"
     }

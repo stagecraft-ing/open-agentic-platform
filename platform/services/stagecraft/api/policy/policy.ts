@@ -14,7 +14,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
  * `build/policy/projects/{projectId}.json`. Mount a config volume here in
  * production, or set POLICY_BUNDLE_DIR env var.
  */
-const BUNDLE_DIR = process.env.POLICY_BUNDLE_DIR ?? "/var/lib/stagecraft/policy-bundles";
+const BUNDLE_DIR = process.env.POLICY_BUNDLE_DIR ?? "/var/lib/statecraft/policy-bundles";
 
 type PolicyBundleRequest = {
   authorization: Header<"Authorization">;

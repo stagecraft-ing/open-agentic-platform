@@ -3,7 +3,7 @@ id: "224-self-hosted-sweeper-cron-revival"
 title: "Self-Hosted Sweeper Cron Revival (K8s CronJobs for Encore no-op sweepers)"
 feature_branch: "224-self-hosted-sweeper-cron-revival"
 status: approved
-implementation: in-progress  # FR-001..FR-005 (factory-runs sweeper leg) delivered this PR: expose:true M2M endpoint + K8s CronJob + external-secret + setup.sh client wiring, scope platform:factory:sweep. FR-006 (systemic rule) codified. FR-007/FR-008 (spec 115 extraction + spec 087 connector-sync legs) STAGED, not delivered; tracked here so spec 143 §12 FU-003's "single sibling spec, keep the finding visible" intent holds without ballooning this PR. Operational rollout (create stagecraft-factory-sweeper-m2m-app Rauthy client with Default Scope platform:factory:sweep, fill STAGECRAFT_FACTORY_SWEEPER_CLIENT_ID/_SECRET, run setup.sh) is the documented deploy-time prerequisite, gated on the #480 M2M-auth-handler fix having reached the cluster.
+implementation: in-progress  # FR-001..FR-005 (factory-runs sweeper leg) delivered this PR: expose:true M2M endpoint + K8s CronJob + external-secret + setup.sh client wiring, scope platform:factory:sweep. FR-006 (systemic rule) codified. FR-007/FR-008 (spec 115 extraction + spec 087 connector-sync legs) STAGED, not delivered; tracked here so spec 143 §12 FU-003's "single sibling spec, keep the finding visible" intent holds without ballooning this PR. Operational rollout (create statecraft-factory-sweeper-m2m-app Rauthy client with Default Scope platform:factory:sweep, fill STATECRAFT_FACTORY_SWEEPER_CLIENT_ID/_SECRET, run setup.sh) is the documented deploy-time prerequisite, gated on the #480 M2M-auth-handler fix having reached the cluster.
 kind: platform
 domain: platform
 created: "2026-07-01"
@@ -33,8 +33,8 @@ depends_on:
   - "106-rauthy-native-oidc-and-membership"  # M2M client_credentials substrate
 amends: ["124-opc-factory-run-platform-integration"]
 establishes:
-  - unit: { kind: file, path: platform/charts/stagecraft/templates/cronjob-factory-runs-sweeper.yaml }
-  - unit: { kind: file, path: platform/charts/stagecraft/templates/external-secret-factory-sweeper.yaml }
+  - unit: { kind: file, path: platform/charts/statecraft/templates/cronjob-factory-runs-sweeper.yaml }
+  - unit: { kind: file, path: platform/charts/statecraft/templates/external-secret-factory-sweeper.yaml }
 extends:
   # The factory-runs staleness sweeper file. Spec 124 §6 established it in
   # prose ("The sweeper lives in api/factory/runsScheduler.ts") but never
@@ -43,7 +43,7 @@ extends:
   # existing expose:false handler into the parameterless Encore-cron endpoint.
   - spec: "124-opc-factory-run-platform-integration"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/runsScheduler.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/runsScheduler.ts }
   # A new spec adds a node to the featuregraph golden (same precedent as
   # specs 214, 222, 223); claimed additively against spec 034 so the golden
   # diff carries a 224 authority.
@@ -58,11 +58,11 @@ refines:
     unit: { kind: file, path: platform/infra/hetzner/setup.sh }
 references:
   - role: pattern-source
-    unit: { kind: file, path: platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml }
+    unit: { kind: file, path: platform/charts/statecraft/templates/cronjob-orphan-sweeper.yaml }
   - role: pattern-source
-    unit: { kind: file, path: platform/charts/stagecraft/templates/external-secret-knowledge-sweeper.yaml }
+    unit: { kind: file, path: platform/charts/statecraft/templates/external-secret-knowledge-sweeper.yaml }
   - role: m2m-auth-precedent
-    unit: { kind: file, path: platform/services/stagecraft/api/auth/m2mAuth.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/auth/m2mAuth.ts }
   - role: credential-plumbing
     unit: { kind: file, path: platform/infra/terraform/envs/dev/core/variables.tf }
   - role: systemic-finding-authority
@@ -123,9 +123,9 @@ runs are the visible symptom that motivated the #3 follow-up (OPC "Idle" /
 path is missing.
 
 **Independent Test**: Deploy the chart against a self-hosted cluster with the
-`stagecraft-factory-sweeper-credentials` Secret populated; seed a
+`statecraft-factory-sweeper-credentials` Secret populated; seed a
 `factory_runs` row in `running` with `last_event_at` older than
-`STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC`; wait one CronJob tick; assert the
+`STATECRAFT_FACTORY_RUN_STALE_AFTER_SEC`; wait one CronJob tick; assert the
 row is `failed` with a `factory.run.swept` audit row under the system user.
 
 **Acceptance Scenarios**:
@@ -145,7 +145,7 @@ row is `failed` with a `factory.run.swept` audit row under the system user.
 
 ### Edge Cases
 
-- **Secret absent at deploy time.** If `stagecraft-factory-sweeper-credentials`
+- **Secret absent at deploy time.** If `statecraft-factory-sweeper-credentials`
   is not yet created (operator has not run the updated `setup.sh`), the
   CronJob pod fails to start (missing `envFrom` secretRef) or `curl` returns
   non-zero on the token fetch. This is the same fail-loud shape as the
@@ -174,10 +174,10 @@ row is `failed` with a `factory.run.swept` audit row under the system user.
   the local-dev / future-Encore-Cloud path keeps working; both endpoints MUST
   call one shared sweep-and-log kernel. No behavioral change to
   `sweepStaleFactoryRuns`.
-- **FR-003**: A K8s `CronJob` (`platform/charts/stagecraft/templates/cronjob-factory-runs-sweeper.yaml`)
+- **FR-003**: A K8s `CronJob` (`platform/charts/statecraft/templates/cronjob-factory-runs-sweeper.yaml`)
   MUST fetch a `client_credentials` JWT from Rauthy and POST the FR-001
   endpoint on a fixed cadence, mounting ONLY the per-purpose
-  `stagecraft-factory-sweeper-credentials` Secret (no cross-purpose mounts).
+  `statecraft-factory-sweeper-credentials` Secret (no cross-purpose mounts).
   It MUST mirror the orphan-sweeper template's security context and
   fail-loud `curl --fail` contract.
 - **FR-004**: The per-purpose credential Secret MUST be provisioned two ways
@@ -186,12 +186,12 @@ row is `failed` with a `factory.run.swept` audit row under the system user.
   `kubectl create secret` in `setup.sh` (Hetzner `secrets.provider: "k8s"`).
   Both MUST produce the same Secret name plus `CLIENT_ID`/`CLIENT_SECRET` keys
   so the CronJob stays cluster-agnostic.
-- **FR-005**: `setup.sh` MUST list `STAGECRAFT_FACTORY_SWEEPER_CLIENT_ID` /
+- **FR-005**: `setup.sh` MUST list `STATECRAFT_FACTORY_SWEEPER_CLIENT_ID` /
   `_SECRET` in its Phase-2 required-var gate and print the
-  `stagecraft-factory-sweeper-m2m-app` Rauthy-client provisioning
+  `statecraft-factory-sweeper-m2m-app` Rauthy-client provisioning
   instructions (Default Scope `platform:factory:sweep`, §12 L-006 caveat).
   The Terraform credential variables already exist
-  (`stagecraft_factory_sweeper_client_id/_secret`, staged by FU-003) and need
+  (`statecraft_factory_sweeper_client_id/_secret`, staged by FU-003) and need
   no change.
 
 ### Functional Requirements: systemic rule
@@ -215,11 +215,11 @@ row is `failed` with a `factory.run.swept` audit row under the system user.
 
 ## Key Entities
 
-- **`stagecraft-factory-sweeper-m2m-app`**: the Rauthy `client_credentials`
+- **`statecraft-factory-sweeper-m2m-app`**: the Rauthy `client_credentials`
   client for this sweeper. Default Scope `platform:factory:sweep`. Its
   credential is bounded to exactly one surface (the factory-runs sweep
   endpoint); a leak does not cross into the knowledge sweeper's authority.
-- **`stagecraft-factory-sweeper-credentials`**: the K8s Secret carrying that
+- **`statecraft-factory-sweeper-credentials`**: the K8s Secret carrying that
   client's `CLIENT_ID`/`CLIENT_SECRET`, the SOLE credential mounted into the
   CronJob pod.
 - **`platform:factory:sweep`**: the OAuth scope the FR-001 endpoint requires.
@@ -238,7 +238,7 @@ row is `failed` with a `factory.run.swept` audit row under the system user.
   cleanly; `helm lint` passes; the coupling gate and spec-lint are green with
   spec 224 claiming the new plus extended paths.
 - **SC-004**: No cross-purpose credential mount: the CronJob pod's `envFrom`
-  references only `stagecraft-factory-sweeper-credentials`.
+  references only `statecraft-factory-sweeper-credentials`.
 
 ## Amendment: spec 124
 

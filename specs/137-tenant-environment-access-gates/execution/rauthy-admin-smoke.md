@@ -4,7 +4,7 @@
 **Cluster:** oap-hetzner-master1
 **Rauthy version:** 0.35 (per `rauthy.ts:7` source comment + observed
 client schema)
-**Execution path:** `stagecraft-api-958cc6495-gp6nl` pod →
+**Execution path:** `statecraft-api-958cc6495-gp6nl` pod →
 `http://rauthy.rauthy-system.svc.cluster.local:8080` (in-cluster;
 required because Rauthy `PROXY_MODE=true` rejects external admin
 requests with `400 BadRequest "Invalid IP Address"`).
@@ -34,7 +34,7 @@ constraint. The empirical client schema is:
  force_mfa, id, id_token_alg, name, redirect_uris, scopes]
 ```
 
-(14 fields; observed read-back of the `stagecraft-server` client.)
+(14 fields; observed read-back of the `statecraft-server` client.)
 
 **Password login is controlled via `flows_enabled` array.** A client
 with `flows_enabled: ["authorization_code"]` (omitting `"password"`)
@@ -70,7 +70,7 @@ empirically validated against zero providers; binding-shape
 verification is deferred to the Phase 3 PR that provisions the
 first Auth Provider.
 
-The reference-schema readback on the existing `stagecraft-server`
+The reference-schema readback on the existing `statecraft-server`
 client does NOT include any `auth_provider_id` or `provider_id`
 field, which suggests provider binding may NOT live on the client
 record at all in Rauthy 0.35 — instead, providers are listed

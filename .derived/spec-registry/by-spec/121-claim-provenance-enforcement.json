@@ -68,7 +68,7 @@
         "role": "historical",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/governance/provenancePolicy.ts"
+          "path": "platform/services/statecraft/api/governance/provenancePolicy.ts"
         }
       },
       {

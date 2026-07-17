@@ -10,27 +10,27 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/upstreamPat.ts"
+        "path": "platform/services/statecraft/api/factory/upstreamPat.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/syncWorker.ts"
+        "path": "platform/services/statecraft/api/factory/syncWorker.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/syncRuns.ts"
+        "path": "platform/services/statecraft/api/factory/syncRuns.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/syncRunsScheduler.ts"
+        "path": "platform/services/statecraft/api/factory/syncRunsScheduler.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/tokenResolver.ts"
+        "path": "platform/services/statecraft/api/factory/tokenResolver.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/projects/projectPat.ts"
+        "path": "platform/services/statecraft/api/projects/projectPat.ts"
       }
     ],
     "extends": [
@@ -39,7 +39,7 @@
         "spec": "108-factory-as-platform-feature",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/factory.ts"
+          "path": "platform/services/statecraft/api/factory/factory.ts"
         }
       },
       {
@@ -47,7 +47,7 @@
         "spec": "108-factory-as-platform-feature",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.factory.upstreams.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.factory.upstreams.tsx"
         }
       },
       {
@@ -55,7 +55,7 @@
         "spec": "106-rauthy-native-oidc-and-membership",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.github-pat.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.settings.github-pat.tsx"
         }
       }
     ],

@@ -3,7 +3,7 @@
  *
  * The PAT is the documented fallback when the GitHub App installation
  * strategy cannot resolve a user's org memberships (e.g. the org refuses
- * to install the stagecraft app). All endpoints are user-scoped — a user
+ * to install the statecraft app). All endpoints are user-scoped — a user
  * can only ever touch their own row.
  *
  * Design notes:

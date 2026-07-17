@@ -54,10 +54,10 @@ export default defineConfig(({ command }) => ({
                 target: ENCORE_TARGET,
                 changeOrigin: true,
                 // Tag every proxied request so mirrord's http_filter in
-                // infra/hetzner/mirrord/stagecraft.yaml knows to steal it.
+                // infra/hetzner/mirrord/statecraft.yaml knows to steal it.
                 // Untagged traffic (k8s probes, ingress hits) stays on the
                 // pod, which keeps k8s from killing our mirrord target.
-                headers: { "x-stagecraft-dev": "1" },
+                headers: { "x-statecraft-dev": "1" },
               },
             ]),
           ),

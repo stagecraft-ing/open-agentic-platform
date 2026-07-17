@@ -103,9 +103,9 @@ jobs:
       - name: pnpm audit
         run: pnpm audit --audit-level=high
 
-  npm-audit-stagecraft:
+  npm-audit-statecraft:
     runs-on: ubuntu-latest
-    name: npm-audit / stagecraft
+    name: npm-audit / statecraft
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -114,14 +114,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: platform/services/stagecraft/package-lock.json
+          cache-dependency-path: platform/services/statecraft/package-lock.json
 
       - name: npm ci
         run: npm ci
-        working-directory: platform/services/stagecraft
+        working-directory: platform/services/statecraft
 
       - name: npm audit
-        working-directory: platform/services/stagecraft
+        working-directory: platform/services/statecraft
         run: npm audit --audit-level=high
 
   workflow-pins:

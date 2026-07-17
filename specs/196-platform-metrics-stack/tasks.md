@@ -28,10 +28,10 @@ the design; the design is implemented as specified):
 - [x] T003 The default-deny posture is applied to **no namespace**:
   `platform/infra/hetzner/post-create.sh` applies only
   resourcequota + limitrange and says "skip default-deny for MVP".
-  SC-005 as filed ("an un-allowed egress from stagecraft-system is
+  SC-005 as filed ("an un-allowed egress from statecraft-system is
   still dropped") is unverifiable against the live cluster. →
   FR-006/SC-005 rescoped: `monitoring` ships with the repo's first
-  *enforced* default-deny + named flows; the stagecraft-system
+  *enforced* default-deny + named flows; the statecraft-system
   egress allow is declared-but-dormant until that namespace gains
   default-deny under its own spec.
 
@@ -73,7 +73,7 @@ the design; the design is implemented as specified):
   default-deny ingress simple).
 - [x] T014 NetworkPolicies (FR-006, establishes):
   `platform/k8s/policies/monitoring/networkpolicy-monitoring.yaml`
-  (default-deny + intra-ns + remote_write 9090 ← stagecraft-system
+  (default-deny + intra-ns + remote_write 9090 ← statecraft-system
   only + Grafana 3000 ← ingress-nginx + bounded egress). ~~and
   `namespace-baseline/networkpolicy-allow-metrics-egress.yaml`~~ —
   the cross-namespace halves shipped here were WITHDRAWN the same day
@@ -97,15 +97,15 @@ the design; the design is implemented as specified):
   Schema verified against `encore.dev/schemas/infra.schema.json`
   (integer seconds; `remote_write_url` is env_string — literal OK).
   SC-004 guard: this is the ONLY change under
-  `platform/services/stagecraft/**`.
+  `platform/services/statecraft/**`.
 
 ## Phase 2 — Grafana + OIDC (FR-004)
 
 - [x] T020 Grafana OIDC values in `monitoring.yaml` (atomic with
   Phase 1's file; the *deploy* phase boundary is the manual client):
-  `generic_oauth` against issuer `https://auth.stagecraft.ing/auth/v1`
+  `generic_oauth` against issuer `https://auth.statecraft.ing/auth/v1`
   (endpoints `/oidc/authorize`, `/oidc/token`, `/oidc/userinfo` — the
-  paths stagecraft itself uses in `api/auth/rauthy.ts`), scopes
+  paths statecraft itself uses in `api/auth/rauthy.ts`), scopes
   `openid email profile oap` (the `oap` scope maps the
   `platform_role` attribute — `seed-rauthy.mjs` OAP_SCOPE),
   `role_attribute_path` reading `custom.platform_role` (Rauthy nests
@@ -117,7 +117,7 @@ the design; the design is implemented as specified):
   `disable_initial_admin_creation: true` (no admin credential ever
   exists). Client id/secret arrive via `envFromSecret: grafana-oidc`
   (GF_AUTH_GENERIC_OAUTH_CLIENT_ID/_SECRET) — never in git.
-- [x] T021 [P] Grafana ingress `grafana.stagecraft.ing` (className
+- [x] T021 [P] Grafana ingress `grafana.statecraft.ing` (className
   nginx, `cert-manager.io/cluster-issuer: letsencrypt-prod` — the
   platform-host default per post-create.sh issuer policy; domain
   hardcoded per the rauthy.yaml cluster-subtree convention).
@@ -132,7 +132,7 @@ the design; the design is implemented as specified):
 - [x] T023 [P] Dashboard provisioning (SC-010 surface):
   `gitops/.../infrastructure/monitoring-dashboards.yaml` ConfigMap
   (`grafana_dashboard` sidecar label) with the OAP Platform Overview
-  dashboard: stagecraft remote_write panel (provisional expr
+  dashboard: statecraft remote_write panel (provisional expr
   `e_requests_total` — **pinned/corrected when SC-001 records the
   validated series name**), deployd-api (`deployd_api_build_info`),
   Flux (`controller_runtime_reconcile_total`), ingress-nginx
@@ -160,7 +160,7 @@ the design; the design is implemented as specified):
   `platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml`,
   drop its line from `platform/k8s/policies/kustomization.yaml`, remove
   its `establishes:` edge. The three objects isolated the service pods
-  they selected (ingress-nginx all-pods Ingress; stagecraft-system
+  they selected (ingress-nginx all-pods Ingress; statecraft-system
   all-pods Egress; deployd-api Ingress on the shared :8080) — all
   public hosts returned Cloudflare 521. FR-006/SC-005 corrected: an
   allow is never dormant; outside-`monitoring` halves land WITH their
@@ -173,12 +173,12 @@ the design; the design is implemented as specified):
 - [x] T042 Post-merge: resume the `policies` Flux Kustomization
   (suspended during mitigation), confirm the three deleted objects stay
   pruned and the reduced apply set reconciles; rerun the failed
-  `CD stagecraft` deploy-hetzner job (and the `CD deployd-api-rs` run,
+  `CD statecraft` deploy-hetzner job (and the `CD deployd-api-rs` run,
   which failed on an unrelated GHA cache-export flake). → V011/V012.
 
 ## Deploy-time validation checklist *(post-merge; SC evidence lands as a spec.md amendment)*
 
-- [x] V001 SC-001: stagecraft series queryable in Prometheus within
+- [x] V001 SC-001: statecraft series queryable in Prometheus within
   ~60s of a request. **Record the concrete series name** — it is the
   SC-010 anchor and the dashboard-panel correction input (T023).
 - [x] V002 SC-002: one known series each from deployd-api
@@ -195,7 +195,7 @@ the design; the design is implemented as specified):
   `collection_interval` ≥ 15s.
 - [x] V006 SC-008: receiver :9090 unreachable from a generic
   namespace AND from flux-system / deployd-system / ingress-nginx;
-  reachable from stagecraft-system.
+  reachable from statecraft-system.
 - [x] V007 Manual step: create `grafana` client in Rauthy admin UI
   (confidential, authorization_code + PKCE, exact redirect URI, scopes
   openid email profile oap), fill .env, re-run `./setup.sh`; Grafana
@@ -213,7 +213,7 @@ the design; the design is implemented as specified):
   name differs.
 - [x] V011 Incident closure (T040): with the `policies` Kustomization
   resumed on the reduced apply set, the three withdrawn NetworkPolicies
-  are absent and all four public hosts (`stagecraft.ing`, `auth.`,
+  are absent and all four public hosts (`statecraft.ing`, `auth.`,
   `deploy.`, `minio.`) return non-5xx through Cloudflare; the
   `seed-rauthy` job completes on the rerun deploy.
 - [x] V012 Incident closure (T041): `kubectl get pvc -n monitoring`
@@ -223,10 +223,10 @@ the design; the design is implemented as specified):
 ## Follow-ups (owned by other specs, not 196)
 
 - **Cross-namespace HTTP-01 solver allow.** The solver default-deny gap fixed
-  here for `monitoring` also exists in `stagecraft-system`, `deployd-system`,
+  here for `monitoring` also exists in `statecraft-system`, `deployd-system`,
   and `rauthy` (all issue via the HTTP-01 `letsencrypt-prod` ClusterIssuer;
-  `minio.` lands in `stagecraft-system` under the same issuer). Certificate
-  *renewal* for `stagecraft.ing`/`auth.`/`deploy.`/`minio.` will 502 at the
+  `minio.` lands in `statecraft-system` under the same issuer). Certificate
+  *renewal* for `statecraft.ing`/`auth.`/`deploy.`/`minio.` will 502 at the
   next ACME cycle until each owning spec adds an
   `allow-acme-solver-from-ingress-nginx` equivalent to its namespace policy.
   Tracked here so the risk is not lost; 196 does not `establishes:` those

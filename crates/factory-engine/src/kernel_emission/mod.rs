@@ -8,8 +8,8 @@
 //! > canonical born-with kernel is the *published `spec-spine` npm
 //! > distribution* carried by the prebuilt template (a pinned devDependency +
 //! > `spec-spine.toml` + a born-clean corpus + committed `.derived/` +
-//! > `spec-spine.yml` CI), materialised by stagecraft's Create flow
-//! > (`platform/services/stagecraft/api/projects/scaffold/`, which stamps
+//! > `spec-spine.yml` CI), materialised by statecraft's Create flow
+//! > (`platform/services/statecraft/api/projects/scaffold/`, which stamps
 //! > `.kernel-version`). The Rust `emit_kernel` path below is the
 //! > **adapter-determined fallback** for non-npm adapters (spec 167 OQ-6);
 //! > npm is the first and only realised mode. The vendored-binary CI workflow

@@ -1,6 +1,6 @@
 // @opc/carrier-gate: canonical carrier-class write-gate rules (spec 204 FR-001).
 //
-// Imported by both the factory substrate gate (stagecraft overrideGate.ts) and
+// Imported by both the factory substrate gate (statecraft overrideGate.ts) and
 // the session-memory write gate so the carrier-class rule set has one home,
 // not two drifting copies. Runtime is plain ESM JS (Node-loadable across the
 // Encore boundary); consumer types are in index.d.ts.

@@ -18,8 +18,8 @@ code_aliases: ["GITHUB_IDENTITY", "ORG_ONBOARDING"]
 owner: bart
 risk: medium
 establishes:
-  - unit: { kind: directory, path: platform/services/stagecraft/api/github }
-  - unit: { kind: directory, path: platform/services/stagecraft/api/auth }
+  - unit: { kind: directory, path: platform/services/statecraft/api/github }
+  - unit: { kind: directory, path: platform/services/statecraft/api/auth }
 ---
 
 # Feature Specification: GitHub Identity and Org Onboarding
@@ -37,7 +37,7 @@ establishes:
 
 ## Purpose
 
-Stagecraft currently uses local email/password auth with separate user/admin cookie tracks, a hardcoded default org, and no real org membership model. This blocks meaningful multi-user collaboration and governed project creation.
+Statecraft currently uses local email/password auth with separate user/admin cookie tracks, a hardcoded default org, and no real org membership model. This blocks meaningful multi-user collaboration and governed project creation.
 
 This spec replaces that model with GitHub-centered identity where:
 
@@ -98,7 +98,7 @@ GitHub App ────→ Org Trust Anchor ──→ Membership Verification
           │                             │
           ▼                             ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  Stagecraft                                                   │
+│  Statecraft                                                   │
 │                                                               │
 │  ┌─────────────────────────┐  ┌────────────────────────────┐ │
 │  │ GitHub Service          │  │ Auth Service               │ │
@@ -125,7 +125,7 @@ GitHub App ────→ Org Trust Anchor ──→ Membership Verification
 ### Scope
 
 - GitHub App installation webhook creates OAP org record
-- GitHub OAuth login flow in OPC and Stagecraft web
+- GitHub OAuth login flow in OPC and Statecraft web
 - Server-side org membership resolution
 - Rauthy-backed session issuance with org context
 - Basic membership sync on login
@@ -203,7 +203,7 @@ ALTER TABLE organizations
 
 ### FR-001: GitHub App Installation Webhook
 
-When the Stagecraft GitHub App is installed into a GitHub organization:
+When the Statecraft GitHub App is installed into a GitHub organization:
 
 1. `installation.created` webhook fires (already handled in `api/github/webhook.ts`)
 2. Handler creates or updates `github_installations` row with:
@@ -234,7 +234,7 @@ On `installation.suspend` / `installation.unsuspend`:
 **Flow:**
 
 ```
-Browser                  Stagecraft              GitHub              Rauthy
+Browser                  Statecraft              GitHub              Rauthy
   │                         │                      │                   │
   ├─ GET /auth/github ──────►                      │                   │
   │                         ├─ redirect ───────────►                   │
@@ -307,12 +307,12 @@ The OAuth callback redirects to these frontend pages (React Router, registered i
 
 ### FR-003: Rauthy Integration
 
-Rauthy is already deployed (`platform/charts/rauthy/`) but not wired to Stagecraft. This phase wires it:
+Rauthy is already deployed (`platform/charts/rauthy/`) but not wired to Statecraft. This phase wires it:
 
 **Rauthy Configuration:**
 - Register GitHub as upstream authentication provider
 - Configure custom scopes/claims for OAP context (`oap_org_id`, `platform_role`)
-- Register Stagecraft as an OIDC client (for web app)
+- Register Statecraft as an OIDC client (for web app)
 - Register OPC as an OIDC client (for desktop app — PKCE flow)
 
 **Session Model:**
@@ -345,7 +345,7 @@ export const auth = authHandler(async (params): Promise<AuthData> => {
 Authorization header, including requests to the platform's `auth: false`
 machine-to-machine endpoints (audit, policy, grants, spec 143's
 knowledge-sweep) that present a `client_credentials` token. Those tokens carry
-a different audience than the `stagecraft-server` session client, so
+a different audience than the `statecraft-server` session client, so
 `validateJwt` returns null for them. The handler now **returns `null`
 (unauthenticated) instead of throwing** in that case: Encore then rejects
 `auth: true` user endpoints (no AuthData) while letting `auth: false` M2M
@@ -365,7 +365,7 @@ OPC (Tauri desktop app) uses PKCE OAuth flow:
 4. Rauthy redirects to OPC custom scheme (`opc://auth/callback`)
 5. OPC exchanges code for tokens via Rauthy token endpoint
 6. OPC stores tokens securely (Tauri secure storage)
-7. All OPC API calls to Stagecraft include Rauthy access token
+7. All OPC API calls to Statecraft include Rauthy access token
 8. OPC refreshes tokens automatically using refresh token
 
 ### FR-005: Org Membership Resolution
@@ -431,7 +431,7 @@ async function resolveOrgMemberships(githubAccessToken: string, userId: string) 
 
 ### Scope
 
-Authenticated org members can create projects through Stagecraft, including repo creation, GitHub Actions wiring, and deployment preparation.
+Authenticated org members can create projects through Statecraft, including repo creation, GitHub Actions wiring, and deployment preparation.
 
 ### FR-006: Project Creation Flow
 
@@ -451,16 +451,16 @@ Member signs in ──→ Org context established ──→ Create Project
 
 **Steps:**
 
-1. User navigates to project creation in Stagecraft
-2. Stagecraft checks `org_memberships` and org-level permission `project:create`
+1. User navigates to project creation in Statecraft
+2. Statecraft checks `org_memberships` and org-level permission `project:create`
 3. User provides: project name, description, adapter selection
-4. Stagecraft uses GitHub App installation token to:
+4. Statecraft uses GitHub App installation token to:
    - Create repository in the org (or connect existing)
    - Seed repo with adapter template (from Factory adapters)
    - Configure branch protection rules
    - Create GitHub Actions workflow files
    - Set required secrets/variables
-5. Stagecraft creates:
+5. Statecraft creates:
    - `projects` row (linked to org)
    - `project_repos` row (linked to GitHub repo + installation)
    - `environments` rows (default: development, staging, production)
@@ -487,7 +487,7 @@ These are stored as policy in the org context and evaluated at request time. The
 
 ### FR-008: GitHub Repo Initialization
 
-When creating a new repo through Stagecraft:
+When creating a new repo through Statecraft:
 
 ```typescript
 async function createProjectRepo(orgInstallation: GitHubInstallation, params: {
@@ -646,7 +646,7 @@ ALTER TABLE users ADD COLUMN idp_subject TEXT;
 ### FR-013: Enterprise OIDC Login Flow
 
 ```
-Browser                  Stagecraft              Rauthy              Enterprise IdP
+Browser                  Statecraft              Rauthy              Enterprise IdP
   │                         │                      │                      │
   ├─ GET /auth/oidc ────────►                      │                      │
   │  (?provider=X&email=Y)  │                      │                      │

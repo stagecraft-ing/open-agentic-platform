@@ -137,12 +137,12 @@ agent (GitHub tools, semantic search, checkpoint store), not a server.
   system), `leases` (worktree lease ledger), `runs` (skill-run history),
   `embeddings` (regenerable from corpus). The audit_log is governance-
   load-bearing — but per `platform/CLAUDE.md` "Key Integration Points
-  with OPC", "axiomregent can POST audit records to stagecraft's
-  audit_log table", which means the **durable copy lives in stagecraft's
+  with OPC", "axiomregent can POST audit records to statecraft's
+  audit_log table", which means the **durable copy lives in statecraft's
   Postgres**, not in the local hiqlite instance. The local hiqlite is
   per-user desktop state.
   **Verdict:** the gap is real for the audit_log column if the
-  stagecraft round-trip is not always wired (e.g. offline desktop
+  statecraft round-trip is not always wired (e.g. offline desktop
   sessions), but at the abstraction layer this is "user backs up their
   laptop" territory. Recommendation: **NO** for a Hiqlite-level S3
   backup of axiomregent. Flag the offline-audit-fall-through as a
@@ -179,7 +179,7 @@ agent (GitHub tools, semantic search, checkpoint store), not a server.
 | `dlock`              | on (explicit)    | yes   | KEEP                          | `router/dlock.rs:34` worktree lock for Tier2/3 tools.                                               |
 | `listen_notify_local`| on (explicit)    | yes   | KEEP                          | `events.rs:37` cross-session event propagation.                                                     |
 | `cache`              | on (explicit)    | indirect | REMOVE FROM EXPLICIT LIST  | Redundant — transitively required by `dlock` + `listen_notify_local` (upstream `hiqlite/Cargo.toml`). |
-| `backup`             | on (unified)     | no    | KEEP OFF (fix at orchestrator) | Local desktop state; durable audit copy is stagecraft Postgres per `platform/CLAUDE.md`.            |
+| `backup`             | on (unified)     | no    | KEEP OFF (fix at orchestrator) | Local desktop state; durable audit copy is statecraft Postgres per `platform/CLAUDE.md`.            |
 | `s3`                 | on (unified)     | no    | KEEP OFF                      | Same as `backup` — they imply each other.                                                           |
 | `auto-heal`          | on (unified)     | no API call | KEEP ON IF EXPLICIT      | Cheap reliability for single-node WAL; intentional rather than inherited.                           |
 | `toml`               | on (unified)     | no    | DROP                          | Code constructs `NodeConfig` directly (`db/mod.rs:107-119`); parser unused.                         |
@@ -356,7 +356,7 @@ absence of `cron`, `futures-util`, `toml` in the hiqlite deps block.
   to interested subscribers in current deployd-api routes (`routes.rs`
   serves polled `/v1/deployments/.../status` and `.../logs`, not a
   push channel). If the platform plan is to push deploy events to
-  stagecraft's audit_log via SSE, `listen_notify` is the right fit —
+  statecraft's audit_log via SSE, `listen_notify` is the right fit —
   but that's a feature, not an audit recommendation. **NO** today;
   flag as future-spec candidate.
 - `cache`: nothing in `routes.rs` or `k8s.rs` reads from a
@@ -464,10 +464,10 @@ classifications (correct / deferred / oversight):
 | `leases`           | Worktree lease ledger                                           | partial              | Ephemeral — lease lifetime in seconds-to-minutes.                                                             |
 | `runs`             | Skill-run history                                               | yes                  | Tools emit JSONL audit logs; runs table is index over those.                                                  |
 | `embeddings`       | fastembed vectors over the project corpus                       | no                   | Regenerable from corpus (`crates/axiomregent/src/search/`).                                                   |
-| `audit_log`        | Tool-invocation audit (tier, decision, lease)                   | **yes — load-bearing**| **stagecraft Postgres** receives axiomregent audit POSTs per `platform/CLAUDE.md` "Key Integration Points → Audit streaming". |
+| `audit_log`        | Tool-invocation audit (tier, decision, lease)                   | **yes — load-bearing**| **statecraft Postgres** receives axiomregent audit POSTs per `platform/CLAUDE.md` "Key Integration Points → Audit streaming". |
 
 **Verdict:** **CORRECT (off).** axiomregent is a per-user desktop
-process; the durable audit substrate is stagecraft's Postgres. The
+process; the durable audit substrate is statecraft's Postgres. The
 local hiqlite is a desktop cache+state file; user-level backup is the
 user's job. **Caveat:** if the audit-streaming round-trip is not always
 wired (offline desktop sessions, network failures), local audit_log is
@@ -541,8 +541,8 @@ architectural, definitely its own spec.
 | `deployd-api-rs` | ENABLE `backup` + `s3` + `auto-heal`; wire S3 endpoint env to `NodeConfig` | S  | **Load-bearing finding.** Deploy history is governance audit data; not reconstructable from K8s; `cryptr→s3-simple` chain already in lockfile. | `platform/services/deployd-api-rs/src/store.rs:39-77`, `:13-33`; `platform/CLAUDE.md` deploy-history role.       |
 | `deployd-api-rs` | Verify chart mounts a PVC at `/var/lib/deployd/data`                   | S      | Even with backups, pod-restart loss is a regression. Confirm chart manifest before considering deploy-API SLO. | `platform/services/deployd-api-rs/src/main.rs:24-27`. **Unverified** — chart not inspected in this audit.       |
 | `deployd-api-rs` | Adopt `dlock` if/when deployd-api scales beyond 1 replica              | M (future spec) | Single-replica today; multi-replica writes need cross-instance write coordination.                       | `platform/services/deployd-api-rs/src/store.rs:18` (`node_id: 1`).                                              |
-| `deployd-api-rs` | Adopt `listen_notify` for stagecraft audit-stream wiring               | M (future spec) | If platform plan wires deploy events into stagecraft Postgres, native push beats polling.                | Open question — no current SSE / webhook in `routes.rs`.                                                        |
-| `axiomregent`    | Investigate offline-resilient audit_log buffering before recommending Hiqlite-level backup | M (future spec) | Whether axiomregent's audit POSTs to stagecraft retry on reconnect is unverified. If they don't, local audit_log loss is a real gap — but the fix is buffering, not Hiqlite S3. | `platform/CLAUDE.md` audit-streaming integration point. |
+| `deployd-api-rs` | Adopt `listen_notify` for statecraft audit-stream wiring               | M (future spec) | If platform plan wires deploy events into statecraft Postgres, native push beats polling.                | Open question — no current SSE / webhook in `routes.rs`.                                                        |
+| `axiomregent`    | Investigate offline-resilient audit_log buffering before recommending Hiqlite-level backup | M (future spec) | Whether axiomregent's audit POSTs to statecraft retry on reconnect is unverified. If they don't, local audit_log loss is a real gap — but the fix is buffering, not Hiqlite S3. | `platform/CLAUDE.md` audit-streaming integration point. |
 | `crates/axiomregent/Cargo.toml:64` | Verify spec pin (`073-axiomregent-unification`) — out of audit scope. | — | Cosmetic note: deployd-api-rs's `package.metadata.oap.spec` is also `073` (see Open Questions). | — |
 
 **Recommendation count by effort:**
@@ -571,7 +571,7 @@ enablement — the load-bearing governance finding from Phase 4.
    If it does, off-cluster backup is "DR insurance"; if it doesn't,
    it's "the only durability you have."
 2. **axiomregent offline audit buffering.** Per `platform/CLAUDE.md`,
-   axiomregent POSTs audit records to stagecraft. Whether axiomregent
+   axiomregent POSTs audit records to statecraft. Whether axiomregent
    buffers and replays those POSTs on reconnect is unverified. If it
    doesn't, the local hiqlite `audit_log` is the only audit copy
    during offline windows and "user backs up their laptop" is too

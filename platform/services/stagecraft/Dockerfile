@@ -1,4 +1,4 @@
-# Fast hotfix image for stagecraft (minimal-swap variant).
+# Fast hotfix image for statecraft (minimal-swap variant).
 #
 # Empirically, the encore runtime fails with "no api server or gateway
 # to serve" when only `main.mjs` + `/encore/meta` are reused but
@@ -34,19 +34,19 @@
 # changes; that's when a fresh meta + matching `node_modules` are
 # required and the supported builder must run a full pass.
 
-ARG PREV_IMAGE=ghcr.io/stagecraft-ing/open-agentic-platform/stagecraft:sha-63bc488
+ARG PREV_IMAGE=ghcr.io/statecrafting/open-agentic-platform/statecraft:sha-63bc488
 
 FROM ${PREV_IMAGE}
 
 USER 0:0
-COPY .encore/build/combined/combined/main.mjs       /workspace/platform/services/stagecraft/.encore/build/combined/combined/main.mjs
-COPY .encore/build/combined/combined/main.mjs.map   /workspace/platform/services/stagecraft/.encore/build/combined/combined/main.mjs.map
+COPY .encore/build/combined/combined/main.mjs       /workspace/platform/services/statecraft/.encore/build/combined/combined/main.mjs
+COPY .encore/build/combined/combined/main.mjs.map   /workspace/platform/services/statecraft/.encore/build/combined/combined/main.mjs.map
 # react-router build output — main.mjs references hashed asset paths
 # (e.g. /assets/_index-y00VqT4i.js) that move every rebuild, so the
 # server bundle and the static client tree must ship together.
-COPY web/build /workspace/platform/services/stagecraft/web/build
+COPY web/build /workspace/platform/services/statecraft/web/build
 RUN chown -R 10001:10001 \
-      /workspace/platform/services/stagecraft/.encore/build/combined/combined/main.mjs \
-      /workspace/platform/services/stagecraft/.encore/build/combined/combined/main.mjs.map \
-      /workspace/platform/services/stagecraft/web/build
+      /workspace/platform/services/statecraft/.encore/build/combined/combined/main.mjs \
+      /workspace/platform/services/statecraft/.encore/build/combined/combined/main.mjs.map \
+      /workspace/platform/services/statecraft/web/build
 USER 10001:10001

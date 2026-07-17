@@ -64,55 +64,55 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/CLAUDE.md",
+        "path": "platform/services/statecraft/CLAUDE.md",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db/migrations/3_audit_log_actor_action_created_idx.up.sql",
+        "path": "platform/services/statecraft/api/db/migrations/3_audit_log_actor_action_created_idx.up.sql",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/approvalSummary.ts",
+        "path": "platform/services/statecraft/api/factory/approvalSummary.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/approvalVelocity-pure.test.ts",
+        "path": "platform/services/statecraft/api/factory/approvalVelocity-pure.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/approvalVelocity-pure.ts",
+        "path": "platform/services/statecraft/api/factory/approvalVelocity-pure.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/approvalVelocity.test.ts",
+        "path": "platform/services/statecraft/api/factory/approvalVelocity.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/approvalVelocity.ts",
+        "path": "platform/services/statecraft/api/factory/approvalVelocity.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/auditActions.ts",
+        "path": "platform/services/statecraft/api/factory/auditActions.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/queueStormGate.test.ts",
+        "path": "platform/services/statecraft/api/factory/queueStormGate.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/queueStormGate.ts",
+        "path": "platform/services/statecraft/api/factory/queueStormGate.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/runs.ts",
+        "path": "platform/services/statecraft/api/factory/runs.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/runsScheduler.ts",
+        "path": "platform/services/statecraft/api/factory/runsScheduler.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/vite.config.ts",
+        "path": "platform/services/statecraft/vite.config.ts",
         "source": "spec-edge"
       },
       {
@@ -171,92 +171,92 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/db/migrations/3_audit_log_actor_action_created_idx.up.sql"
+            "file": "platform/services/statecraft/api/db/migrations/3_audit_log_actor_action_created_idx.up.sql"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/3_audit_log_actor_action_created_idx.up.sql"
+          "path": "platform/services/statecraft/api/db/migrations/3_audit_log_actor_action_created_idx.up.sql"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/approvalVelocity-pure.test.ts"
+            "file": "platform/services/statecraft/api/factory/approvalVelocity-pure.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/approvalVelocity-pure.test.ts"
+          "path": "platform/services/statecraft/api/factory/approvalVelocity-pure.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/approvalVelocity-pure.ts"
+            "file": "platform/services/statecraft/api/factory/approvalVelocity-pure.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/approvalVelocity-pure.ts"
+          "path": "platform/services/statecraft/api/factory/approvalVelocity-pure.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/approvalVelocity.test.ts"
+            "file": "platform/services/statecraft/api/factory/approvalVelocity.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/approvalVelocity.test.ts"
+          "path": "platform/services/statecraft/api/factory/approvalVelocity.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/approvalVelocity.ts"
+            "file": "platform/services/statecraft/api/factory/approvalVelocity.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/approvalVelocity.ts"
+          "path": "platform/services/statecraft/api/factory/approvalVelocity.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/queueStormGate.test.ts"
+            "file": "platform/services/statecraft/api/factory/queueStormGate.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/queueStormGate.test.ts"
+          "path": "platform/services/statecraft/api/factory/queueStormGate.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/queueStormGate.ts"
+            "file": "platform/services/statecraft/api/factory/queueStormGate.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/queueStormGate.ts"
+          "path": "platform/services/statecraft/api/factory/queueStormGate.ts"
         }
       },
       {
@@ -379,79 +379,79 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/CLAUDE.md"
+            "file": "platform/services/statecraft/CLAUDE.md"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/CLAUDE.md"
+          "path": "platform/services/statecraft/CLAUDE.md"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+            "file": "platform/services/statecraft/api/factory/approvalSummary.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+          "path": "platform/services/statecraft/api/factory/approvalSummary.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/auditActions.ts"
+            "file": "platform/services/statecraft/api/factory/auditActions.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+          "path": "platform/services/statecraft/api/factory/auditActions.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/auditActions.ts"
+            "file": "platform/services/statecraft/api/factory/auditActions.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+          "path": "platform/services/statecraft/api/factory/auditActions.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/runs.ts"
+            "file": "platform/services/statecraft/api/factory/runs.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/runs.ts"
+          "path": "platform/services/statecraft/api/factory/runs.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/vite.config.ts"
+            "file": "platform/services/statecraft/vite.config.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       },
       {
@@ -509,14 +509,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/runsScheduler.ts"
+            "file": "platform/services/statecraft/api/factory/runsScheduler.ts"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/runsScheduler.ts"
+          "path": "platform/services/statecraft/api/factory/runsScheduler.ts"
         }
       },
       {

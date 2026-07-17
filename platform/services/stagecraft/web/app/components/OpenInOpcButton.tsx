@@ -18,7 +18,7 @@ interface Props {
   adapterName: string | null;
 }
 
-const OPC_INSTALL_URL = "https://github.com/stagecraft-ing/open-agentic-platform/releases";
+const OPC_INSTALL_URL = "https://github.com/statecrafting/open-agentic-platform/releases";
 
 export function OpenInOpcButton({ deepLink, adapterName }: Props) {
   const [copied, setCopied] = useState(false);

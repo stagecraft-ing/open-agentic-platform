@@ -85,7 +85,7 @@ export const ProjectsPanel: React.FC<ProjectsPanelProps> = ({
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {sorted.length === 0 && (
           <Card className="p-4 text-sm text-muted-foreground">
-            No projects yet. Create or import one in stagecraft — connected
+            No projects yet. Create or import one in statecraft — connected
             desktops pick up the catalog over the sync channel.
           </Card>
         )}

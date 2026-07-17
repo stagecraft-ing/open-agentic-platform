@@ -878,7 +878,7 @@ function renderReadinessBanner(readiness: ScaffoldReadiness): React.ReactNode {
             >
               /app/admin/factory/pat
             </a>{" "}
-            so stagecraft can clone the template repo on your behalf.
+            so statecraft can clone the template repo on your behalf.
           </p>
         </div>
       );
@@ -920,7 +920,7 @@ function renderReadinessBanner(readiness: ScaffoldReadiness): React.ReactNode {
         <div className="rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3">
           <p className="text-sm text-red-700 dark:text-red-400">
             <strong>Scaffold infrastructure error:</strong>{" "}
-            {readiness.error ?? "Warmup failed; check stagecraft logs."}
+            {readiness.error ?? "Warmup failed; check statecraft logs."}
           </p>
         </div>
       );

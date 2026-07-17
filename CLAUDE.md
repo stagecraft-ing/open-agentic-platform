@@ -40,12 +40,12 @@ product/            — End-user product layer (npm workspace root post-I7)
   apps/opc/     — Tauri v2 + React desktop app (TypeScript + Rust)
   packages/         — Shared npm packages (provider-registry, ui, etc.)
   package.json, pnpm-workspace.yaml — workspace root
-platform/           — Organisational control plane (imported from stagecraft-ing/platform)
+platform/           — Organisational control plane (imported from statecrafting/platform)
   services/
-    stagecraft/     — Encore.ts SaaS (auth, admin, monitoring, Slack, GitHub webhook handling)
+    statecraft/     — Encore.ts SaaS (auth, admin, monitoring, Slack, GitHub webhook handling)
     deployd-api-rs/ — Rust (axum + hiqlite) K8s deployment orchestration
   infra/            — Terraform modules (Azure AKS, ACR, KeyVault)
-  charts/           — Helm charts (stagecraft, deployd-api, rauthy)
+  charts/           — Helm charts (statecraft, deployd-api, rauthy)
   k8s/              — Baseline K8s policies (network deny, resource quotas)
 .derived/           — Compiler output (registry.json, index.json, build-meta.json)
 .claude/            — Claude Code agents, commands, rules (AI development infrastructure)
@@ -70,7 +70,7 @@ In addition, all orchestrated workflows load `.claude/rules/governed-artifact-re
 - **Specs are the source of truth.** Every feature starts as a spec in `specs/NNN-slug/spec.md` with YAML frontmatter.
 - **Rust for tools and crates.** All CLI tools and library crates are Rust. Build with `cargo build --release --manifest-path <path>/Cargo.toml`.
 - **TypeScript for the desktop app.** `product/apps/opc/` uses Tauri v2, React, TypeScript.
-- **TypeScript for platform services.** `platform/services/stagecraft/` uses Encore.ts with npm (NOT pnpm — excluded from the pnpm workspace). `deployd-api-rs` is the Rust deployment orchestrator (axum + hiqlite).
+- **TypeScript for platform services.** `platform/services/statecraft/` uses Encore.ts with npm (NOT pnpm — excluded from the pnpm workspace). `deployd-api-rs` is the Rust deployment orchestrator (axum + hiqlite).
 - **axiomregent is the unified MCP agent crate.** It now contains the `github/`, `search/`, and `checkpoint/` modules, absorbing the former `gitctx`, `blockoli`, and `stackwalk` crates.
 - **Markdown for specs.** Human truth is markdown (with optional YAML frontmatter). Machine registries are compiler-emitted JSON only.
 - **The spec-spine CLI is the build system.** Run `spec-spine compile` from repo root to produce the `.derived/spec-registry/by-spec/` registry shards (spec 217: the published CLI replaced the in-tree compiler).
@@ -85,7 +85,7 @@ Prefer the root `Makefile` for common flows; the raw cargo invocations below are
 # Primary entry points (Makefile)
 make setup        # install deps, build spec compiler + codebase indexer, compile both
 make dev          # start OPC desktop (Vite + Tauri, hot-reload)
-make dev-platform # stagecraft + deployd-api in background
+make dev-platform # statecraft + deployd-api in background
 make ci           # parallel local validation (~5 min warm) — daily dev loop (spec 135)
 make ci-strict    # full parity mirror (~90 min) — pre-merge / parity-investigation
 make registry     # recompile spec registry + codebase index
@@ -96,7 +96,7 @@ make pr-prep      # pre-commit refresh: regenerate codebase index + run coupling
 
 Run `make pr-prep` before `git commit` on a PR. It rebuilds the codebase index and runs the spec-code coupling gate against `origin/main` — the same two checks that fail first in CI when forgotten.
 
-The codebase index hashes more than `spec.md`. Its inputs (declared in `spec-spine.toml` `[index] extra_hashed_inputs` plus the always-hashed core) include `Cargo.toml`, `package.json`, `pnpm-workspace.yaml`, `specs/*/spec.md`, `platform/services/stagecraft/api/factory/adapter-scopes.json` (stagecraft-resident snapshot, now a derived projection of the admitted adapter sub-envelope per specs 160/198), `.claude/{agents,commands,rules,skills}/**`, `.claude/settings.json`, `.mcp.json`, `standards/schemas/**`, and `.github/workflows/*.yml`. Editing any of these without committing the regenerated `.derived/codebase-index/` shards fails the staleness check on the PR. `make pr-prep` is the one command that catches this locally.
+The codebase index hashes more than `spec.md`. Its inputs (declared in `spec-spine.toml` `[index] extra_hashed_inputs` plus the always-hashed core) include `Cargo.toml`, `package.json`, `pnpm-workspace.yaml`, `specs/*/spec.md`, `platform/services/statecraft/api/factory/adapter-scopes.json` (statecraft-resident snapshot, now a derived projection of the admitted adapter sub-envelope per specs 160/198), `.claude/{agents,commands,rules,skills}/**`, `.claude/settings.json`, `.mcp.json`, `standards/schemas/**`, and `.github/workflows/*.yml`. Editing any of these without committing the regenerated `.derived/codebase-index/` shards fails the staleness check on the PR. `make pr-prep` is the one command that catches this locally.
 
 If repeated forgetting is a problem, opt into the strict pre-commit hook:
 
@@ -128,7 +128,7 @@ path-scoped rules so they only load when relevant:
 
 - `.claude/rules/build-commands.md` — spec-spine + OAP tool cargo
   builds; loaded when editing `**/Cargo.toml` or `Makefile`.
-- `.claude/rules/platform-services.md` — stagecraft (Encore.ts/npm)
+- `.claude/rules/platform-services.md` — statecraft (Encore.ts/npm)
   and deployd-api local dev + infra; loaded when editing `platform/**`.
 
 ## Claude Code Extension Points
@@ -140,7 +140,7 @@ path-scoped rules so they only load when relevant:
 - **`.claude/settings.json`** — Permissions allow/deny, hooks, statusLine, outputStyle, env, model. **Hashed by the codebase indexer per spec 184** — edits trip the staleness gate the same as a `Cargo.toml` or workflow YAML edit. This closes the self-governance loop: the PostToolUse hook glob inside this file guards every other hashed input, so a quiet edit to the glob is now visible in the index diff. Reviewers must still judge whether an edit *narrowed* or *broadened* the protected set — content-hashing surfaces the change, it does not classify its direction (spec 184 AC-7).
 - **`.mcp.json`** (project root) — Team-shared MCP server config consumed by Claude Code. **Hashed by the codebase indexer per spec 184** — a quiet edit to MCP server configuration is no longer invisible across team members.
 - **`AGENTS.md`** — Cross-agent session-init protocol authority (read by Claude Code, Codex CLI, Cursor, GitHub Copilot via the AAIF/Linux Foundation AGENTS.md standard). `.claude/skills/init/SKILL.md` is a thin Claude-Code dispatcher that reads AGENTS.md; the protocol body lives at AGENTS.md only.
-- **`CLAUDE.md`** — Scoped at root, `platform/`, and `platform/services/stagecraft/`
+- **`CLAUDE.md`** — Scoped at root, `platform/`, and `platform/services/statecraft/`
 
 ### Edit discipline for hashed JSON configs
 

@@ -33,9 +33,9 @@ import { errorForLog } from "../auth/errorLog";
  *  be a meaningful detection signal, not an enforcement ceiling. */
 const DEFAULT_MAX_RUNS_IN_FLIGHT = 25;
 
-/** Override via `STAGECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT=<count>`. Detection
- *  only, see module doc comment; documented in stagecraft/CLAUDE.md. */
-const ENV_MAX_RUNS_IN_FLIGHT = "STAGECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT";
+/** Override via `STATECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT=<count>`. Detection
+ *  only, see module doc comment; documented in statecraft/CLAUDE.md. */
+const ENV_MAX_RUNS_IN_FLIGHT = "STATECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT";
 
 /** In-flight = `queued` or `running`; terminal states (`ok`/`failed`/
  *  `cancelled`) never count (`FactoryRunStatus`, `api/db/schema.ts`). Served

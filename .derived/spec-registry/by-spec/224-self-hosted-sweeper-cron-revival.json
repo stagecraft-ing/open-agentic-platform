@@ -21,11 +21,11 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/charts/stagecraft/templates/cronjob-factory-runs-sweeper.yaml"
+        "path": "platform/charts/statecraft/templates/cronjob-factory-runs-sweeper.yaml"
       },
       {
         "kind": "file",
-        "path": "platform/charts/stagecraft/templates/external-secret-factory-sweeper.yaml"
+        "path": "platform/charts/statecraft/templates/external-secret-factory-sweeper.yaml"
       }
     ],
     "extends": [
@@ -34,7 +34,7 @@
         "spec": "124-opc-factory-run-platform-integration",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/runsScheduler.ts"
+          "path": "platform/services/statecraft/api/factory/runsScheduler.ts"
         }
       },
       {
@@ -58,21 +58,21 @@
         "role": "pattern-source",
         "unit": {
           "kind": "file",
-          "path": "platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml"
+          "path": "platform/charts/statecraft/templates/cronjob-orphan-sweeper.yaml"
         }
       },
       {
         "role": "pattern-source",
         "unit": {
           "kind": "file",
-          "path": "platform/charts/stagecraft/templates/external-secret-knowledge-sweeper.yaml"
+          "path": "platform/charts/statecraft/templates/external-secret-knowledge-sweeper.yaml"
         }
       },
       {
         "role": "m2m-auth-precedent",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/auth/m2mAuth.ts"
+          "path": "platform/services/statecraft/api/auth/m2mAuth.ts"
         }
       },
       {

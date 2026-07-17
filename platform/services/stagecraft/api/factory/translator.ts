@@ -392,7 +392,7 @@ export function translateLegacyManifest(
 // Spec 139 Phase 1 — substrate translator (verbatim mirror)
 // Spec 199 — the only translator. The categorical projection emitter
 // (`translateUpstreams` → "7-stage-build" / synthetic adapter) is retired;
-// stagecraft stores upstream bytes verbatim and serves them by kind and by
+// statecraft stores upstream bytes verbatim and serves them by kind and by
 // each adapter's own manifest. Origin ids are REQUIRED inputs derived from
 // the configured `factory_upstreams.source_id` (origin-from-source,
 // FR-003) — there are no static origin constants.

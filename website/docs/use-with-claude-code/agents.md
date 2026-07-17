@@ -15,6 +15,6 @@ Four primary agents handle the plan, explore, implement, and review cycle:
 
 In addition to the pipeline agents, OAP includes domain specialists for specific technologies:
 
-- **`encore-expert`**: A specialist in the Encore.ts framework, used exclusively for developing the `stagecraft` control plane service. This agent is strictly read-only.
+- **`encore-expert`**: A specialist in the Encore.ts framework, used exclusively for developing the `statecraft` control plane service. This agent is strictly read-only.
 
 By separating these concerns, OAP ensures that planning and review are isolated from execution, aligning with the "Least Agency" and "Planner output is untrusted" principles of the OWASP ASI 2026 framework.

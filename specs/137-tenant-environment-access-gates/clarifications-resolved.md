@@ -81,7 +81,7 @@ Deployment + ClusterIP Service in the deployment's namespace).
   lifecycle without application-layer fan-out.
 
 **Migration target.** Next free numeric prefix in
-`platform/services/stagecraft/api/db/migrations/` at PR time.
+`platform/services/statecraft/api/db/migrations/` at PR time.
 
 **Maps to:** `plan.md` Phase 1 (T010–T014).
 
@@ -91,7 +91,7 @@ Deployment + ClusterIP Service in the deployment's namespace).
 
 Smoke evidence: [`execution/rauthy-admin-smoke.md`](./execution/rauthy-admin-smoke.md)
 + raw JSON in [`execution/rauthy-admin-smoke.json`](./execution/rauthy-admin-smoke.json).
-Executed inside `stagecraft-api` pod against
+Executed inside `statecraft-api` pod against
 `http://rauthy.rauthy-system.svc.cluster.local:8080` (external admin
 access blocked by `PROXY_MODE=true` + `TRUSTED_PROXIES` — admin
 calls must originate from the pod CIDR or trusted Cloudflare CIDRs).
@@ -101,12 +101,12 @@ calls must originate from the pod CIDR or trusted Cloudflare CIDRs).
 | (a) Admin API tolerates ≥10 clients | **PASS** | 10 clients created sequentially; 2–3ms steady-state, 59ms first-call (JIT warmup). Per-env topology + 10-env year-one estimate well within tolerance. |
 | (b) `DELETE /auth/v1/clients/{id}` is clean | **PASS** | DELETE returns **200** (not 204 as initially assumed); immediate GET returns `404 NotFound "no rows returned"`. |
 | (c) Toggling password disable is non-destructive | **PASS via PUT** | But the field doesn't exist as described — see correction below. |
-| (d) `auth_provider_id` on client creation | **N/A — deferred to Phase 3** | Zero upstream providers configured in this Rauthy at smoke time. Reference-schema readback on the live `stagecraft-server` client also showed **no** `auth_provider_id` / `provider_id` field, suggesting upstream IdP choice may happen at login time (via the providers list at OIDC authorize) rather than per-client binding. Phase 3 confirms or amends when the first provider lands. |
+| (d) `auth_provider_id` on client creation | **N/A — deferred to Phase 3** | Zero upstream providers configured in this Rauthy at smoke time. Reference-schema readback on the live `statecraft-server` client also showed **no** `auth_provider_id` / `provider_id` field, suggesting upstream IdP choice may happen at login time (via the providers list at OIDC authorize) rather than per-client binding. Phase 3 confirms or amends when the first provider lands. |
 
 ### Empirical correction — Rauthy 0.35 client schema
 
 The 14-field client record (read verbatim from the live
-`stagecraft-server` client):
+`statecraft-server` client):
 
 ```
 access_token_alg        access_token_lifetime    auth_code_lifetime
@@ -157,7 +157,7 @@ Example: `staging-checkout-acme.tenants.platform.example.com`.
   cookie-domain scoping (`.<base-domain>` scope works for any
   tenant), and audit-log enrichment.
 - `tenants.<base>` segregates tenant hostnames from platform
-  hostnames (`stagecraft.<base>`, `rauthy.<base>`, etc.), giving a
+  hostnames (`statecraft.<base>`, `rauthy.<base>`, etc.), giving a
   cookie-domain boundary and a clear DNS / wildcard-cert zone for
   tenants.
 
@@ -208,14 +208,14 @@ derivation).
 **Locked.** When an admin adds an email to
 `environment_access_gate_allowlist_emails`:
 
-1. **If `login_methods.magic_link == true`:** stagecraft calls the
+1. **If `login_methods.magic_link == true`:** statecraft calls the
    Rauthy admin API to upsert a Rauthy user with
    `password_login_enabled: false`, `magic_link_enabled: true`,
    no password hash, scope = `openid email profile`. The user
    record exists in Rauthy whether or not they have logged in
    yet; the first magic-link request mails the token.
 2. **If only `login_methods.federated` is configured** (no magic
-   link): stagecraft does NOT auto-provision a Rauthy user. The
+   link): statecraft does NOT auto-provision a Rauthy user. The
    user record materialises on first federated login via Rauthy's
    silent-link behaviour (Rauthy creates the user account binding
    the upstream identity at OIDC callback time). The allowlist
@@ -226,7 +226,7 @@ derivation).
 - **Allowlist removal:** the Rauthy user record is NOT deleted on
   allowlist row removal. Rationale: the user may be on multiple
   tenant allowlists; deleting the Rauthy user would break other
-  gates. The deny happens at oauth2-proxy. Stagecraft surfaces a
+  gates. The deny happens at oauth2-proxy. Statecraft surfaces a
   "purge this user from Rauthy" admin action separately
   (not in scope for this spec — file as follow-up spec).
 - **User-already-exists collision:** Rauthy upsert is idempotent
@@ -238,12 +238,12 @@ derivation).
   authentication options are determined by the configured
   password / passkey / magic-link state on the user record, not
   a single boolean). Collision handling: if a Rauthy user already
-  exists with a password set, stagecraft does NOT modify the
+  exists with a password set, statecraft does NOT modify the
   user's password state — the gate's password-free property is
   enforced at the **client** layer (`flows_enabled` omits
   `"password"` on the gate client), so even a password-bearing
   user account cannot complete a password grant against the gate
-  client. Stagecraft emits a `rauthy.user.tenant_gate_added`
+  client. Statecraft emits a `rauthy.user.tenant_gate_added`
   audit row recording that the user was added to a gate
   allowlist without touching their identity record. Per-user
   Rauthy migration (e.g., scrub password material from existing
@@ -262,7 +262,7 @@ derivation).
 
 **Locked.** Configuring upstream OIDC clients (Google, Microsoft
 Entra, GitHub, generic OIDC) in Rauthy happens through Rauthy's
-own admin UI, not through stagecraft.
+own admin UI, not through statecraft.
 
 **Rationale.**
 
@@ -271,18 +271,18 @@ own admin UI, not through stagecraft.
   the whole platform — same primitives consumed by many tenant
   gate clients.
 - Rauthy's admin UI already supports Auth Provider configuration
-  natively; reimplementing it in stagecraft is duplicate UX work
+  natively; reimplementing it in statecraft is duplicate UX work
   for a low-frequency admin task.
-- Stagecraft's role is to surface the configured Auth Providers in
+- Statecraft's role is to surface the configured Auth Providers in
   the per-environment login-method picker (T052) — read-only, by
-  ID. Stagecraft calls Rauthy admin API
+  ID. Statecraft calls Rauthy admin API
   `GET /auth/v1/auth_providers` and lists them in the dropdown.
 
 **Follow-up.** A future spec MAY surface Auth Provider
-configuration in the stagecraft admin panel for operators who
+configuration in the statecraft admin panel for operators who
 want a single-pane UX. That spec inherits this one's contracts
 (read-only via T052 stays correct; the new spec adds write paths
-via the stagecraft surface). Not scoped here.
+via the statecraft surface). Not scoped here.
 
 **Maps to:** `plan.md` Phase 5 (T052 — federated provider
 dropdown shows the Rauthy-configured list).
@@ -306,7 +306,7 @@ This document does not modify any spec outside 137. Cross-spec
 references (specs 087, 119, 136) cited above are read-only — no
 amend relationships are created by Phase 0. Future phases may
 introduce amends if downstream specs need narrative updates
-(e.g. stagecraft schema spec gains a §"access-gate sibling tables"
+(e.g. statecraft schema spec gains a §"access-gate sibling tables"
 entry); those are filed at the time of the amending PR, not now.
 
 ## Diff plan from this document to spec.md

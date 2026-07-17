@@ -23,7 +23,7 @@ describe("buildSeedJwt", () => {
     expect(typeof payload.exp).toBe("number");
   });
 
-  it("carries oap_org_id under `custom` (where stagecraft_client claim_str reads it)", () => {
+  it("carries oap_org_id under `custom` (where statecraft_client claim_str reads it)", () => {
     const payload = decodePayload(buildSeedJwt({ orgId: "org_123" })) as {
       custom?: Record<string, unknown>;
     };
@@ -61,8 +61,8 @@ describe("seedBinPath", () => {
 });
 
 describe("keychain constants mirror the OPC app slots", () => {
-  it("service + account match dev.opc.stagecraft / session", () => {
-    expect(KEYCHAIN_SERVICE).toBe("dev.opc.stagecraft");
+  it("service + account match dev.opc.statecraft / session", () => {
+    expect(KEYCHAIN_SERVICE).toBe("dev.opc.statecraft");
     expect(SESSION_ACCOUNT).toBe("session");
   });
 });

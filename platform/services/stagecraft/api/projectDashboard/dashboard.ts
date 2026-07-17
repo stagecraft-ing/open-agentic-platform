@@ -1,5 +1,5 @@
 // Spec 175 — `GET /api/projects/:projectId/dashboard` — bundled
-// observability snapshot for the stagecraft project landing page.
+// observability snapshot for the statecraft project landing page.
 //
 // The endpoint composes existing reads (the spec-spine registry subprocess,
 // `factory_runs` Drizzle, `knowledge_objects` Drizzle, project-scoped
@@ -180,7 +180,7 @@ export async function buildRunsPanel(projectId: string): Promise<RunsPanel> {
 // Recent governance certificate (FR-004)
 //
 // Spec 168 emits `governance-certificate.json` to the tenant's filesystem
-// per factory run; there is no stagecraft-side persistence for cert hash
+// per factory run; there is no statecraft-side persistence for cert hash
 // or verifier exit code today. The panel surfaces what is derivable from
 // `factory_runs` (emission timestamp = `completedAt` of the most recent
 // `ok` run, run id). `hashPrefix` / `verifierExitCode` are left null
@@ -285,7 +285,7 @@ async function collectRiskInputs(projectId: string): Promise<RiskInputs> {
   const extractionStaleCutoff = new Date(now - staleExtractionCutoffMs());
 
   // Stale extractions — `knowledge_objects` rows stuck in `extracting`
-  // past `STAGECRAFT_EXTRACT_STALE_AFTER_SEC`. The sweeper flips these to
+  // past `STATECRAFT_EXTRACT_STALE_AFTER_SEC`. The sweeper flips these to
   // `failed`, so a non-zero count here represents in-flight stuckness the
   // sweeper has not yet processed.
   const staleExtractionsRows = await db
@@ -324,7 +324,7 @@ async function collectRiskInputs(projectId: string): Promise<RiskInputs> {
 
   // Coupling-gate failures — audit rows whose action starts with
   // `coupling-gate.` and whose metadata records a failed result. The
-  // event surface is not yet emitted by stagecraft (spec 127 lives in
+  // event surface is not yet emitted by statecraft (spec 127 lives in
   // the spec-spine CI), so this returns 0 in practice. Wired here so the
   // signal lights up automatically when audit ingestion catches up.
   const couplingGateFailuresRows = await db
@@ -348,7 +348,7 @@ async function collectRiskInputs(projectId: string): Promise<RiskInputs> {
     couplingGateFailures24h: couplingGateFailuresRows.length,
     missingPrereqs,
     // The cert tamper count is sourced from verifier persistence, which
-    // does not yet exist in stagecraft (see `buildCertificatePanel`
+    // does not yet exist in statecraft (see `buildCertificatePanel`
     // comment). Always 0 until that plumbing lands.
     tamperedCertificates: 0,
   };

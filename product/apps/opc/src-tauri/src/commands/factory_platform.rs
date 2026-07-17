@@ -9,7 +9,7 @@
 //!
 //! Responsibilities of this module:
 //!
-//!   * Wrap [`StagecraftClient::auth_token`] as an [`OidcTokenProvider`] —
+//!   * Wrap [`StatecraftClient::auth_token`] as an [`OidcTokenProvider`] —
 //!     the "no token" path surfaces as `MissingToken`, never as an empty
 //!     bearer header.
 //!   * Build a `(PlatformClient, AgentResolver, base_url, org_id)` quad
@@ -43,7 +43,7 @@ use tauri::{AppHandle, Manager};
 use tokio::io::AsyncBufReadExt;
 use uuid::Uuid;
 
-use super::stagecraft_client::{StagecraftClient, StagecraftState};
+use super::statecraft_client::{StatecraftClient, StatecraftState};
 use super::sync_client::{
     FactoryAgentRef, FactoryRunTokenSpend, FactoryStageOutcome, SyncClientInner, SyncClientState,
 };
@@ -59,12 +59,12 @@ use super::sync_client::{
 /// can render a clickable affordance without parsing structured fields.
 #[derive(Debug, thiserror::Error)]
 pub enum FactoryError {
-    /// No `StagecraftClient` is loaded — the desktop is not signed in or
+    /// No `StatecraftClient` is loaded — the desktop is not signed in or
     /// has not picked an active workspace.
-    #[error("not signed in to stagecraft (no active session)")]
-    NoStagecraft,
+    #[error("not signed in to statecraft (no active session)")]
+    NoStatecraft,
 
-    /// The active stagecraft session has no `org_id` populated.
+    /// The active statecraft session has no `org_id` populated.
     #[error("no active organization (sign-in incomplete)")]
     NoOrgId,
 
@@ -196,19 +196,19 @@ fn parse_retired_agent_body(body: &str) -> Option<FactoryError> {
 }
 
 // ---------------------------------------------------------------------------
-// OIDC token provider — wraps StagecraftClient::auth_token()
+// OIDC token provider — wraps StatecraftClient::auth_token()
 // ---------------------------------------------------------------------------
 
 /// Surfaces the desktop's persisted Rauthy JWT to `factory-platform-client`.
 ///
-/// `StagecraftClient::auth_token()` returns `Option<String>`; this provider
+/// `StatecraftClient::auth_token()` returns `Option<String>`; this provider
 /// converts an empty string to `Ok(None)` so the platform client's
 /// `MissingToken` path fires uniformly. The platform client is responsible
-/// for refresh policy — see spec 112 §6.3 in `stagecraft_client.rs`.
-pub struct StagecraftOidcProvider(pub Arc<StagecraftClient>);
+/// for refresh policy — see spec 112 §6.3 in `statecraft_client.rs`.
+pub struct StatecraftOidcProvider(pub Arc<StatecraftClient>);
 
 #[async_trait]
-impl OidcTokenProvider for StagecraftOidcProvider {
+impl OidcTokenProvider for StatecraftOidcProvider {
     async fn fetch_token(&self) -> Result<Option<String>, FactoryClientError> {
         Ok(self.0.auth_token().filter(|s| !s.is_empty()))
     }
@@ -231,15 +231,15 @@ pub struct PlatformContext {
 /// Build a [`PlatformContext`] from the desktop's app state.
 pub fn platform_context(app: &AppHandle) -> Result<PlatformContext, FactoryError> {
     let sc_state = app
-        .try_state::<StagecraftState>()
-        .ok_or(FactoryError::NoStagecraft)?;
-    let sc = sc_state.current().ok_or(FactoryError::NoStagecraft)?;
+        .try_state::<StatecraftState>()
+        .ok_or(FactoryError::NoStatecraft)?;
+    let sc = sc_state.current().ok_or(FactoryError::NoStatecraft)?;
     let org_id = sc.org_id();
     if org_id.is_empty() {
         return Err(FactoryError::NoOrgId);
     }
     let base_url = sc.base_url().to_string();
-    let provider: Arc<dyn OidcTokenProvider> = Arc::new(StagecraftOidcProvider(sc.clone()));
+    let provider: Arc<dyn OidcTokenProvider> = Arc::new(StatecraftOidcProvider(sc.clone()));
     let client = PlatformClient::new(base_url.clone(), provider);
     let resolver = AgentResolver::new(org_id.clone(), Box::new(client.clone()));
     Ok(PlatformContext {
@@ -261,7 +261,7 @@ pub fn platform_context(app: &AppHandle) -> Result<PlatformContext, FactoryError
 ///
 /// Currently only the `stages: [...]` shape is supported — that is the
 /// shape the in-tree process YAML used (spec 108 §6) and the shape the
-/// stagecraft `factory_processes.definition` mirrors. Unknown shapes
+/// statecraft `factory_processes.definition` mirrors. Unknown shapes
 /// degrade to "no agent ref for this stage", which is non-fatal.
 pub fn walk_stage_agents(
     process_definition: &serde_json::Value,
@@ -1316,7 +1316,7 @@ mod tests {
     // ── Spec 198 FR-005 — wire-field-name contract tests ─────────────────────
     //
     // The platform handler parses outbound grant frames by the exact camelCase
-    // field names defined in `platform/services/stagecraft/api/sync/types.ts`.
+    // field names defined in `platform/services/statecraft/api/sync/types.ts`.
     // These tests lock those names at compile time on the Rust side so a rename
     // or typo surfaces here rather than as a silent wire mismatch.
 

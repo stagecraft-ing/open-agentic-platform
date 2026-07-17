@@ -14,7 +14,7 @@ You can verify the attestation using the GitHub CLI (`gh` version 2.50+):
 
 ```bash
 gh attestation verify path/to/opc_<version>_aarch64.dmg \
-  --repo stagecraft-ing/open-agentic-platform
+  --repo statecrafting/open-agentic-platform
 ```
 
 ## CycloneDX SBOM

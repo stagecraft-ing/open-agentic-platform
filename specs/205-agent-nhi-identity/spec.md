@@ -35,7 +35,7 @@ depends_on:
 establishes:
   # Phase 0 (FR-005): the two-principal audit migration and its forensic
   # query test are brought into existence by this spec.
-  - unit: { kind: file, path: platform/services/stagecraft/api/audit/auditTwoPrincipal.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/audit/auditTwoPrincipal.test.ts }
 extends:
   # Same precedent as specs 196, 194, 193, 187, 183: a new spec adds a row
   # to the featuregraph golden.
@@ -44,23 +44,23 @@ extends:
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
   - aspect: "agent-nhi-minting"
-    unit: { kind: file, path: platform/services/stagecraft/api/auth/sessionMint.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/auth/sessionMint.ts }
   - aspect: "nhi-lifecycle"
-    unit: { kind: file, path: platform/services/stagecraft/api/auth/rauthy.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/auth/rauthy.ts }
   # Phase 0 (FR-005) audit-attribution: the two-principal columns on
   # audit_log and the agent-context write sites threaded to carry them.
   # grantDuplexHandlers.ts graduates from analog reference to a refined
   # path now that Phase 0 edits its audit write sites.
   - aspect: "audit-attribution"
-    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/db/schema.ts }
   - aspect: "audit-attribution"
-    unit: { kind: file, path: platform/services/stagecraft/api/audit/audit.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/audit/audit.ts }
   - aspect: "audit-attribution"
-    unit: { kind: file, path: platform/services/stagecraft/api/sync/service.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/sync/service.ts }
   - aspect: "audit-attribution"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/grantDuplexHandlers.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/grantDuplexHandlers.ts }
   - aspect: "audit-attribution"
-    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+    unit: { kind: file, path: platform/services/statecraft/vite.config.ts }
 references:
   - role: context
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/live_sessions.rs }
@@ -113,7 +113,7 @@ session" as the credentialed unit.
   computed as the intersection of the human's scopes and the agent
   profile's admitted ceiling — never the union, never the human's scopes
   by default (m1 permission boundaries; m7 no privilege inheritance
-  without re-validation). Stagecraft authorizes against the effective
+  without re-validation). Statecraft authorizes against the effective
   scope, and the certificate/audit layer records both principals.
 - **FR-003 — Task-scoped, short-TTL tokens.** NHI tokens are
   audience-bound and purpose-bound per task with TTLs at the

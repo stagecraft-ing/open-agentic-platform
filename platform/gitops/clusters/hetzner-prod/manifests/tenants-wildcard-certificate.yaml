@@ -3,12 +3,12 @@
 # `platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml`
 # (the imperative artifact this gitops version supersedes).
 #
-# A single wildcard cert covering `*.tenants.stagecraft.ing` + the apex
-# `tenants.stagecraft.ing`. Both SANs are issued together so a tenant
+# A single wildcard cert covering `*.tenants.statecraft.ing` + the apex
+# `tenants.statecraft.ing`. Both SANs are issued together so a tenant
 # Ingress (one-label-deep host) and a future shared landing page on
 # the apex both share the same cert lifecycle.
 #
-# Domain pinning: hardcoded to `stagecraft.ing` because this manifest
+# Domain pinning: hardcoded to `statecraft.ing` because this manifest
 # lives under `clusters/hetzner-prod/` — by gitops-tree convention the
 # subtree is cluster-specific (FUTURE clusters/<name>/ get their own
 # subtree with their own pinned domain). The imperative ancestor used
@@ -18,8 +18,8 @@
 # parity needs justify it.
 #
 # Wildcard scope caveat (RFC 6125 / Let's Encrypt limits): one
-# wildcard label only. `dev.tenants.stagecraft.ing` ✅,
-# `dev.project1.tenants.stagecraft.ing` ✗. Spec 137 Decision 4's
+# wildcard label only. `dev.tenants.statecraft.ing` ✅,
+# `dev.project1.tenants.statecraft.ing` ✗. Spec 137 Decision 4's
 # hostname pattern is therefore flattened to one label after
 # `.tenants.`, e.g. `<env-slug>-<project-slug>-<org-slug>` (hyphens,
 # not dots). See spec 137 §12 amendment.
@@ -63,8 +63,8 @@ spec:
     size: 256
     rotationPolicy: Always
   dnsNames:
-    - "*.tenants.stagecraft.ing"
-    - "tenants.stagecraft.ing"
+    - "*.tenants.statecraft.ing"
+    - "tenants.statecraft.ing"
   issuerRef:
     name: letsencrypt-prod-dns01-cloudflare
     kind: ClusterIssuer

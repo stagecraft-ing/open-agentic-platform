@@ -69,7 +69,7 @@ if [ "${1:-}" = "--clean" ]; then
   # Destroy Hetzner cluster if kubeconfig exists. If destroy fails, bail out
   # BEFORE clearing .env — otherwise the cluster's postgres keeps the old
   # password while a fresh one lands in .env, and every subsequent deploy
-  # writes a stagecraft secret that can't authenticate (account_error in the
+  # writes a statecraft secret that can't authenticate (account_error in the
   # OAuth callback, etc).
   if [ -f "$KUBECONFIG_PATH" ]; then
     warn "Destroying existing cluster..."
@@ -166,7 +166,7 @@ ok "All tools present"
 # crash-loop on encrypted-Secret decryption without it.
 SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
 [ -f "$SOPS_AGE_KEY_FILE" ] || err "operator-host age key not found at $SOPS_AGE_KEY_FILE (spec 151 §Clarification 9). Generate with: age-keygen -o $SOPS_AGE_KEY_FILE && chmod 0600 $SOPS_AGE_KEY_FILE"
-[ -n "${GITHUB_TOKEN:-}" ] || err "GITHUB_TOKEN not set (needed by 'flux bootstrap github'). Export a fine-grained PAT with Contents:read+write on stagecraft-ing/open-agentic-platform."
+[ -n "${GITHUB_TOKEN:-}" ] || err "GITHUB_TOKEN not set (needed by 'flux bootstrap github'). Export a fine-grained PAT with Contents:read+write on statecrafting/open-agentic-platform."
 
 # ---------------------------------------------------------------------------
 # Phase 1: Create K3s cluster (idempotent)
@@ -213,7 +213,7 @@ info "Bootstrapping Flux v2..."
 # default to the upstream owner/repo/branch, so an unset .env behaves exactly as
 # before.
 flux bootstrap github \
-  --owner="${FLUX_OWNER:-stagecraft-ing}" \
+  --owner="${FLUX_OWNER:-statecrafting}" \
   --repo="${FLUX_REPO:-open-agentic-platform}" \
   --branch="${FLUX_BRANCH:-main}" \
   --path=platform/gitops/clusters/hetzner-prod \
@@ -259,7 +259,7 @@ info "Bootstrapping infrastructure (pre-Flux phase-out path)..."
 # the Flux-reconciled DNS-01 ClusterIssuer Ready=False until the
 # Secret arrives, and the wildcard tenant Certificate stays Pending.
 # The HTTP-01 ClusterIssuer (also Flux-reconciled) keeps handling
-# stagecraft/deployd/rauthy/minio Ingresses — those don't need
+# statecraft/deployd/rauthy/minio Ingresses — those don't need
 # wildcards.
 # ---------------------------------------------------------------------------
 if [ -n "${CLOUDFLARE_DNS_API_TOKEN:-}" ]; then
@@ -419,8 +419,8 @@ for var in GITHUB_UPSTREAM_CLIENT_ID GITHUB_UPSTREAM_CLIENT_SECRET \
            GITHUB_APP_ID GITHUB_APP_PRIVATE_KEY_B64 \
            OIDC_SPA_CLIENT_ID OIDC_M2M_CLIENT_ID OIDC_M2M_CLIENT_SECRET \
            RAUTHY_CLIENT_ID RAUTHY_CLIENT_SECRET RAUTHY_ADMIN_TOKEN \
-           STAGECRAFT_KNOWLEDGE_SWEEPER_CLIENT_ID STAGECRAFT_KNOWLEDGE_SWEEPER_CLIENT_SECRET \
-           STAGECRAFT_FACTORY_SWEEPER_CLIENT_ID STAGECRAFT_FACTORY_SWEEPER_CLIENT_SECRET; do
+           STATECRAFT_KNOWLEDGE_SWEEPER_CLIENT_ID STATECRAFT_KNOWLEDGE_SWEEPER_CLIENT_SECRET \
+           STATECRAFT_FACTORY_SWEEPER_CLIENT_ID STATECRAFT_FACTORY_SWEEPER_CLIENT_SECRET; do
   if [ -z "${!var:-}" ]; then
     PHASE2_READY=false
     MISSING+=("$var")
@@ -443,17 +443,17 @@ if [ "$PHASE2_READY" = false ]; then
   echo "     - SPA client (public, authorization_code, redirect: https://${DOMAIN}/auth/callback)"
   echo "     - M2M client (confidential, client_credentials, scope: deployd:deploy)"
   echo "     - Server client (confidential, for backend OIDC)"
-  echo "     - stagecraft-knowledge-sweeper-m2m-app (confidential, client_credentials)"
+  echo "     - statecraft-knowledge-sweeper-m2m-app (confidential, client_credentials)"
   echo "       Default Scopes: platform:knowledge:sweep   (spec 143 FR-010 + §12 L-006:"
   echo "       Rauthy 0.35 client_credentials mints Default Scopes regardless of scope=,"
   echo "       so Allowed Scopes alone is silently inert. Default Scopes is load-bearing.)"
-  echo "       Fill STAGECRAFT_KNOWLEDGE_SWEEPER_CLIENT_ID/_SECRET in .env."
-  echo "     - stagecraft-factory-sweeper-m2m-app (confidential, client_credentials)"
+  echo "       Fill STATECRAFT_KNOWLEDGE_SWEEPER_CLIENT_ID/_SECRET in .env."
+  echo "     - statecraft-factory-sweeper-m2m-app (confidential, client_credentials)"
   echo "       Default Scopes: platform:factory:sweep   (spec 224, same L-006 rule:"
   echo "       the scope MUST be a Default Scope, not just an Allowed Scope, or the"
   echo "       minted JWT will silently lack it.)"
-  echo "       Fill STAGECRAFT_FACTORY_SWEEPER_CLIENT_ID/_SECRET in .env."
-  echo "       (A future spec adds stagecraft-audit-sweeper-m2m-app for the"
+  echo "       Fill STATECRAFT_FACTORY_SWEEPER_CLIENT_ID/_SECRET in .env."
+  echo "       (A future spec adds statecraft-audit-sweeper-m2m-app for the"
   echo "        remaining spec 115/087 sweeper legs; .env carries the slot.)"
   echo "  3. Create the GitHub OAuth App for Rauthy at https://github.com/settings/developers"
   echo "     (GITHUB_UPSTREAM_CLIENT_ID/_SECRET, spec 106)"
@@ -491,11 +491,11 @@ if [ "$PHASE2_READY" = false ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Phase 2: Create stagecraft secrets + deploy all services
+# Phase 2: Create statecraft secrets + deploy all services
 # ---------------------------------------------------------------------------
 info "Phase 2: All values present — deploying full platform"
 
-STAGECRAFT_DB_URL="postgres://stagecraft:${POSTGRES_PASSWORD}@postgresql.stagecraft-system:5432/stagecraft?sslmode=disable"
+STATECRAFT_DB_URL="postgres://statecraft:${POSTGRES_PASSWORD}@postgresql.statecraft-system:5432/statecraft?sslmode=disable"
 
 # Decode base64-encoded GitHub App private key
 GITHUB_APP_PRIVATE_KEY=$(echo "$GITHUB_APP_PRIVATE_KEY_B64" | base64 -d 2>/dev/null) \
@@ -504,7 +504,7 @@ GITHUB_APP_PRIVATE_KEY=$(echo "$GITHUB_APP_PRIVATE_KEY_B64" | base64 -d 2>/dev/n
 # Create GHCR image-pull secrets (required for pulling from private ghcr.io)
 if [ -n "${GHCR_PAT:-}" ]; then
   info "Creating GHCR image-pull secrets..."
-  for ns_secret in "stagecraft-system/ghcr-credentials" "deployd-system/ghcr-pull-secret"; do
+  for ns_secret in "statecraft-system/ghcr-credentials" "deployd-system/ghcr-pull-secret"; do
     ns="${ns_secret%%/*}"
     secret_name="${ns_secret##*/}"
     kubectl create secret docker-registry "$secret_name" \
@@ -535,7 +535,7 @@ else
   warn "GHCR_PAT not set — skipping image-pull secrets (pods won't be able to pull from ghcr.io)"
 fi
 
-# Spec 137: stagecraft's deploy path refuses a gate-enabled tenant deploy
+# Spec 137: statecraft's deploy path refuses a gate-enabled tenant deploy
 # unless RAUTHY_ISSUER_URL is set (it forwards the issuer to the tenant's
 # oauth2-proxy). oauth2-proxy uses --oidc-issuer-url as BOTH the discovery
 # base AND the expected issuer, and validates the returned claim exactly, so
@@ -545,9 +545,9 @@ fi
 # bare OIDC_ENDPOINT works; the gate proxy cannot.) Overridable via env.
 RAUTHY_ISSUER_URL="${RAUTHY_ISSUER_URL:-${RAUTHY_URL%/}/auth/v1/}"
 
-info "Creating stagecraft-api-secrets..."
-kubectl create secret generic stagecraft-api-secrets \
-  --namespace stagecraft-system \
+info "Creating statecraft-api-secrets..."
+kubectl create secret generic statecraft-api-secrets \
+  --namespace statecraft-system \
   --from-literal=DOMAIN="$DOMAIN" \
   --from-literal=APP_BASE_URL="$APP_BASE_URL" \
   --from-literal=SESSION_SECRET="$SESSION_SECRET" \
@@ -565,9 +565,9 @@ kubectl create secret generic stagecraft-api-secrets \
   --from-literal=GITHUB_APP_PRIVATE_KEY="$GITHUB_APP_PRIVATE_KEY" \
   --from-literal=GITHUB_WEBHOOK_SECRET="$GITHUB_WEBHOOK_SECRET" \
   --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
-  --from-literal=STAGECRAFT_DB_URL="$STAGECRAFT_DB_URL" \
+  --from-literal=STATECRAFT_DB_URL="$STATECRAFT_DB_URL" \
   --from-literal=SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}" \
-  --from-literal=S3_ENDPOINT="http://minio.stagecraft-system.svc.cluster.local:9000" \
+  --from-literal=S3_ENDPOINT="http://minio.statecraft-system.svc.cluster.local:9000" \
   --from-literal=S3_PUBLIC_ENDPOINT="${S3_PUBLIC_ENDPOINT:-https://minio.${DOMAIN}}" \
   --from-literal=S3_REGION="us-east-1" \
   --from-literal=S3_ACCESS_KEY="$MINIO_ROOT_USER" \
@@ -575,7 +575,7 @@ kubectl create secret generic stagecraft-api-secrets \
   --dry-run=client -o yaml | kubectl apply -f -
 
 # Spec 143 FR-010 — per-purpose-credential mount discipline.
-# `stagecraft-knowledge-sweeper-credentials` is the SOLE Secret the
+# `statecraft-knowledge-sweeper-credentials` is the SOLE Secret the
 # orphan-imported sweeper CronJob mounts. Materialised here directly
 # (Hetzner uses `secrets.provider: "k8s"`); cloud deployments that
 # enable ESO will get the same Secret name + key shape from the
@@ -583,39 +583,39 @@ kubectl create secret generic stagecraft-api-secrets \
 # A leaked credential here is bounded to one Rauthy client's surface.
 # FU-003 will add sibling Secrets for spec 115 / 087 / 124 sweepers,
 # each separate, no cross-purpose mounts.
-info "Creating stagecraft-knowledge-sweeper-credentials..."
-kubectl create secret generic stagecraft-knowledge-sweeper-credentials \
-  --namespace stagecraft-system \
-  --from-literal=CLIENT_ID="$STAGECRAFT_KNOWLEDGE_SWEEPER_CLIENT_ID" \
-  --from-literal=CLIENT_SECRET="$STAGECRAFT_KNOWLEDGE_SWEEPER_CLIENT_SECRET" \
+info "Creating statecraft-knowledge-sweeper-credentials..."
+kubectl create secret generic statecraft-knowledge-sweeper-credentials \
+  --namespace statecraft-system \
+  --from-literal=CLIENT_ID="$STATECRAFT_KNOWLEDGE_SWEEPER_CLIENT_ID" \
+  --from-literal=CLIENT_SECRET="$STATECRAFT_KNOWLEDGE_SWEEPER_CLIENT_SECRET" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 # Spec 224 FR-004: per-purpose-credential mount discipline for the
-# factory-runs sweeper. `stagecraft-factory-sweeper-credentials` is the SOLE
+# factory-runs sweeper. `statecraft-factory-sweeper-credentials` is the SOLE
 # Secret the factory-runs sweeper CronJob mounts. Same shape and rationale as
 # the knowledge sweeper Secret above (separate Rauthy client, no cross-purpose
 # mount). Cloud deployments that enable ESO get the same Secret name + key
 # shape from the `external-secret-factory-sweeper.yaml` chart template instead.
-info "Creating stagecraft-factory-sweeper-credentials..."
-kubectl create secret generic stagecraft-factory-sweeper-credentials \
-  --namespace stagecraft-system \
-  --from-literal=CLIENT_ID="$STAGECRAFT_FACTORY_SWEEPER_CLIENT_ID" \
-  --from-literal=CLIENT_SECRET="$STAGECRAFT_FACTORY_SWEEPER_CLIENT_SECRET" \
+info "Creating statecraft-factory-sweeper-credentials..."
+kubectl create secret generic statecraft-factory-sweeper-credentials \
+  --namespace statecraft-system \
+  --from-literal=CLIENT_ID="$STATECRAFT_FACTORY_SWEEPER_CLIENT_ID" \
+  --from-literal=CLIENT_SECRET="$STATECRAFT_FACTORY_SWEEPER_CLIENT_SECRET" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-info "Refreshing stagecraft pods to pick up new secrets..."
-# Spec 143 §12 L-003 — CD owns the stagecraft helm release. setup.sh
-# does NOT helm-upgrade stagecraft because doing so applied
+info "Refreshing statecraft pods to pick up new secrets..."
+# Spec 143 §12 L-003 — CD owns the statecraft helm release. setup.sh
+# does NOT helm-upgrade statecraft because doing so applied
 # values-hetzner.yaml's `tag: latest` which clobbered CD's
 # sha-pinned tag and caused a stale-pod-against-forward-DB
 # regression on 2026-05-08. Single writer for the helm field-manager
 # surface; restart is the right verb for "secrets rotated, re-read".
-if kubectl get deploy stagecraft-api -n stagecraft-system >/dev/null 2>&1; then
-  kubectl rollout restart deploy/stagecraft-api -n stagecraft-system
-  kubectl rollout status deploy/stagecraft-api -n stagecraft-system --timeout=600s
-  ok "stagecraft-api rollout complete"
+if kubectl get deploy statecraft-api -n statecraft-system >/dev/null 2>&1; then
+  kubectl rollout restart deploy/statecraft-api -n statecraft-system
+  kubectl rollout status deploy/statecraft-api -n statecraft-system --timeout=600s
+  ok "statecraft-api rollout complete"
 else
-  warn "stagecraft-api deployment not yet provisioned (fresh cluster). CD will create it on first push to main; re-run setup.sh after CD lands to refresh secrets."
+  warn "statecraft-api deployment not yet provisioned (fresh cluster). CD will create it on first push to main; re-run setup.sh after CD lands to refresh secrets."
 fi
 
 info "Refreshing deployd-api pods to pick up new secrets..."
@@ -623,7 +623,7 @@ info "Refreshing deployd-api pods to pick up new secrets..."
 # release (cd-deployd-api-rs.yml deploys with sha-pinned image.tag).
 # setup.sh does NOT helm-upgrade deployd-api because doing so would
 # apply values-hetzner.yaml's `tag: latest` and clobber CD's sha-pin —
-# the same dual-writer shape L-003 documents for stagecraft. Single
+# the same dual-writer shape L-003 documents for statecraft. Single
 # writer for the helm field-manager surface; restart is the right verb
 # for "HIQLITE_SECRET_* rotated, re-read". The values-hetzner.yaml
 # `tag: latest` line is now latent (no active racer); a future spec
@@ -645,7 +645,7 @@ if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   KUBECONFIG_B64=$(base64 < "$KUBECONFIG_PATH" | tr -d '\n')
 
   # Pin --repo so multiple git remotes don't trigger an interactive picker.
-  GH_REPO="${GH_REPO:-stagecraft-ing/open-agentic-platform}"
+  GH_REPO="${GH_REPO:-statecrafting/open-agentic-platform}"
 
   gh secret set KUBECONFIG_HETZNER --repo "$GH_REPO" --body "$KUBECONFIG_B64" 2>/dev/null && ok "KUBECONFIG_HETZNER synced" || warn "Failed to sync KUBECONFIG_HETZNER"
   gh secret set WEBHOOK_SECRET --repo "$GH_REPO" --body "$GITHUB_WEBHOOK_SECRET" 2>/dev/null && ok "WEBHOOK_SECRET synced" || warn "Failed to sync WEBHOOK_SECRET"
@@ -656,9 +656,9 @@ if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
 else
   warn "gh CLI not available or not authenticated — skipping GitHub Actions secret sync"
   echo "  To sync manually:"
-  echo "    gh secret set KUBECONFIG_HETZNER --repo stagecraft-ing/open-agentic-platform < <(base64 < $KUBECONFIG_PATH)"
-  echo "    gh secret set WEBHOOK_SECRET --repo stagecraft-ing/open-agentic-platform --body \"\$GITHUB_WEBHOOK_SECRET\""
-  echo "    gh secret set GHCR_PAT --repo stagecraft-ing/open-agentic-platform --body \"\$GHCR_PAT\""
+  echo "    gh secret set KUBECONFIG_HETZNER --repo statecrafting/open-agentic-platform < <(base64 < $KUBECONFIG_PATH)"
+  echo "    gh secret set WEBHOOK_SECRET --repo statecrafting/open-agentic-platform --body \"\$GITHUB_WEBHOOK_SECRET\""
+  echo "    gh secret set GHCR_PAT --repo statecrafting/open-agentic-platform --body \"\$GHCR_PAT\""
 fi
 
 # ---------------------------------------------------------------------------
@@ -669,7 +669,7 @@ echo "============================================"
 echo "  OAP Platform Live on Hetzner"
 echo "============================================"
 echo ""
-echo "  Stagecraft:  https://${DOMAIN}"
+echo "  Statecraft:  https://${DOMAIN}"
 echo "  Deployd API: https://deploy.${DOMAIN}"
 echo "  Rauthy OIDC: https://auth.${DOMAIN}"
 echo ""

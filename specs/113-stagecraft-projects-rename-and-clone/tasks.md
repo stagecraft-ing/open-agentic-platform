@@ -1,6 +1,6 @@
-# Tasks: Stagecraft Projects Rename + In-Org Project Clone
+# Tasks: Statecraft Projects Rename + In-Org Project Clone
 
-**Input**: `/specs/113-stagecraft-projects-rename-and-clone/`
+**Input**: `/specs/113-statecraft-projects-rename-and-clone/`
 **Prerequisites**: spec.md, plan.md
 **Stories**: US-1 (Clone with rename dialog, P1), US-2 (Dashboard → Projects rename, P2)
 
@@ -52,7 +52,7 @@ Mirror clone, push, register, hydrate, audit. Rollback on every failure boundary
 - [ ] **T028** [P] [US1] Integration test rollback on DB insert failure: inject a DB insert error after push success → assert destination repo deleted and zero `projects` rows.
 - [ ] **T029** [P] [US1] Integration test name conflict on user-supplied name: source default is free but user submits `repoName: "taken"` which exists → assert `name_taken` error and no DB writes.
 - [ ] **T030** [P] [US1] Integration test name conflict on default: source default `foo-clone` already exists → assert response carries `repoFullName` ending `foo-clone-2` and audit `requestedRepoName === "foo-clone"`, `newRepoFullName.endsWith("foo-clone-2")`.
-- [ ] **T031** [P] [US1] Integration test size cap: pre-clone size > `STAGECRAFT_CLONE_MAX_BYTES` → assert `source_too_large` and zero side-effects.
+- [ ] **T031** [P] [US1] Integration test size cap: pre-clone size > `STATECRAFT_CLONE_MAX_BYTES` → assert `source_too_large` and zero side-effects.
 - [ ] **T032** [P] [US1] Integration test no-installation path: destination org without `githubInstallations` row → assert `precondition_failed/no_github_installation` and zero side-effects.
 
 **Checkpoint:** All clone integration tests pass. End-to-end: `POST /api/projects/{id}/clone` produces a working destination repo, project row, audit row, and survives every failure injection cleanly.
@@ -72,7 +72,7 @@ Pre-filled, debounced, format-then-availability gated.
 - [ ] **T046** [US1] On failure, surface the typed error code + human message inline in the dialog (no toast). Do not auto-close; let the user fix and retry.
 - [ ] **T047** [US1] In `app._index.tsx`, replace the Copy-icon `onClick={() => /* TODO: duplicate project */}` with `setCloneSource(project)` to open the dialog. Mount `<CloneProjectDialog … />` once at the route level. On `onSubmitted`, navigate via `useNavigate()` to `/app/project/${newProjectId}`.
 - [ ] **T048** [US1] Mirror the same Clone affordance on the grid card (`ProjectGrid` component) — currently the grid has no row affordances and grows them per FR-006.
-- [ ] **T049** [P] [US1] UI test (Playwright or vitest+RTL — match whatever stagecraft web tests already use): open dialog, verify pre-fill values and initial Available state.
+- [ ] **T049** [P] [US1] UI test (Playwright or vitest+RTL — match whatever statecraft web tests already use): open dialog, verify pre-fill values and initial Available state.
 - [ ] **T050** [P] [US1] UI test: type a taken name → see `Already exists` and disabled Submit; clear and type a free name → see `Available` and enabled Submit (after debounce).
 - [ ] **T051** [P] [US1] UI test: type `foo bar!` → see `Invalid name` immediately; assert no availability fetch was issued for that value.
 
@@ -96,8 +96,8 @@ Independent, fast.
 ## Phase 4 — Polish & verification
 
 - [ ] **T070** Run `make ci` locally; fix any lint, typecheck, or test breakage from the new files.
-- [ ] **T071** Add an entry to `platform/services/stagecraft/CLAUDE.md` "Factory project scaffold" section describing `clone.ts` alongside `create.ts` and `import.ts`.
-- [ ] **T072** Manual end-to-end: from a real stagecraft instance with a GitHub installation in the destination org, clone a small public repo project; verify the destination repo, project row, audit row, knowledge-objects, and the new project's detail page render.
+- [ ] **T071** Add an entry to `platform/services/statecraft/CLAUDE.md` "Factory project scaffold" section describing `clone.ts` alongside `create.ts` and `import.ts`.
+- [ ] **T072** Manual end-to-end: from a real statecraft instance with a GitHub installation in the destination org, clone a small public repo project; verify the destination repo, project row, audit row, knowledge-objects, and the new project's detail page render.
 - [ ] **T073** Manual rollback verification: temporarily make `git push --mirror` fail (e.g. revoke installation token mid-flight); confirm the destination repo is deleted and no orphan remains under the destination org.
 - [ ] **T074** Update spec frontmatter `implementation:` from `pending` to `complete` once all checkpoints pass; re-run `tools/spec-spine/spec-compiler/target/release/spec-compiler compile` and `tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile` so traceability picks up the new files.
 

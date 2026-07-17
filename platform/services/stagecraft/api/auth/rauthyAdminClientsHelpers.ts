@@ -16,7 +16,7 @@ import type { FederatedProvider } from "../environments/accessGatesHelpers";
 // ---------------------------------------------------------------------------
 
 /**
- * Subset of the Rauthy 0.35 client record stagecraft writes when
+ * Subset of the Rauthy 0.35 client record statecraft writes when
  * provisioning a tenant gate. Other fields (`force_mfa`, etc.) are
  * either Rauthy-defaulted or out of scope for v1.
  */
@@ -39,7 +39,7 @@ export interface RauthyClientPayload {
 }
 
 /**
- * Input shape consumed by stagecraft's tenant-gate provisioning path.
+ * Input shape consumed by statecraft's tenant-gate provisioning path.
  * Captures what the API surface (or the future UI) needs to hand off
  * to the Rauthy admin client wrapper.
  */
@@ -82,7 +82,7 @@ export function tenantGateRedirectUri(tenantHostname: string): string {
  * Coerce a human-readable client name to Rauthy 0.35's name validation
  * contract. Rauthy validates the client `name` against
  * `[a-zA-Z0-9À-ɏ\-\s]{2,128}` and rejects the entire create/update with a
- * 400 otherwise. Punctuation that reads fine in stagecraft's own UI (the
+ * 400 otherwise. Punctuation that reads fine in statecraft's own UI (the
  * `·` separator, slashes, em/en dashes) sits outside that class, so a name
  * built by interpolating an environment id MUST be sanitized before the
  * network hop or "Enable gate" 400s. Disallowed runs collapse to a single
@@ -129,11 +129,11 @@ export function buildTenantGateClientPayload(
     flows_enabled: flows,
     access_token_alg: "EdDSA",
     id_token_alg: "EdDSA",
-    // 60s authorization code lifetime mirrors the stagecraft-server
+    // 60s authorization code lifetime mirrors the statecraft-server
     // client (T003 reference schema readback). Long enough for the
     // oauth2-proxy round-trip, short enough to limit replay window.
     auth_code_lifetime: 60,
-    // 30-minute access token lifetime mirrors the stagecraft-server
+    // 30-minute access token lifetime mirrors the statecraft-server
     // pattern. Refresh isn't enabled so this is also the gate session
     // lifetime; users re-auth every 30 minutes.
     access_token_lifetime: 1800,

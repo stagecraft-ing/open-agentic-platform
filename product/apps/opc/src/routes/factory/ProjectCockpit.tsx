@@ -192,7 +192,7 @@ export const ProjectCockpit: React.FC<ProjectCockpitProps> = ({
           <Card className="p-4">
             <p className="text-sm text-muted-foreground">
               This directory is not a factory project. Open one created or
-              imported through stagecraft to see the cockpit.
+              imported through statecraft to see the cockpit.
             </p>
             <p className="text-xs text-muted-foreground mt-2 font-mono truncate">
               {projectPath}
@@ -357,7 +357,7 @@ const LegacyIncompleteNotice: React.FC<{ stages: string[] }> = ({ stages }) => (
     </div>
     <div className="text-muted-foreground">
       Finish the upstream `legacy-factory` run before importing this
-      project into stagecraft. Incomplete stages:
+      project into statecraft. Incomplete stages:
     </div>
     <ul className="list-disc pl-5 font-mono">
       {stages.map((s) => (

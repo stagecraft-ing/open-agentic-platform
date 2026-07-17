@@ -231,7 +231,7 @@ export const createFactoryProject = api(
     const manifest = adapter.manifest;
 
     // Spec 112 §10 — Create-eligibility gate. Adapters that declare a
-    // non-Node-24 scaffold runtime are not executable on stagecraft (web
+    // non-Node-24 scaffold runtime are not executable on statecraft (web
     // UI is Node-24-only); they need OPC-side dispatch via spec 110.
     // The check accepts both `scaffold.runtime` (legacy block) and
     // `scaffold_runtime` (spec 139 §7.2 / spec 140 §2.1 top-level).
@@ -244,7 +244,7 @@ export const createFactoryProject = api(
     if (declaredRuntime && declaredRuntime !== "node-24") {
       throw APIError.failedPrecondition(
         `Factory adapter ${adapter.name}@${adapter.version} declares scaffold runtime "${declaredRuntime}". ` +
-          `Stagecraft Create executes Node-24 adapters only (spec 112 §10); ` +
+          `Statecraft Create executes Node-24 adapters only (spec 112 §10); ` +
           `non-Node-24 scaffolds must dispatch to OPC.`
       );
     }
@@ -353,7 +353,7 @@ export const createFactoryProject = api(
 
     // ── 7. Per-request scaffold + seed write + push. ──────────────────
     const workspace = defaultWorkspaceDir();
-    const tmpRoot = await mkdtemp(join(tmpdir(), "stagecraft-create-"));
+    const tmpRoot = await mkdtemp(join(tmpdir(), "statecraft-create-"));
     const projectRoot = join(tmpRoot, req.repoName);
 
     const pipelineStateSeed = buildL0PipelineStateSeed(adapterRef);
@@ -442,8 +442,8 @@ export const createFactoryProject = api(
         token,
         branch: repoCreate.defaultBranch,
         commitMessage: "Initial commit",
-        authorName: "Stagecraft",
-        authorEmail: "noreply@stagecraft.ing",
+        authorName: "Statecraft",
+        authorEmail: "noreply@statecraft.ing",
       });
       commitSha = pushed.commitSha;
     } catch (err) {

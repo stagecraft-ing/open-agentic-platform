@@ -2,16 +2,16 @@
 
 The platform layer is the organisational control plane for OAP. It provides identity, deployment orchestration, and audit infrastructure running on Azure Kubernetes Service.
 
-**Imported from:** `stagecraft-ing/platform` (git subtree, 2026-03-31)
+**Imported from:** `statecrafting/platform` (git subtree, 2026-03-31)
 
 ## Services
 
 | Service | Stack | Port | Purpose |
 |---------|-------|------|---------|
-| **stagecraft** | Encore.ts, Drizzle ORM, React Router v7 | 4000 | SaaS platform: auth, admin, uptime monitoring, Slack integration; `api/github/` handles webhook ingestion and token brokering (absorbed from github-app) |
+| **statecraft** | Encore.ts, Drizzle ORM, React Router v7 | 4000 | SaaS platform: auth, admin, uptime monitoring, Slack integration; `api/github/` handles webhook ingestion and token brokering (absorbed from github-app) |
 | **deployd-api-rs** | Rust (axum, hiqlite) | 8080 | K8s deployment orchestration with Helm, OIDC JWT auth |
 
-> **github-app** (Probot) has been absorbed into stagecraft. Webhook handling and PR preview deployment logic now lives in `services/stagecraft/api/github/`.
+> **github-app** (Probot) has been absorbed into statecraft. Webhook handling and PR preview deployment logic now lives in `services/statecraft/api/github/`.
 
 ## Package Manager
 
@@ -19,7 +19,7 @@ Platform services use **npm** (not pnpm). They are excluded from the root `pnpm-
 
 ## Database
 
-Stagecraft uses PostgreSQL via Drizzle ORM. Schema is in `services/stagecraft/api/db/schema.ts`. Spec 119 (2026-04-29) collapsed the workspace abstraction into project; the entity hierarchy is now `organization → project → repo`.
+Statecraft uses PostgreSQL via Drizzle ORM. Schema is in `services/statecraft/api/db/schema.ts`. Spec 119 (2026-04-29) collapsed the workspace abstraction into project; the entity hierarchy is now `organization → project → repo`.
 
 - `users` — accounts with roles (user/admin), email, password hash
 - `sessions` — session tokens with 14-day TTL, user/admin kinds
@@ -42,8 +42,8 @@ Authentication is handled by **Rauthy** (self-hosted OIDC/OAuth2 provider, Rust-
 ## Local Development
 
 ```bash
-# Stagecraft (requires Encore CLI: https://encore.dev/docs/install)
-cd services/stagecraft && npm run start
+# Statecraft (requires Encore CLI: https://encore.dev/docs/install)
+cd services/statecraft && npm run start
 # → http://localhost:4000 (app), http://localhost:9400 (Encore dashboard)
 
 # Deployd-API (Rust)
@@ -66,16 +66,16 @@ make tf-destroy   # Tear down everything
 
 ## Helm Charts
 
-- `charts/stagecraft/` — Main SaaS service (ingress: stagecraft.localdev.online)
+- `charts/statecraft/` — Main SaaS service (ingress: statecraft.localdev.online)
 - `charts/deployd-api/` — Deployment orchestrator
 - `charts/rauthy/` — Rauthy OIDC identity provider (ingress: rauthy.localdev.online)
 
 ## Key Integration Points with OPC
 
-- **Policy bundle serving** — stagecraft can serve compiled policy bundles to axiomregent over HTTP at `/api/policy-bundle/:projectId` (renamed from per-workspace by spec 119 §4.5).
-- **Audit streaming** — axiomregent can POST audit records to stagecraft's `audit_log` table.
-- **Permission grants** — stagecraft auth can provide project-scoped grants (`project_grants`) to the desktop app.
-- **Agent authorization** — stagecraft can validate agent execution against org-level policies.
+- **Policy bundle serving** — statecraft can serve compiled policy bundles to axiomregent over HTTP at `/api/policy-bundle/:projectId` (renamed from per-workspace by spec 119 §4.5).
+- **Audit streaming** — axiomregent can POST audit records to statecraft's `audit_log` table.
+- **Permission grants** — statecraft auth can provide project-scoped grants (`project_grants`) to the desktop app.
+- **Agent authorization** — statecraft can validate agent execution against org-level policies.
 - **Duplex sync** — `/api/sync/duplex` is org-scoped; one OPC connection observes every project in the user's org. Per-event `projectId` carries on each variant for desktop-side filtering.
 
 ## Policy Rules

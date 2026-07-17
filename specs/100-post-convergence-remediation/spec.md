@@ -21,7 +21,7 @@ refines:
   - aspect: "security-hardening"
     unit: { kind: file, path: crates/policy-kernel/src/lib.rs }
   - aspect: "security-hardening"
-    unit: { kind: file, path: platform/charts/stagecraft/templates/deployment.yaml }
+    unit: { kind: file, path: platform/charts/statecraft/templates/deployment.yaml }
   - aspect: "security-hardening"
     unit: { kind: file, path: platform/charts/deployd-api/templates/deployment.yaml }
   - aspect: "security-hardening"
@@ -78,7 +78,7 @@ Four-phase remediation ordered by blast radius.
 | 2.5 | Handle poisoned Mutex in JWKS cache | `deployd-api-rs/auth.rs` |
 | 2.6 | Replace bare unwrap in policy-kernel | `policy-kernel/src/lib.rs` |
 | 2.7 | Change deployd data dir from /tmp | `deployd-api-rs/main.rs` |
-| 2.8 | Add K8s security contexts | `stagecraft/deployment.yaml`, `deployd-api/deployment.yaml` |
+| 2.8 | Add K8s security contexts | `statecraft/deployment.yaml`, `deployd-api/deployment.yaml` |
 
 ### Phase 3 — Integrity & Consistency
 
@@ -133,7 +133,7 @@ All four phases landed in commit `a04f312` (2026-04-12). Evidence:
   `crates/factory-engine/src/artifact_store.rs` and
   `crates/orchestrator/src/artifact.rs`.
 - **Phase 2.8** — `runAsNonRoot` + `allowPrivilegeEscalation: false` on
-  both `platform/charts/stagecraft/templates/deployment.yaml` and
+  both `platform/charts/statecraft/templates/deployment.yaml` and
   `platform/charts/deployd-api/templates/deployment.yaml`.
 - **Phase 3.3/3.4** — `thiserror = "2"` in `crates/factory-contracts/Cargo.toml`;
   `axum = "0.8"` in `crates/orchestrator/Cargo.toml`.

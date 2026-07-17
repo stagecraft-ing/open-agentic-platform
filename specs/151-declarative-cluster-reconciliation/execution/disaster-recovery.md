@@ -40,8 +40,8 @@ the start; failures are resolved before step (a) begins.
 | Check | Mechanism | Status |
 |---|---|---|
 | `HCLOUD_TOKEN` exported (with cluster-create + image-create scopes) | sourced into shell via `set -a; source platform/infra/hetzner/.env; set +a` (length 64) | ✓ |
-| `GITHUB_TOKEN` PAT with `Contents:read+write` on `stagecraft-ing/open-agentic-platform` | `gh auth status` reports `repo, read:org, gist` scopes | ✓ |
-| `stagecraft-ing` org-level Deploy Keys ENABLED (F6) | repo `keys` API showed the existing flux-system deploy key from 2026-05-18 as `enabled:true` (re-confirmed) | ✓ |
+| `GITHUB_TOKEN` PAT with `Contents:read+write` on `statecrafting/open-agentic-platform` | `gh auth status` reports `repo, read:org, gist` scopes | ✓ |
+| `statecrafting` org-level Deploy Keys ENABLED (F6) | repo `keys` API showed the existing flux-system deploy key from 2026-05-18 as `enabled:true` (re-confirmed) | ✓ |
 | Bitwarden vault accessible (F1) | re-validation skipped this session — F1 closed verbatim at PR #172 (≤35s measurement); laptop key present on disk and recipient #1 match verified pre-session. Bitwarden path is exercised again only on the next operator who lands without the laptop key | ✓ (closed at #172, not re-measured) |
 | Workstation tools present | kubectl, helm, hetzner-k3s, flux 2.8.7, sops, age, hcloud 1.62.2, bw, jq, gh — all present | ✓ |
 | Throwaway `cluster.yaml` ready | `platform/infra/hetzner/cluster.yaml` copied to `/tmp/oap-dr-stage2/cluster.yaml`; `cluster_name: oap-dr-stage2-throwaway` substituted; production `oap-hetzner` cluster NOT touched | ✓ |
@@ -252,7 +252,7 @@ date -u +%s > /tmp/dr-stage2-step-c-start
 #    from production's `--path=...hetzner-prod`, so the deploy-key
 #    title doesn't collide with production's on GitHub.
 flux bootstrap github \
-  --owner=stagecraft-ing \
+  --owner=statecrafting \
   --repository=open-agentic-platform \
   --branch=main \
   --path=platform/gitops/clusters/hetzner-dr-stage2 \
@@ -322,12 +322,12 @@ in-cluster public half:
 ```bash
 PUBKEY="$(kubectl -n flux-system get secret flux-system \
   -o jsonpath='{.data.identity\.pub}' | base64 -d)"
-gh api -X POST repos/stagecraft-ing/open-agentic-platform/keys \
+gh api -X POST repos/statecrafting/open-agentic-platform/keys \
   -f title='flux-system-main-flux-system-./platform/gitops/clusters/hetzner-prod' \
   -f key="$PUBKEY" \
   -F read_only=true
 # Delete the throwaway-owned orphan
-gh api -X DELETE repos/stagecraft-ing/open-agentic-platform/keys/<orphan-id>
+gh api -X DELETE repos/statecrafting/open-agentic-platform/keys/<orphan-id>
 flux reconcile source git flux-system
 ```
 

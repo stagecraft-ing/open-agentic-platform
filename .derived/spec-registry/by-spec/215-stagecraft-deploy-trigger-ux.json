@@ -4,7 +4,7 @@
       "open-agentic-platform"
     ],
     "codeAliases": [
-      "STAGECRAFT_DEPLOY_TRIGGER_UX"
+      "STATECRAFT_DEPLOY_TRIGGER_UX"
     ],
     "created": "2026-06-12",
     "dependsOn": [
@@ -17,11 +17,11 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/deploy/deployments.ts"
+        "path": "platform/services/statecraft/api/deploy/deployments.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/deploy/deployments.test.ts"
+        "path": "platform/services/statecraft/api/deploy/deployments.test.ts"
       }
     ],
     "extends": [
@@ -30,7 +30,7 @@
         "spec": "112-factory-project-lifecycle",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.projects.new.tsx"
         }
       },
       {
@@ -38,7 +38,7 @@
         "spec": "136-tenant-hello-demo-service",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+          "path": "platform/services/statecraft/web/app/lib/projects-api.server.ts"
         }
       },
       {
@@ -46,7 +46,7 @@
         "spec": "136-tenant-hello-demo-service",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       },
       {
@@ -54,7 +54,7 @@
         "spec": "137-tenant-environment-access-gates",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx"
         }
       },
       {
@@ -62,7 +62,7 @@
         "spec": "137-tenant-environment-access-gates",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.deploys.tsx"
         }
       },
       {
@@ -70,7 +70,7 @@
         "spec": "087-unified-workspace-architecture",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes.ts"
+          "path": "platform/services/statecraft/web/app/routes.ts"
         }
       },
       {
@@ -85,8 +85,8 @@
     "extraFrontmatter": {
       "language": "en"
     },
-    "featureBranch": "feat/215-stagecraft-deploy-trigger-ux",
-    "id": "215-stagecraft-deploy-trigger-ux",
+    "featureBranch": "feat/215-statecraft-deploy-trigger-ux",
+    "id": "215-statecraft-deploy-trigger-ux",
     "implementation": "complete",
     "kind": "platform",
     "references": [
@@ -101,7 +101,7 @@
         "role": "ux-precedent",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId._index.tsx"
         }
       },
       {
@@ -117,40 +117,40 @@
         "aspect": "preview-release-id-tracking",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/github/webhook.ts"
+          "path": "platform/services/statecraft/api/github/webhook.ts"
         }
       },
       {
         "aspect": "deploy-trigger-authorization",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deploy.ts"
+          "path": "platform/services/statecraft/api/deploy/deploy.ts"
         }
       },
       {
         "aspect": "deployd-client-consolidation",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deploydClient.ts"
+          "path": "platform/services/statecraft/api/deploy/deploydClient.ts"
         }
       },
       {
         "aspect": "deployd-client-consolidation",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/oidcM2m.ts"
+          "path": "platform/services/statecraft/api/deploy/oidcM2m.ts"
         }
       },
       {
         "aspect": "encore-test-lane-assignment",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       }
     ],
     "sectionHeadings": [
-      "Feature Specification: Stagecraft Deploy Trigger UX",
+      "Feature Specification: Statecraft Deploy Trigger UX",
       "Purpose",
       "Code reality (2026-06-12 survey)",
       "User Scenarios & Testing *(mandatory)*",
@@ -167,10 +167,10 @@
       "Out of scope",
       "Dependencies and sequencing"
     ],
-    "specPath": "specs/215-stagecraft-deploy-trigger-ux/spec.md",
+    "specPath": "specs/215-statecraft-deploy-trigger-ux/spec.md",
     "status": "approved",
-    "summary": "Give the project-created page its deployment row: \"Preview in Deployd\" dispatches the scaffolded commit to the auto-provisioned development environment, and \"View Deployd\" lands on an environment page that shows real deployment state and the live URL. Underneath the buttons: a createDeployment client path, a stagecraft-side record of every dispatch (fixing the preview-destroy release-id bug, where the webhook deletes a release id it never stored), authorization on the deploy proxy (today auth: false), and one consolidated deployd client replacing the two parallel M2M implementations. This is the manual precursor of the factory pipeline's automated terminal deploy stage, which remains the deferral recorded in spec 112 §11.\n",
-    "title": "Stagecraft Deploy Trigger UX (Preview in Deployd / View Deployd)"
+    "summary": "Give the project-created page its deployment row: \"Preview in Deployd\" dispatches the scaffolded commit to the auto-provisioned development environment, and \"View Deployd\" lands on an environment page that shows real deployment state and the live URL. Underneath the buttons: a createDeployment client path, a statecraft-side record of every dispatch (fixing the preview-destroy release-id bug, where the webhook deletes a release id it never stored), authorization on the deploy proxy (today auth: false), and one consolidated deployd client replacing the two parallel M2M implementations. This is the manual precursor of the factory pipeline's automated terminal deploy stage, which remains the deferral recorded in spec 112 §11.\n",
+    "title": "Statecraft Deploy Trigger UX (Preview in Deployd / View Deployd)"
   },
   "shardHash": "3b0de7c908d27d23ada00a88c90413e2d6fcece04937e61906efe8f2418ad704",
   "specVersion": "1.1.0"

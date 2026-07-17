@@ -67,7 +67,7 @@
         "aspect": "born-with-kernel-completeness",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts"
         }
       },
       {

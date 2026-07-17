@@ -25,7 +25,7 @@ pub mod sandbox;
 pub mod settings;
 pub mod slash_commands;
 pub mod stage_cd;
-pub mod stagecraft_client;
+pub mod statecraft_client;
 pub mod storage;
 pub mod sync_client;
 pub mod updater;

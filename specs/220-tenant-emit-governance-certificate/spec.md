@@ -48,14 +48,14 @@ depends_on:
 establishes:
   # Spec 220 FR-003 (OQ-3): the platform mints the tenant's Ed25519 signing key
   # and sets it as the produced repo's OAP_SIGNING_KEY Actions secret at project
-  # creation (tenant = project = repo). New stagecraft module: mint a 32-byte
+  # creation (tenant = project = repo). New statecraft module: mint a 32-byte
   # Ed25519 seed (standard base64, the emitter's `decode_seed` shape) and PUT it
   # as a libsodium sealed-box Actions secret. Plus its unit test.
-  - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/tenantSigningKey.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/tenantSigningKey.test.ts }
   # Spec 220 AC-2 (Option C): unit test for the born-with typed-client regen
   # step. New file created by this spec.
-  - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/regenerateProducedClient.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/regenerateProducedClient.test.ts }
 extends:
   # Same featuregraph-golden precedent specs 196/194/193/187/183/209/219 follow.
   - spec: "034-featuregraph-registry-scanner-fix"
@@ -91,7 +91,7 @@ extends:
   # project.created audit. Additive edit to the spec-112-established file.
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/create.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/create.ts }
   # Spec 220 AC-2 (Option C): the born-with app must ship a typed Encore client
   # matching its FINAL composed graph (a profile that composes user-management
   # otherwise ships a client missing the user_management namespace, failing the
@@ -101,25 +101,25 @@ extends:
   # Additive edit to the spec-112 scaffold file.
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts }
   # Spec 220 AC-2 (Option C): the warmup provisions the pinned Encore CLI into the
   # PVC (ensureEncoreCli, official install.sh, version read from the template's
   # encore.dev pin) so the per-request client regen can run `encore gen client`.
   # Additive edit to the spec-112 warmup file.
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/templateCache.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/templateCache.ts }
   # The matching `provision-signing-key` ScaffoldStep union member is an additive
   # edit to the spec-140-established scaffold/types.ts.
   - spec: "140-acme-vue-node-scaffold-source-id-cutover"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/types.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/types.ts }
   # The signer minting needs libsodium-wrappers (Ed25519 seed + GitHub sealed-box
-  # secret). Additive dependency on the spec-116-owned stagecraft package.json;
+  # secret). Additive dependency on the spec-116-owned statecraft package.json;
   # spec 116's supply-chain gate independently audits the new dependency.
   - spec: "116-supply-chain-policy-gates"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/package.json }
+    unit: { kind: file, path: platform/services/statecraft/package.json }
 refines:
   # Leg 3 (kernel wiring): 220 fills the emitter slot spec 219 left deferred
   # (`status: pending-spec-220`). The born-with kernel toolchain manifest now
@@ -242,7 +242,7 @@ without shipping OAP's pipeline engine:
   establishes a fresh root key; a tenant that does not sign hand-offs still emits
   a valid certificate.
 - **The platform countersign (spec 198 FR-014) is applied post-emission by
-  stagecraft on sync-back.** It is not part of emission. A certificate with no
+  statecraft on sync-back.** It is not part of emission. A certificate with no
   countersign is "verifiable-but-unsealed" and verifies offline (198 FR-014 AC-4).
 - **tenant-tail `verify-certificate` already accepts this shape offline**
   (artifact-hash chain, Ed25519 signature, self-hash, optional inter-stage chain,
@@ -529,14 +529,14 @@ external legs the prior status listed are now built:
    `build-certificate` carries the FR-003 `--require-operator-key`, FR-007
    `--corpus-attestation`, and spec 203 `--sbom-dir` flags.
 2. **FR-002 firing step.** Seeded into the prebuilt template's external
-   `spec-spine.yml` (`stagecraft-ing/template-encore`), gated on `.kernel-version`
+   `spec-spine.yml` (`statecrafting/template-encore`), gated on `.kernel-version`
    so it is dormant in the template and active in a produced app: a terminal
    `tenant-emit build-certificate <run-dir> --tenant-mode --require-operator-key
    --sbom-dir . --corpus-attestation attestation.json` after SBOM/audit
    generation (spec 203 FR-001/FR-002) and the FR-004 parity gate, with the
    existing spec 209 `verify-certificate` step extended to re-check the SBOM and
    corpus bindings (`--sbom-dir` / `--corpus-attestation`).
-3. **FR-003 key custody (OQ-3): provisioning now built.** Stagecraft's Create
+3. **FR-003 key custody (OQ-3): provisioning now built.** Statecraft's Create
    flow mints a per-tenant Ed25519 seed and sets it as the produced repo's
    `OAP_SIGNING_KEY` Actions secret before the first push
    (`api/projects/scaffold/tenantSigningKey.ts`, wired from `create.ts`), so the
@@ -570,22 +570,22 @@ waits on a deploy of this fix plus a retried scaffold.
 gap but surfaced a glibc floor, now fixed and deployed.** With `secrets: write`
 brokered, the retried scaffold reached the produced-app regenerate-index step
 (spec 112 §5.3), which runs the produced app's pinned
-`@spec-spine/cli-linux-x64` inside the stagecraft container. That binary is
-built on `ubuntu-latest` (glibc 2.39) while stagecraft's runtime base was
+`@spec-spine/cli-linux-x64` inside the statecraft container. That binary is
+built on `ubuntu-latest` (glibc 2.39) while statecraft's runtime base was
 `node:22-slim` (Debian bookworm, glibc 2.36), so it aborted with
 `GLIBC_2.39 not found`. Fixed by bumping the runtime base to
 `node:22-trixie-slim` (glibc 2.41) in
-`platform/services/stagecraft/Dockerfile.base` (#512), deployed to Hetzner (CD
-stagecraft green on `4cb4f34b`).
+`platform/services/statecraft/Dockerfile.base` (#512), deployed to Hetzner (CD
+statecraft green on `4cb4f34b`).
 
 **2026-07-04 (live AC-2 attempt 3): a Dual-variant scaffold fails regenerate-index
 because the dual produced tree has no root `specs/` corpus. Confirmed a real
-stagecraft bug, not deployed skew or a source bug.** With the glibc floor cleared
+statecraft bug, not deployed skew or a source bug.** With the glibc floor cleared
 the pinned binary executes and immediately exits 3: `spec-spine compile ... cannot
 read specs dir .../spec220-ac2-verify/specs: No such file or directory`.
 `regenerateProducedIndex` (`api/projects/scaffold/perRequestScaffold.ts`) runs one
 `spec-spine compile` at the produced ROOT. A live read-only diagnostic on the
-Hetzner `stagecraft-api` pod disproved the deployed-skew hypothesis and pinned the
+Hetzner `statecraft-api` pod disproved the deployed-skew hypothesis and pinned the
 cause:
 - The warmup caches are current: `_factory-cache` HEAD = `c988258` (factory-encore
   `main`, which DOES carry specs), `_template-cache` ships the full `specs/`
@@ -607,7 +607,7 @@ live run.
 
 **2026-07-04 (live AC-2 attempt 4, Single variant): scaffold born-green, but the
 produced app's own CI is red on two further born-with defects.** Re-scaffolded with
-the Single (internal) variant. The scaffold SUCCEEDED: `stagecraft-ing/spec220-ac2-single`
+the Single (internal) variant. The scaffold SUCCEEDED: `statecrafting/spec220-ac2-single`
 commit #1 (`a77a876b`) carries a committed `.derived/codebase-index/` (`by-spec` +
 `by-package`) and a root `specs/` corpus, and the produced app's `spec-spine` CI job
 passes the codebase-index staleness gate, confirming the attempt-3 diagnosis (Single
@@ -661,7 +661,7 @@ verify. The chain fails at exactly one step:
   scaffold-time regen: the internal profile composes the `user-management` module into
   `apps/api`, but the committed client is copied verbatim from template-encore's base
   graph (auth/gateway/health/web) and never updated, because the scaffold runs the
-  generator with `NO_INSTALL=true` (stagecraft `templateCache.ts` warmup +
+  generator with `NO_INSTALL=true` (statecraft `templateCache.ts` warmup +
   `perRequestScaffold.ts`), which skips `encore gen client` entirely (setup-app.ts step
   4), and the warmup container has no Encore CLI or booted app to regenerate it offline.
   (`setup-app.ts` also writes the regenerated client to the wrong path,
@@ -677,14 +677,14 @@ typed-client fix.
 **2026-07-06 (live AC-2 attempt 7, Single variant): the merged Option C fixes
 deployed and the warmup+cache posture is correct, but the first re-scaffold failed
 on a bug in the Option C CLI provisioning itself, now fixed.** All three PRs merged
-(template-encore #42, factory-encore #16, OAP #519); stagecraft redeployed
+(template-encore #42, factory-encore #16, OAP #519); statecraft redeployed
 (`sha-dcabc54`); the warmup refreshed its caches to the merged SHAs (template
 `3da8b679`, factory `0191d32c`) and published all four prebuilds. But the first
 Single-internal scaffold (`spec220-ac2-single-4`) halted at
 `regenerateProducedClient` with `npm run gen:client exited 127: sh: 1: encore: not
 found`, orphaning the job before push (an empty repo was created and must be
 reclaimed). Root cause: `ensureEncoreCli` provisioned the CLI via
-`curl -fsSL https://encore.dev/install.sh | bash`, but the stagecraft runtime image
+`curl -fsSL https://encore.dev/install.sh | bash`, but the statecraft runtime image
 is slim and ships **no curl/wget**; the missing-curl failure was masked because a
 `curl | bash` pipeline exits with bash's status (0 on empty stdin), not curl's, so
 the warmup logged `encore CLI: ready` and wrote the idempotency marker while the
@@ -698,8 +698,8 @@ this fix and a clean re-scaffold.
 **2026-07-06 (live AC-2 attempt 8, Single variant): SUCCESS. A born-green scaffold
 emitted and verified a real governance certificate end-to-end; AC-2 is satisfied
 verbatim and `implementation` flips to `complete`.** After #524 (`c8a60621`, the
-node-fetch+tar CLI provisioning) merged and stagecraft redeployed, the re-scaffold
-`stagecraft-ing/spec220-ac2-single-4` was born green. Its born-with `Initial commit`
+node-fetch+tar CLI provisioning) merged and statecraft redeployed, the re-scaffold
+`statecrafting/spec220-ac2-single-4` was born green. Its born-with `Initial commit`
 push ran the full cert chain in the `spec-spine` job (CI run 28809268503) to
 completion, every step green:
 

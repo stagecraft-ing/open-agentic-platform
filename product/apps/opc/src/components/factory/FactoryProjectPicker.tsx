@@ -2,15 +2,15 @@
 //
 // Lists workspace projects from the duplex-synced catalog and opens the
 // selected one through `useFactoryProjectOpener`. This is the in-app
-// equivalent of stagecraft's "Open in OPC" deep link — same primitives
+// equivalent of statecraft's "Open in OPC" deep link — same primitives
 // (`fetch_project_opc_bundle` + `clone_project_from_bundle`), just driven
 // from a project picker instead of a URL handoff.
 //
 // The duplex catalog can be empty, late, or unavailable (e.g. user just
-// signed in and Stagecraft hasn't replayed its handshake snapshot yet),
+// signed in and Statecraft hasn't replayed its handshake snapshot yet),
 // so the panel always exposes a manual entry field. The user can paste an
 // `opc://project/open?...` deep link or a raw project id and the picker
-// resolves it through the same opener — this is the flow stagecraft's
+// resolves it through the same opener — this is the flow statecraft's
 // success page would have triggered, only without the URL hop.
 
 import React, { useEffect, useState } from 'react';
@@ -53,7 +53,7 @@ export interface FactoryProjectPickerProps {
 /**
  * Best-effort extraction of a project id from raw user input. Accepts:
  *   - opc://project/open?projectId=<id>&cloneUrl=...
- *   - https://stagecraft.example/app/project/<id>/...
+ *   - https://statecraft.example/app/project/<id>/...
  *   - <id> (raw uuid)
  *
  * Returns the trimmed input verbatim if no recognised shape matches — the
@@ -208,7 +208,7 @@ export const FactoryProjectPicker: React.FC<FactoryProjectPickerProps> = ({
           <div className="flex items-center gap-2">
             <RefreshCw className="h-3.5 w-3.5 animate-spin" />
             <span>
-              Waiting for stagecraft project snapshot — projects will appear
+              Waiting for statecraft project snapshot — projects will appear
               here once the duplex sync replays its handshake. You can still
               open a project by pasting its URL above.
             </span>
@@ -216,7 +216,7 @@ export const FactoryProjectPicker: React.FC<FactoryProjectPickerProps> = ({
         </Card>
       ) : sorted.length === 0 ? (
         <Card className="p-3 text-xs text-muted-foreground">
-          No projects synced from stagecraft yet. Create or import one there
+          No projects synced from statecraft yet. Create or import one there
           and the catalog will broadcast it here automatically.
         </Card>
       ) : null}
@@ -263,7 +263,7 @@ export const FactoryProjectPicker: React.FC<FactoryProjectPickerProps> = ({
                 disabled={disabled}
                 title={
                   noRepo
-                    ? 'Project has no repo configured in stagecraft'
+                    ? 'Project has no repo configured in statecraft'
                     : isActive
                       ? 'Already open in this Factory tab'
                       : undefined

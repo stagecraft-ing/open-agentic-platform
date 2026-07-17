@@ -49,7 +49,7 @@ Parent plan: [089 Governed Convergence Plan](../089-governed-convergence-plan/sp
 
 ## Problem
 
-Project_id exists only in Stagecraft (DB + JWT) and flows into exactly two
+Project_id exists only in Statecraft (DB + JWT) and flows into exactly two
 places: grants fetch (`OPC_PROJECT_ID` env var in `governed_claude.rs`) and
 factory API bodies (optional on 10 of 11 endpoints). The orchestrator,
 checkpoints, factory contracts, and Claude execution all ignore it.
@@ -60,11 +60,11 @@ scoped to the project that created them.
 
 | Gap | Location |
 |-----|----------|
-| No Tauri command for project selection | `commands/stagecraft_client.rs` |
+| No Tauri command for project selection | `commands/statecraft_client.rs` |
 | `ClaudeExecutionRequest` lacks project_id | `web_server.rs` |
 | `WorkflowManifest` lacks project_id | `crates/orchestrator/src/manifest.rs` |
 | `CheckpointInfo` lacks project_id | `crates/axiomregent/src/checkpoint/types.rs` |
-| Factory API accepts missing projectId | `platform/services/stagecraft/api/factory/factory.ts` |
+| Factory API accepts missing projectId | `platform/services/statecraft/api/factory/factory.ts` |
 | `WorkspaceTools` name collision | `crates/axiomregent/src/workspace/mod.rs` (historical — see slice 6) |
 
 ## Implementation Slices
@@ -72,11 +72,11 @@ scoped to the project that created them.
 ### 1. Programmatic project selection in desktop (2 days)
 
 - Add Tauri command `set_active_project(project_id)` that:
-  - Sets `StagecraftClient.project_id`
+  - Sets `StatecraftClient.project_id`
   - Sets `OPC_PROJECT_ID` process env var
   - Fetches grants from platform and updates `SidecarState.grants_json`
   - Emits `project-changed` event
-- Files: `commands/stagecraft_client.rs`, `product/apps/opc/src-tauri/src/commands/agents.rs`
+- Files: `commands/statecraft_client.rs`, `product/apps/opc/src-tauri/src/commands/agents.rs`
 
 ### 2. Thread project_id into ClaudeExecutionRequest (1 day)
 
@@ -103,11 +103,11 @@ scoped to the project that created them.
 
 ### 5. Make factory project_id mandatory (1 day)
 
-- Change `projectId` from optional to required in all Stagecraft factory API
+- Change `projectId` from optional to required in all Statecraft factory API
   request types (currently required only on `InitRequest`)
 - `verifyProjectInScope()` runs unconditionally (renamed from `verifyProjectInWorkspace` per spec 119)
 - Add `project_id` to factory contract `build-spec.schema.yaml`
-- Files: `platform/services/stagecraft/api/factory/factory.ts`,
+- Files: `platform/services/statecraft/api/factory/factory.ts`,
   `factory/contract/schemas/build-spec.schema.yaml`
 
 ### 6. Rename axiomregent WorkspaceTools (0.5 day)

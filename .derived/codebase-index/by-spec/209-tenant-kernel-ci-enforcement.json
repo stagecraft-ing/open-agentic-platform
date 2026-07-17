@@ -31,7 +31,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts",
         "source": "spec-edge"
       }
     ],
@@ -91,14 +91,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts"
         }
       },
       {

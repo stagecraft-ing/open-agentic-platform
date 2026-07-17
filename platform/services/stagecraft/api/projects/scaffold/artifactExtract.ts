@@ -5,7 +5,7 @@
 // scaffold tree along with `.artifacts/extracted/manifest.json` mapping
 // bucket object ids to extracted files. The extractor binary is the
 // Rust `factory-artifacts extract` program (spec 105 migration), invoked
-// as a subprocess here so stagecraft stays language-pure.
+// as a subprocess here so statecraft stays language-pure.
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";

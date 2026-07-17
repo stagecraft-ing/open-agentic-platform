@@ -2,7 +2,7 @@
 // Spec 227 Stage 1 (catalog derivation): the module descriptor list is no
 // longer a hand-authored constant. It is derived at request time from the
 // adapter's module `manifest.json` rows in the substrate (the
-// stagecraft-resident adapter surface, spec 160), so the drift-prone module
+// statecraft-resident adapter surface, spec 160), so the drift-prone module
 // prose (notably the retired data-redis rate-limit-backend label) cannot
 // diverge from the adapter by construction. The Encore-side loader +
 // `GET /api/factory/module-catalog` endpoint live in
@@ -27,7 +27,7 @@ export interface ModuleDescriptor {
 
 /**
  * The subset of a module `manifest.json` the catalog derives from. Ids/prose
- * are manifest-owned; `displayName`/`category` are stagecraft presentation
+ * are manifest-owned; `displayName`/`category` are statecraft presentation
  * (see PRESENTATION below) because the manifest has no source for them.
  */
 export interface RawModuleManifest {

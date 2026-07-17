@@ -523,7 +523,7 @@ pub fn init_database(app: &AppHandle) -> SqliteResult<Connection> {
     let _ = conn.execute("ALTER TABLE agents ADD COLUMN tools TEXT", []);
 
     // spec 111 §2.4 — remote catalog cache columns. `source` discriminates
-    // local authoring (the legacy path) from stagecraft-managed definitions
+    // local authoring (the legacy path) from statecraft-managed definitions
     // sync'd over the duplex channel; the `remote_*` fields mirror the
     // authoritative row so the desktop can diff snapshots without refetching
     // bodies on every reconnect.
@@ -1149,7 +1149,7 @@ async fn check_agent_authorized(slug: &str, session_org_id: Option<String>) -> A
     // The platform's `isAgentAuthorized` seam requires the caller's org id
     // as a query parameter (the earlier hardcoded "default" org bucket was
     // removed so block policies bind per-org). The org id comes primarily
-    // from the authenticated stagecraft session (StagecraftState.org_id),
+    // from the authenticated statecraft session (StatecraftState.org_id),
     // resolved by the caller; the PLATFORM_ORG_ID env var is an override /
     // fallback for headless or pre-login contexts, mirroring the
     // PLATFORM_API_URL / PLATFORM_M2M_TOKEN config pattern. When neither is
@@ -1322,13 +1322,13 @@ pub async fn execute_agent(
     };
 
     // Seam D: platform agent authorization pre-flight.
-    // Source the org id from the authenticated stagecraft session so the
+    // Source the org id from the authenticated statecraft session so the
     // per-org block policy binds without a separately-configured env var
     // (check_agent_authorized falls back to PLATFORM_ORG_ID when the session
-    // is not yet established). Mirrors the StagecraftState lookup in
+    // is not yet established). Mirrors the StatecraftState lookup in
     // sidecars.rs::boot_gate_status.
     let session_org_id = app
-        .try_state::<crate::commands::stagecraft_client::StagecraftState>()
+        .try_state::<crate::commands::statecraft_client::StatecraftState>()
         .and_then(|sc_state| sc_state.current())
         .map(|client| client.org_id())
         .filter(|id| !id.is_empty());

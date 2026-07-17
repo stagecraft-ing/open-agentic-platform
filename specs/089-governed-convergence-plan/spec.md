@@ -110,7 +110,7 @@ Specific gaps:
 - Hash-chain input verification (`completed_hashes`) **only works in non-persisted dispatch** — the persisted path accumulates no hashes
 - No artifact metadata beyond `filename → SHA-256` (no tags, provenance, content-type)
 - `StepSummaryEntry.output_hashes` written only to local `summary.json` — **no platform recording**
-- No Stagecraft API integration for artifacts (confirmed via grep: zero HTTP calls)
+- No Statecraft API integration for artifacts (confirmed via grep: zero HTTP calls)
 - `cleanup_run()` deletes everything; no cross-run reuse
 
 ### Gap 4: Checkpoints Are Safety/Rewind, Not Branch-of-Thought
@@ -154,10 +154,10 @@ But:
 
 ### Gap 7: Platform Mirror Is Best-Effort, Not Promotion-Grade
 
-**Claim**: Stagecraft sync is fire-and-forget; no distinction between exploration and promotion runs.
+**Claim**: Statecraft sync is fire-and-forget; no distinction between exploration and promotion runs.
 
 **Validation**: **Confirmed.**
-- `StagecraftClient` comment: "all remote calls are best-effort and never block local execution"
+- `StatecraftClient` comment: "all remote calls are best-effort and never block local execution"
 - No artifact recording to platform (zero HTTP calls from artifact paths)
 - `workspace_id` in factory requests is **optional** — omitting skips the guard
 - Seams A and C have **no authentication** (public endpoints)
@@ -345,12 +345,12 @@ But:
 
 #### Spec 092 — Workspace Runtime Threading
 
-**Why it matters**: Currently workspace_id exists only in Stagecraft (DB + JWT) and flows into exactly two places: grants fetch (env var) and factory API bodies (optional). The orchestrator, checkpoints, factory contracts, and claude execution all ignore it.
+**Why it matters**: Currently workspace_id exists only in Statecraft (DB + JWT) and flows into exactly two places: grants fetch (env var) and factory API bodies (optional). The orchestrator, checkpoints, factory contracts, and claude execution all ignore it.
 
 **Enabling code already present**:
-- `StagecraftClient.workspace_id: RwLock<String>` with `set_workspace_id()`/`workspace_id()`
+- `StatecraftClient.workspace_id: RwLock<String>` with `set_workspace_id()`/`workspace_id()`
 - `OPC_WORKSPACE_ID` env var read in `governed_claude.rs`
-- `workspace_grants` table in Stagecraft with per-user, per-workspace permission matrix
+- `workspace_grants` table in Statecraft with per-user, per-workspace permission matrix
 - `WorkflowState.metadata: HashMap<String, Value>` (natural slot for workspace_id)
 - `CheckpointInfo` struct with extensible fields
 - Spec 087 defines the full entity hierarchy
@@ -359,12 +359,12 @@ But:
 
 1. **Programmatic workspace selection in desktop** (2 days)
    - Add Tauri command `set_active_workspace(workspace_id)` that:
-     - Sets `StagecraftClient.workspace_id`
+     - Sets `StatecraftClient.workspace_id`
      - Sets `OPC_WORKSPACE_ID` process env var
      - Fetches grants from platform and updates `SidecarState.grants_json`
      - Emits `workspace-changed` event
-   - Add workspace selector in desktop header (dropdown, fetches from `StagecraftClient.list_workspaces()`)
-   - Files: `commands/stagecraft_client.rs`, `web_server.rs`, `App.tsx` or layout component
+   - Add workspace selector in desktop header (dropdown, fetches from `StatecraftClient.list_workspaces()`)
+   - Files: `commands/statecraft_client.rs`, `web_server.rs`, `App.tsx` or layout component
 
 2. **Thread workspace_id into ClaudeExecutionRequest** (1 day)
    - Add `workspace_id: Option<String>` to `ClaudeExecutionRequest`
@@ -384,10 +384,10 @@ But:
    - Files: `crates/axiomregent/src/checkpoint/types.rs`, `crates/axiomregent/src/checkpoint/provider.rs`
 
 5. **Make factory workspace_id mandatory** (1 day)
-   - Change `workspaceId` from optional to required in Stagecraft factory API handlers
+   - Change `workspaceId` from optional to required in Statecraft factory API handlers
    - `verifyProjectInWorkspace()` runs unconditionally (no skip when omitted)
    - Add `workspace_id` to factory contract `build-spec.schema.yaml`
-   - Files: `platform/services/stagecraft/api/factory/factory.ts`, `factory/contract/schemas/build-spec.schema.yaml`
+   - Files: `platform/services/statecraft/api/factory/factory.ts`, `factory/contract/schemas/build-spec.schema.yaml`
 
 6. **Rename axiomregent WorkspaceTools** (0.5 day)
    - Rename `WorkspaceTools` to `RepoMutationTools` to eliminate name collision
@@ -478,7 +478,7 @@ But:
 - `ArtifactManager` with `hash_artifact()`, `verify_artifact()`, `run_dir()`/`step_dir()` layout
 - `LocalArtifactStore` with CAS layout (`<hash[0:2]>/<hash>/<filename>`)
 - `StepSummaryEntry.output_hashes` populated in `summary.json`
-- `StagecraftClient` with `report_pipeline_status()`, `report_event_batch()` methods
+- `StatecraftClient` with `report_pipeline_status()`, `report_event_batch()` methods
 - Spec 082 Phase 1 (artifact integrity) and Phase 3 (cross-run persistence) — both draft
 
 **Smallest implementation slices**:
@@ -507,17 +507,17 @@ But:
    - Files: `crates/factory-engine/src/artifact_store.rs`
 
 5. **Platform artifact recording** (2 days)
-   - After step completion + CAS storage, POST artifact metadata to Stagecraft
-   - New Stagecraft endpoint: `POST /api/workspaces/:id/artifacts` (workspace-scoped)
+   - After step completion + CAS storage, POST artifact metadata to Statecraft
+   - New Statecraft endpoint: `POST /api/workspaces/:id/artifacts` (workspace-scoped)
    - `GET /api/workspaces/:id/artifacts?content_hash=X` for cache-hit detection
    - Activates spec 082 Phase 3 (cross-run persistence)
-   - Files: `platform/services/stagecraft/api/factory/factory.ts`, `crates/orchestrator/src/lib.rs`
+   - Files: `platform/services/statecraft/api/factory/factory.ts`, `crates/orchestrator/src/lib.rs`
 
 **Acceptance criteria**:
 - SC-094-1: Hash-chain verification works in both persisted and non-persisted dispatch paths
 - SC-094-2: Completed step artifacts are stored in CAS with content-hash deduplication
 - SC-094-3: `ArtifactRecord` carries provenance (producer step, consumer steps)
-- SC-094-4: Stagecraft stores artifact metadata and supports cache-hit lookup
+- SC-094-4: Statecraft stores artifact metadata and supports cache-hit lookup
 - SC-094-5: Re-running a pipeline detects prior identical artifacts via content hash
 
 #### Spec 095 — Checkpoint Branch-of-Thought
@@ -559,7 +559,7 @@ But:
 5. **Bind approvals to checkpoint IDs** (1 day)
    - Orchestrator `StepGateConfig::Approval` gains optional `checkpoint_id: Option<String>`
    - When a gate is reached, auto-create a checkpoint and bind the approval to that checkpoint
-   - Approval event in Stagecraft includes `checkpoint_id` and `merkle_root`
+   - Approval event in Statecraft includes `checkpoint_id` and `merkle_root`
    - Files: `crates/orchestrator/src/gates.rs`, platform API
 
 6. **Desktop checkpoint timeline with branch visualization** (2 days)
@@ -624,10 +624,10 @@ But:
 
 #### Spec 097 — Promotion-Grade Platform Mirror
 
-**Why it matters**: Stagecraft sync is currently fire-and-forget. For the platform to serve as organizational truth, promotion-eligible runs must have complete audit, artifact, and authentication trails.
+**Why it matters**: Statecraft sync is currently fire-and-forget. For the platform to serve as organizational truth, promotion-eligible runs must have complete audit, artifact, and authentication trails.
 
 **Enabling code already present**:
-- `StagecraftClient` with `report_pipeline_status()`, `report_event_batch()`, `report_artifact()`
+- `StatecraftClient` with `report_pipeline_status()`, `report_event_batch()`, `report_artifact()`
 - Spec 082 Phase 2 (OIDC upgrade) — detailed FR-010 through FR-017
 - Spec 080 (GitHub identity) — phases 1-4
 - `WorkflowState.status` with `Completed | Failed | TimedOut | AwaitingCheckpoint`
@@ -644,12 +644,12 @@ But:
    - Implement FR-010 through FR-017 from spec 082:
      - `OidcM2mClient` in axiomregent
      - `AuthProvider` enum (Oidc/Static)
-     - Shared `validateM2mRequest()` middleware in Stagecraft
+     - Shared `validateM2mRequest()` middleware in Statecraft
      - Apply to all three seams (A: policy, B: audit, C: grants)
    - Files: per spec 082 key files table
 
 3. **Mandatory event sync for promotion** (1 day)
-   - Before marking a workflow as `Completed`, verify all events were acknowledged by Stagecraft
+   - Before marking a workflow as `Completed`, verify all events were acknowledged by Statecraft
    - If platform unreachable: mark as `CompletedLocal` (distinct from `Completed`)
    - `CompletedLocal` runs are not promotion-eligible
    - Files: `crates/orchestrator/src/lib.rs`, `crates/orchestrator/src/state.rs`
@@ -657,7 +657,7 @@ But:
 4. **Promotion API endpoint** (1 day)
    - `POST /api/workspaces/:id/promotions` — accepts `workflow_id`, validates all artifacts/events present
    - Returns `PromotionResult { eligible, missing_records, promotion_id }`
-   - Files: `platform/services/stagecraft/api/factory/factory.ts`
+   - Files: `platform/services/statecraft/api/factory/factory.ts`
 
 5. **Desktop promotion indicator** (1 day)
    - Workflow completion panel shows promotion eligibility status

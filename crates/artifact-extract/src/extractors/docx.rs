@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Bartek Kus
 // Spec: specs/120-factory-extraction-stage/spec.md — FR-005, FR-006, FR-009
 
-//! Deterministic DOCX extractor. Mirrors stagecraft's
+//! Deterministic DOCX extractor. Mirrors statecraft's
 //! `deterministic-docx.ts`.
 //!
 //! DOCX is OOXML: a ZIP archive with `word/document.xml` as the main

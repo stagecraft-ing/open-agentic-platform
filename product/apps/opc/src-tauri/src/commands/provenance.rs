@@ -117,7 +117,7 @@ pub async fn provenance_downgrade_to_assumption(
 
 /// Promote an `Assumption` claim to `Derived` by binding the
 /// candidatePromotion citation. Writes a `factory.provenance_promoted`
-/// audit row payload alongside the new report so the caller (stagecraft
+/// audit row payload alongside the new report so the caller (statecraft
 /// orchestrator) can emit the audit log entry.
 #[tauri::command]
 pub async fn provenance_promote_assumption(

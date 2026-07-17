@@ -32,10 +32,10 @@ import { FACTORY_SOURCE_ID } from "./upstreams";
  *  means the worker died mid-run. */
 const DEFAULT_STALE_AFTER_SEC = 10 * 60;
 
-/** Override via STAGECRAFT_FACTORY_SYNC_STALE_AFTER_SEC=<seconds>; used by
- *  integration tests to compress the window. Documented in stagecraft/CLAUDE.md
+/** Override via STATECRAFT_FACTORY_SYNC_STALE_AFTER_SEC=<seconds>; used by
+ *  integration tests to compress the window. Documented in statecraft/CLAUDE.md
  *  alongside the spec 124 / spec 115 sweeper knobs. */
-const ENV_STALE_AFTER_SEC = "STAGECRAFT_FACTORY_SYNC_STALE_AFTER_SEC";
+const ENV_STALE_AFTER_SEC = "STATECRAFT_FACTORY_SYNC_STALE_AFTER_SEC";
 
 /** Seed migration system user (default org seed in the consolidated baseline).
  *  The sweeper is a server-side cron, so every audit row it emits is authored

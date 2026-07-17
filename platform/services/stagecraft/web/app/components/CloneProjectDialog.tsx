@@ -47,7 +47,7 @@ export type CloneSourceProject = {
   name: string;
   slug: string;
   /**
-   * The destination GitHub org login (e.g. `stagecraft-ing`). Read-only
+   * The destination GitHub org login (e.g. `statecrafting`). Read-only
    * in the dialog. Surfaced via the loader so the user knows where the
    * new repo will land.
    */

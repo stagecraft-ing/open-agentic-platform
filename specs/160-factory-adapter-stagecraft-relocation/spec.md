@@ -1,7 +1,7 @@
 ---
-id: "160-factory-adapter-stagecraft-relocation"
-slug: factory-adapter-stagecraft-relocation
-title: "Factory / adapter relocation into stagecraft"
+id: "160-factory-adapter-statecraft-relocation"
+slug: factory-adapter-statecraft-relocation
+title: "Factory / adapter relocation into statecraft"
 status: approved
 implementation: complete
 owner: bart
@@ -12,15 +12,15 @@ risk: medium
 depends_on:
   - "074-factory-ingestion"  # factory-ingestion (Rust contract types)
   - "075-factory-workflow-engine"  # factory-workflow-engine (two-phase pipeline)
-  - "077-stagecraft-factory-api"  # stagecraft-factory-api
+  - "077-statecraft-factory-api"  # statecraft-factory-api
   - "108-factory-as-platform-feature"  # factory-as-platform-feature
-code_aliases: ["FACTORY_STAGECRAFT_RELOCATION", "ADAPTERS_IN_STAGECRAFT"]
+code_aliases: ["FACTORY_STATECRAFT_RELOCATION", "ADAPTERS_IN_STATECRAFT"]
 amends:
   - "101-codebase-index-mvp"
 extends:
   - spec: "108-factory-as-platform-feature"
     nature: additive
-    unit: { kind: directory, path: platform/services/stagecraft }
+    unit: { kind: directory, path: platform/services/statecraft }
 co_authority:
   - with_specs:
       - "102-governed-excellence"
@@ -35,7 +35,7 @@ references:
   - role: precedent
     unit: { kind: file, path: specs/108-factory-as-platform-feature/spec.md }
   - role: precedent
-    unit: { kind: file, path: specs/077-stagecraft-factory-api/spec.md }
+    unit: { kind: file, path: specs/077-statecraft-factory-api/spec.md }
   - role: precedent
     unit: { kind: file, path: specs/074-factory-ingestion/spec.md }
   - role: load-bearing-fossil
@@ -46,9 +46,9 @@ summary: >
   `factory/` directory (which carried per-adapter
   `manifest.yaml` files plus `factory/process/stages/*`)
   has been removed from this repo as part of relocating
-  factory/adapter machinery into stagecraft as a
+  factory/adapter machinery into statecraft as a
   first-class feature. The relocation is partial — the
-  former directory is gone, but no stagecraft-resident
+  former directory is gone, but no statecraft-resident
   replacement has been declared. The `codebase-indexer`
   still lists `factory/adapters/*/manifest.yaml` and
   `factory/process/stages/*` in its `collect_input_files`
@@ -56,7 +56,7 @@ summary: >
   staleness checks any time those paths are mentioned by
   a hash signature even though they no longer exist.
 
-  This spec establishes the stagecraft-resident location
+  This spec establishes the statecraft-resident location
   contract for adapter manifests and process stage
   templates, repoints the codebase-indexer input list at
   the new location, and excises the legacy `factory/`
@@ -64,13 +64,13 @@ summary: >
   CI workflows. It is a closure spec for an in-flight
   migration, not a redesign of factory primitives — the
   factory contract types (spec 074), the two-phase
-  workflow engine (spec 075), and stagecraft's
+  workflow engine (spec 075), and statecraft's
   factory-bridge API (spec 077) remain authoritative
   on their own surfaces; this spec only relocates where
   adapter-manifest authority *lives*.
 ---
 
-# 160 — Factory / adapter relocation into stagecraft
+# 160 — Factory / adapter relocation into statecraft
 
 ## 1. Problem
 
@@ -80,11 +80,11 @@ The intent doc §8.1 records the current state honestly:
 > (`acme-vue-node`, `next-prisma`, `rust-axum`, `encore-react`) had their
 > canonical `manifest.yaml` files in a `factory/` directory that has been
 > **removed from this repo**. The removal is part of a refactor that
-> relocates the factory / adapter machinery into stagecraft as a
+> relocates the factory / adapter machinery into statecraft as a
 > first-class feature. … Consequences: the README's 'Adapters' section is
 > partially aspirational against the on-disk state. The codebase-indexer's
 > `collect_input_files` list still names `factory/adapters/*/manifest.yaml`
-> — this will either get re-routed to the new stagecraft-resident
+> — this will either get re-routed to the new statecraft-resident
 > location or removed in step with the migration."*
 
 A partial migration is not a stable resting state. Today:
@@ -99,22 +99,22 @@ A partial migration is not a stable resting state. Today:
    inputs that no longer exist.
 3. CLAUDE.md still references `factory/adapters/*/manifest.yaml` as a
    per-adapter authoring location.
-4. Stagecraft has a `factory-api.server.ts` shell at
-   `platform/services/stagecraft/web/app/lib/factory-api.server.ts` and
+4. Statecraft has a `factory-api.server.ts` shell at
+   `platform/services/statecraft/web/app/lib/factory-api.server.ts` and
    factory-tab routes (`app.factory.adapters.tsx`,
    `app.factory.contracts.tsx`, `app.factory.processes.tsx`,
-   `app.factory.runs.*`) that point at a stagecraft-resident factory
+   `app.factory.runs.*`) that point at a statecraft-resident factory
    surface, but no normative location for adapter manifests is declared
-   under `platform/services/stagecraft/`.
+   under `platform/services/statecraft/`.
 
-Spec 077 (`stagecraft-factory-api`) and spec 108
+Spec 077 (`statecraft-factory-api`) and spec 108
 (`factory-as-platform-feature`) cover the API and platform-side
 modelling of factory work, but neither claims the on-disk location
 of adapter-manifest authoring. That gap is what this spec closes.
 
 ## 2. Decision
 
-Declare the stagecraft-resident location contract for the four legacy
+Declare the statecraft-resident location contract for the four legacy
 factory authoring inputs and migrate the references that still point
 at the legacy `factory/` directory.
 
@@ -123,18 +123,18 @@ location to the relocation work; this spec commits to the location
 contract and to the migration of consumer references. The detailed
 schema of the new manifests (whether they are YAML, JSON, or
 database rows; whether they live in a directory tree or in
-stagecraft's Postgres) is owned by spec 077 / 108 refinements that
+statecraft's Postgres) is owned by spec 077 / 108 refinements that
 follow this spec, not by spec 160 itself.
 
 ## 3. Functional Requirements
 
-- **FR-001** A canonical stagecraft-resident location for adapter
+- **FR-001** A canonical statecraft-resident location for adapter
   manifests is declared and recorded in the codebase-indexer's
   `collect_input_files` list, replacing the legacy
   `factory/adapters/*/manifest.yaml` entry. The declared path lives
-  under `platform/services/stagecraft/` (exact subpath owned by
+  under `platform/services/statecraft/` (exact subpath owned by
   spec 077 / 108 refinement, not by this spec).
-- **FR-002** A canonical stagecraft-resident location for process
+- **FR-002** A canonical statecraft-resident location for process
   stage templates is declared and recorded in the same input list,
   replacing the legacy `factory/process/stages/*` entry.
 - **FR-003** Every consumer reference to the legacy `factory/`
@@ -147,11 +147,11 @@ follow this spec, not by spec 160 itself.
   recompiles.
 - **FR-005** The four adapters named in the README (`acme-vue-node`,
   `next-prisma`, `rust-axum`, `encore-react`) are either represented
-  at the new stagecraft-resident location with their manifest content
+  at the new statecraft-resident location with their manifest content
   reconstructed, **or** the README is amended to reflect their
   retired-pending-relocation status with no aspirational claims.
 - **FR-006** The factory-tab routes already present at
-  `platform/services/stagecraft/web/app/routes/app.factory.adapters.tsx`
+  `platform/services/statecraft/web/app/routes/app.factory.adapters.tsx`
   and `app.factory.contracts.tsx` read from the new location, not
   from an external `factory/` checkout.
 
@@ -166,14 +166,14 @@ follow this spec, not by spec 160 itself.
   authoritative claims (annotated historical references in
   research or migration docs are exempt).
 - **SC-004** The README's *Adapters* section either lists the four
-  adapters with valid stagecraft-resident paths, or is rewritten to
+  adapters with valid statecraft-resident paths, or is rewritten to
   reflect honest current state.
 
 ## 5. Scope
 
 ### In scope (this spec)
 
-- Declaring the stagecraft-resident location for adapter manifests
+- Declaring the statecraft-resident location for adapter manifests
   and process stage templates.
 - Updating the codebase-indexer input list, README, CLAUDE.md,
   Makefile, and CI workflow references.
@@ -182,7 +182,7 @@ follow this spec, not by spec 160 itself.
 
 ### Out of scope (and intentionally so)
 
-- The schema of stagecraft-resident adapter manifests. Owned by
+- The schema of statecraft-resident adapter manifests. Owned by
   spec 077 / 108 refinement, possibly by a new spec authoring the
   detailed manifest grammar.
 - Re-validating the four adapters as factory-contract conformant
@@ -205,7 +205,7 @@ follow this spec, not by spec 160 itself.
   the two-phase pipeline mechanics in `crates/factory-engine`. Spec
   160 does not modify pipeline semantics; it relocates where stage
   templates are read from.
-- **Spec 077 (`stagecraft-factory-api`)** — owns the stagecraft API
+- **Spec 077 (`statecraft-factory-api`)** — owns the statecraft API
   surface that drives factory work. Spec 160 declares the on-disk
   location that spec 077's API consumes.
 - **Spec 108 (`factory-as-platform-feature`)** — owns the
@@ -230,7 +230,7 @@ synthetic recreation of manifests for adapters that never had them.
 ## 8. Cross-references
 
 - **INTENT doc** §8.1 — the framing source.
-- **Spec 077** — stagecraft-factory-api; consumer.
+- **Spec 077** — statecraft-factory-api; consumer.
 - **Spec 108** — factory-as-platform-feature; rationale.
 - **Spec 074** — factory-ingestion; contract types.
 - **Spec 075** — factory-workflow-engine; pipeline mechanics.
@@ -241,8 +241,8 @@ synthetic recreation of manifests for adapters that never had them.
 ## Amendments received
 
 **Amendment 2026-06-11 (record: spec 198 FR-012 derivation cutover).**
-The stagecraft-resident snapshot this spec relocated
-(`platform/services/stagecraft/api/factory/adapter-scopes.json`) is no
+The statecraft-resident snapshot this spec relocated
+(`platform/services/statecraft/api/factory/adapter-scopes.json`) is no
 longer hand-regenerated: its content is now the derived projection of the
 admitted adapter sub-envelope (manifest `governance:` section), produced
 by `adapter-scopes-compiler` (spec 105, amended same date) from the
@@ -252,7 +252,7 @@ residence and indexer-hashing posture are unchanged — only the snapshot's
 provenance upgrades from authored to materialised.
 
 **Amendment 2026-06-29 (record: clean-slate reset-prep housekeeping).**
-Housekeeping inside the relocated `platform/services/stagecraft` tree this
+Housekeeping inside the relocated `platform/services/statecraft` tree this
 spec claims, with no change to 160's factory/adapter design:
 - The Encore uptime-monitor starter scaffolding (`api/monitor/`, `api/site/`)
   was removed. It was template code that happened to live under the relocated
@@ -261,7 +261,7 @@ spec claims, with no change to 160's factory/adapter design:
 - The two per-cloud Encore infra configs were unified into a single
   `infra.config.json` (the deleted `infra.config.hetzner.json` differed only by
   a cluster-internal metrics URL), and the application database was renamed
-  `auth` to `stagecraft`. `scripts/docker-build.sh`,
+  `auth` to `statecraft`. `scripts/docker-build.sh`,
   `scripts/encore-test-lane.mjs`, `encore.app`, and the CI/CD encore-build
   `--config` are repointed to match.
 
@@ -297,14 +297,14 @@ process stage templates from `factory/process/stages/*.md`. Those
 locations have been removed from the repo as part of the spec 108
 relocation. This spec amends spec 101's input-set declaration in
 place: the indexer reads adapter manifests from the
-stagecraft-resident location
-`platform/services/stagecraft/api/factory/adapter-scopes.json`
+statecraft-resident location
+`platform/services/statecraft/api/factory/adapter-scopes.json`
 (the static fallback snapshot retained per spec 108's drop of the
 `factory_adapters` table). Process stage templates have no
-file-backed representation in stagecraft today — the substrate is
+file-backed representation in statecraft today — the substrate is
 DB-resident per spec 139 — so the indexer's process-stage walk
 points at
-`platform/services/stagecraft/api/factory/process-stages/` (a
+`platform/services/statecraft/api/factory/process-stages/` (a
 forward-compatible directory walk that hashes empty until a future
 refinement of spec 077 / 108 lands stage-template files there).
 
@@ -321,6 +321,6 @@ this spec repoints.
 
 ## Security hardening amendment (2026-07-02)
 
-Closed authorization gaps across the stagecraft API surface: the admin agent-policy endpoints now require an admin role and derive actorUserId from the authenticated identity; getToken verifies org ownership before brokering a GitHub App token and gates its env fallback to non-production; isAgentAuthorized requires authentication and a per-org id instead of a hardcoded default org; audit ingestion validates and binds its attribution fields; getPolicyBundle and getGrants validate and bind their identifiers; and oidcDiscover is rate-limited.
+Closed authorization gaps across the statecraft API surface: the admin agent-policy endpoints now require an admin role and derive actorUserId from the authenticated identity; getToken verifies org ownership before brokering a GitHub App token and gates its env fallback to non-production; isAgentAuthorized requires authentication and a per-org id instead of a hardcoded default org; audit ingestion validates and binds its attribution fields; getPolicyBundle and getGrants validate and bind their identifiers; and oidcDiscover is rate-limited.
 
 Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.

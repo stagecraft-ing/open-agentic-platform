@@ -155,7 +155,7 @@ export function SiteFooter() {
         </div>
         <div className="flex flex-wrap items-center gap-4 font-mono">
           <a
-            href="https://github.com/stagecraft-ing/open-agentic-platform"
+            href="https://github.com/statecrafting/open-agentic-platform"
             target="_blank"
             rel="noopener noreferrer"
             className="transition-colors hover:text-primary"

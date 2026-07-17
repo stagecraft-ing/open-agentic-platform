@@ -40,7 +40,7 @@ depends_on:
   - "109-factory-pat-and-pubsub-sync"  # factory-pat-and-pubsub-sync (the platform-side sync model)
   - "123-agent-catalog-org-rescope"  # agent-catalog-org-rescope (agent_resolver + binding-aware run identity)
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/runs.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/runs.ts }
 extends:
   - spec: "108-factory-as-platform-feature"
     nature: additive
@@ -101,7 +101,7 @@ layer (factory_runs) is meaningful only when paired with the API-fetch
 migration that produces the runs.
 
 1. **Replace `resolve_factory_root()` with an authenticated platform fetch.**
-   OPC's factory-run command authenticates against stagecraft using the
+   OPC's factory-run command authenticates against statecraft using the
    existing desktop OIDC flow (specs 106/107), GETs the adapter / contract /
    process bodies it needs for the run, materialises them into a per-run
    cache directory, and points the existing `factory-engine` crate at that
@@ -116,7 +116,7 @@ migration that produces the runs.
    token spend, and an error column. OPC publishes lifecycle events
    (`factory.run.queued`, `factory.run.stage_started`,
    `factory.run.stage_completed`, `factory.run.completed`,
-   `factory.run.failed`) over `api/sync/duplex.ts`; a stagecraft handler
+   `factory.run.failed`) over `api/sync/duplex.ts`; a statecraft handler
    maps each event to a row update so the web UI's Factory tab can show
    live progress and run history without OPC needing a separate webhook
    surface.
@@ -128,7 +128,7 @@ definitions don't refetch.
 
 ## 3. Data Model
 
-Added to `platform/services/stagecraft/api/db/schema.ts` via migration
+Added to `platform/services/statecraft/api/db/schema.ts` via migration
 `31_create_factory_runs.up.sql`. Spec 123 reserves migration `30` for
 `agent_catalog_org_rescope`; this spec MUST take `31` and MUST NOT
 re-use a slot below it.
@@ -405,7 +405,7 @@ A-4. A factory run started from the desktop produces a `factory_runs` row
      visible at `/app/factory` (Runs tab) before the run's first stage
      completes.
 A-5. The schema-parity check (spec 125) treats `factory_runs` as a normal
-     stagecraft table — no special-casing.
+     statecraft table — no special-casing.
 A-6. Spec 108 §7.1 and §7.4 are updated to reference 124 rather than
      "deferred to a follow-up spec".
 A-7. Migration is named `31_create_factory_runs.up.sql` and applies
@@ -437,7 +437,7 @@ Shipped 2026-05-01 across nine commits. Per-phase summary:
   (`Migration 31 aborted: agent_catalog.org_id is missing — spec 123
   migration 30 ... has not been applied`) when migration 30 is missing;
   Drizzle definitions mirror the SQL.
-- **Phase 2 — Stagecraft API** (`0e00b3a`):
+- **Phase 2 — Statecraft API** (`0e00b3a`):
   `POST /api/factory/runs` reservation + `GET /api/factory/runs` list +
   `GET /api/factory/runs/:id` detail; idempotency on
   `(org_id, client_run_id)`; pure agent-refs walker
@@ -471,7 +471,7 @@ Shipped 2026-05-01 across nine commits. Per-phase summary:
   command rebound to `GET /api/factory/runs`.
 - **Phase 6 — Sweeper** (`8af0515`): `api/factory/runsScheduler.ts`
   cron (`factory-runs-staleness-sweeper`, 60 s); flips `(queued,
-  running)` rows older than `STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC`
+  running)` rows older than `STATECRAFT_FACTORY_RUN_STALE_AFTER_SEC`
   (default 1800 s = 30 min) to `failed` with
   `error = 'sweeper: no events for <duration>'` and a
   `factory.run.swept` audit row; tests cover stale-running, fresh-row
@@ -513,7 +513,7 @@ Shipped 2026-05-01 across nine commits. Per-phase summary:
 - **A-5 carry-over.** `make ci-schema-parity` fails on
   `extractionOutput.ts is missing exports` — a regression in the
   knowledge-extraction Zod surface owned by spec 125. `factory_runs`
-  is treated as a normal stagecraft table by the parity walker (no
+  is treated as a normal statecraft table by the parity walker (no
   special-casing); the carry-over is informational and does not block
   spec 124 closure.
 - **A-4 (live desktop → web smoke) deferred to user smoke.** The full
@@ -536,7 +536,7 @@ Shipped 2026-05-01 across nine commits. Per-phase summary:
 `factory-platform-client::write_adapter` (the cache writer this spec's run
 path depends on) previously serialised the platform-served `manifest`
 (`AdapterBody.manifest: serde_json::Value`, intentionally untyped) to the
-local cache without validating its shape. When stagecraft's projection has
+local cache without validating its shape. When statecraft's projection has
 no spec-074 `AdapterManifest` for an org's adapter, it falls back to a
 knowledge/orchestration bundle; that document was written verbatim and the
 factory engine then failed deep in startup with a cryptic `missing field
@@ -546,9 +546,9 @@ Hardening (no run-contract change):
 
 - `crates/factory-platform-client/src/materialise.rs` — `write_adapter`
   validates the manifest carries a string `schema_version` before writing
-  the cache, returning a clear, attributable `CacheIo` error ("stagecraft
+  the cache, returning a clear, attributable `CacheIo` error ("statecraft
   served a non-spec-074 adapter manifest for '<name>'…") otherwise. This is
-  a cheap top-level guard symmetric with the stagecraft `getAdapter` guard;
+  a cheap top-level guard symmetric with the statecraft `getAdapter` guard;
   the factory engine still does full `AdapterManifest` validation when it
   reads the cache, so a manifest that has `schema_version` but is otherwise
   malformed is still caught (and now logged via `factory.rs`).
@@ -560,7 +560,7 @@ Hardening (no run-contract change):
 The server-side counterpart (refusing to serve a non-manifest document as
 an adapter manifest) lands under spec 139. The substrate-seeding that makes
 a previously-empty org resolve a real manifest is tracked separately — it
-additionally requires stagecraft's `sanitiseManifest` to stop dropping the
+additionally requires statecraft's `sanitiseManifest` to stop dropping the
 spec-074-required `validation` block, and a verified `OAP_NATIVE_ADAPTERS_DIR`
 mount.
 
@@ -571,13 +571,13 @@ Added path-component validation that rejects separators and .. traversal on plat
 
 Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.
 
-## Stagecraft-web gate delivery + resume-path amendment (2026-07-09)
+## Statecraft-web gate delivery + resume-path amendment (2026-07-09)
 
 Three fixes to the platform-triggered run surface, all in `product/apps/opc/src-tauri/src/commands/factory.rs` and `product/apps/opc/src/components/factory/PipelineHistory.tsx`:
 
-- **`factory.event` gate delivery.** OPC registered no handler for the `factory.event` envelope, so a gate confirmed or rejected on the stagecraft web surface (`stage_confirmed` / `stage_rejected`) never resolved the local run's pending gate oneshot; the run sat at "Waiting for agent output". Added the handler (routing by `stagecraft_pipeline_id` to the run's `TauriGateHandler`) with `sN`-prefix stage-id normalisation to bridge the OPC (`s4-api-specification`) vs stagecraft (`s4-api-spec`) id drift and the `s1`/`s2`/`s3` sign-off labels. This is the reverse of the OPC-side dual-write already present in `confirm_factory_stage` (the registration site is under spec 076).
-- **Resume path.** `list_factory_runs` emitted the stagecraft project UUID as `project_path`, so Resume canonicalised a non-existent path and surfaced a raw "No such file or directory" error. It now emits no local path; `resolve_resume_project_path` returns an actionable message, and the history view falls back to the real clone path or disables Resume with a "Clone locally" hint.
-- **`business_docs`.** `extract_factory_run` silently dropped the envelope's explicit `business_docs`; it now surfaces them in the log. Materialisation from the bare `storage_ref` (presigning in the stagecraft relay, as knowledge bundles already get) remains a follow-up.
+- **`factory.event` gate delivery.** OPC registered no handler for the `factory.event` envelope, so a gate confirmed or rejected on the statecraft web surface (`stage_confirmed` / `stage_rejected`) never resolved the local run's pending gate oneshot; the run sat at "Waiting for agent output". Added the handler (routing by `statecraft_pipeline_id` to the run's `TauriGateHandler`) with `sN`-prefix stage-id normalisation to bridge the OPC (`s4-api-specification`) vs statecraft (`s4-api-spec`) id drift and the `s1`/`s2`/`s3` sign-off labels. This is the reverse of the OPC-side dual-write already present in `confirm_factory_stage` (the registration site is under spec 076).
+- **Resume path.** `list_factory_runs` emitted the statecraft project UUID as `project_path`, so Resume canonicalised a non-existent path and surfaced a raw "No such file or directory" error. It now emits no local path; `resolve_resume_project_path` returns an actionable message, and the history view falls back to the real clone path or disables Resume with a "Clone locally" hint.
+- **`business_docs`.** `extract_factory_run` silently dropped the envelope's explicit `business_docs`; it now surfaces them in the log. Materialisation from the bare `storage_ref` (presigning in the statecraft relay, as knowledge bundles already get) remains a follow-up.
 
 Couples these fixes in the paths this spec authors to their owning spec per the spec 127 coupling gate.
 
@@ -585,10 +585,10 @@ Couples these fixes in the paths this spec authors to their owning spec per the 
 
 Follow-on to the 2026-07-09 gate-delivery fix, in the same `commands/factory.rs`
 run-integration surface. The `factory.event` handler resolves gates by matching
-the inbound `pipeline_id` against the run's `stagecraft_pipeline_id`; that field
+the inbound `pipeline_id` against the run's `statecraft_pipeline_id`; that field
 is populated from the `init_pipeline` response in a fire-and-forget task whose
 failure was a silent `warn`-and-continue. A run that fails `init_pipeline`
-therefore executes with `stagecraft_pipeline_id = None` and can NEVER match a
+therefore executes with `statecraft_pipeline_id = None` and can NEVER match a
 web-side gate approval, indistinguishable in the UI from a healthy run. Two
 diagnostics, with no behavioural change to the correlation itself (the identity
 question between the reservation `platform_run_id` shown in the web UI and the
@@ -596,7 +596,7 @@ question between the reservation `platform_run_id` shown in the web UI and the
 end-to-end repro):
 
 - **Fail-loud `init_pipeline` error.** Escalated the failure log from `warn` to
-  `error` and emitted a `factory:stagecraft_correlation_failed` event so the
+  `error` and emitted a `factory:statecraft_correlation_failed` event so the
   operator sees that governance sign-off will not reach the run. The success
   path now logs the id triad (`pipeline_id`, local `run_id`, `platform_run_id`)
   so a repro can correlate the web-shown run id against the pipeline id gate

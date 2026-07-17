@@ -97,7 +97,7 @@ jobs:
             # error (defence-in-depth; git already strips userinfo, and Actions
             # masks the secret, but never echo a credential-bearing URL raw).
             sed 's#x-access-token:[^@]*@#x-access-token:***@#g' fetch.err >&2
-            echo "::error::cannot fetch factory at $pin; check UPSTREAM_SOURCES_RO_TOKEN (read-only contents scope on Stagecraft-ing/factory)." >&2
+            echo "::error::cannot fetch factory at $pin; check UPSTREAM_SOURCES_RO_TOKEN (read-only contents scope on statecrafting/factory)." >&2
             exit 1
           fi
           git checkout -q FETCH_HEAD

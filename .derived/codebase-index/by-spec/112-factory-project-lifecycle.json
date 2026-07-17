@@ -7,7 +7,7 @@
       "094-unified-artifact-store",
       "108-factory-as-platform-feature",
       "109-factory-pat-and-pubsub-sync",
-      "110-stagecraft-to-opc-factory-trigger",
+      "110-statecraft-to-opc-factory-trigger",
       "111-org-agent-catalog-sync"
     ],
     "implementingPaths": [
@@ -16,47 +16,47 @@
         "source": "multiple"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/translator.ts",
+        "path": "platform/services/statecraft/api/factory/translator.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/create.ts",
+        "path": "platform/services/statecraft/api/projects/create.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/import.ts",
+        "path": "platform/services/statecraft/api/projects/import.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/opcBundle.test.ts",
+        "path": "platform/services/statecraft/api/projects/opcBundle.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/opcBundle.ts",
+        "path": "platform/services/statecraft/api/projects/opcBundle.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/opcBundleHelpers.ts",
+        "path": "platform/services/statecraft/api/projects/opcBundleHelpers.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold",
+        "path": "platform/services/statecraft/api/projects/scaffold",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
+        "path": "platform/services/statecraft/web/app/lib/projects-api.server.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.tsx",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app.projects.import.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app.projects.import.tsx",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app.projects.new.tsx",
         "source": "spec-edge"
       },
       {
@@ -93,92 +93,92 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold"
+            "file": "platform/services/statecraft/api/projects/scaffold"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "directory",
-          "path": "platform/services/stagecraft/api/projects/scaffold"
+          "path": "platform/services/statecraft/api/projects/scaffold"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/create.ts"
+            "file": "platform/services/statecraft/api/projects/create.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/create.ts"
+          "path": "platform/services/statecraft/api/projects/create.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/import.ts"
+            "file": "platform/services/statecraft/api/projects/import.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/import.ts"
+          "path": "platform/services/statecraft/api/projects/import.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/opcBundle.ts"
+            "file": "platform/services/statecraft/api/projects/opcBundle.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/opcBundle.ts"
+          "path": "platform/services/statecraft/api/projects/opcBundle.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/opcBundleHelpers.ts"
+            "file": "platform/services/statecraft/api/projects/opcBundleHelpers.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/opcBundleHelpers.ts"
+          "path": "platform/services/statecraft/api/projects/opcBundleHelpers.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app.projects.import.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app.projects.import.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.projects.import.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.projects.import.tsx"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app.projects.new.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.projects.new.tsx"
         }
       },
       {
@@ -236,53 +236,53 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/translator.ts"
+            "file": "platform/services/statecraft/api/factory/translator.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/translator.ts"
+          "path": "platform/services/statecraft/api/factory/translator.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/opcBundle.test.ts"
+            "file": "platform/services/statecraft/api/projects/opcBundle.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/opcBundle.test.ts"
+          "path": "platform/services/statecraft/api/projects/opcBundle.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+            "file": "platform/services/statecraft/web/app/lib/projects-api.server.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+          "path": "platform/services/statecraft/web/app/lib/projects-api.server.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app.project.$projectId.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.tsx"
         }
       }
     ],

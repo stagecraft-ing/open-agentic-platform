@@ -83,7 +83,7 @@ jobs:
           workspace: 'true'
           cache-shared-key: ci-crates-workspace
 
-      # Spec 111 §2.1 Phase 2 — stagecraft's `CatalogFrontmatter` wraps a
+      # Spec 111 §2.1 Phase 2 — statecraft's `CatalogFrontmatter` wraps a
       # ts-rs mirror of the Rust `UnifiedFrontmatter`. `cargo test` on the
       # workspace auto-regenerates the TS files via the agent-frontmatter
       # crate; this step fails the build if the committed mirror drifts

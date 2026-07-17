@@ -14,7 +14,7 @@ CronJob IS the production scheduler. The Encore declaration in
 `scheduler.ts` is local-dev / future-Encore-Cloud only.
 
 Per-purpose credential mount discipline (§FR-010 amendment,
-2026-05-09): the pod mounts only `stagecraft-knowledge-sweeper-credentials`
+2026-05-09): the pod mounts only `statecraft-knowledge-sweeper-credentials`
 (materialised by `setup.sh` directly on Hetzner, by ESO on cloud
 deployments). It carries exactly the knowledge-sweeper Rauthy client's
 `CLIENT_ID` + `CLIENT_SECRET`. No cross-purpose mounts. FU-003 will
@@ -33,7 +33,7 @@ metadata:
   name: knowledge-orphan-imported-sweeper
   labels:
     app.kubernetes.io/name: knowledge-orphan-imported-sweeper
-    app.kubernetes.io/part-of: stagecraft
+    app.kubernetes.io/part-of: statecraft
     spec.oap/id: "143-presigned-upload-public-endpoint"
     spec.oap/fr: "FR-010"
 spec:
@@ -53,7 +53,7 @@ spec:
         metadata:
           labels:
             app.kubernetes.io/name: knowledge-orphan-imported-sweeper
-            app.kubernetes.io/part-of: stagecraft
+            app.kubernetes.io/part-of: statecraft
         spec:
           restartPolicy: Never
           # curl-only sweep pod; never calls the K8s API.
@@ -66,7 +66,7 @@ spec:
               # mode this template structurally prevents.
               envFrom:
                 - secretRef:
-                    name: stagecraft-knowledge-sweeper-credentials
+                    name: statecraft-knowledge-sweeper-credentials
               env:
                 - name: RAUTHY_URL
                   value: {{ .Values.oidc.endpoint | quote }}
@@ -122,7 +122,7 @@ spec:
                     --request POST \
                     --header 'Content-Type: application/json' \
                     --header "Authorization: Bearer ${ACCESS_TOKEN}" \
-                    http://stagecraft-api.stagecraft-system.svc.cluster.local:80/internal/knowledge/orphan-imported-sweep
+                    http://statecraft-api.statecraft-system.svc.cluster.local:80/internal/knowledge/orphan-imported-sweep
               resources:
                 requests:
                   memory: "16Mi"

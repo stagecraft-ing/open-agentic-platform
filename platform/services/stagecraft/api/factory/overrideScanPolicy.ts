@@ -48,8 +48,8 @@ type CacheEntry = {
 const cache = new Map<string, CacheEntry>();
 
 function getPolicyDir(): string {
-  if (process.env.STAGECRAFT_OVERRIDE_SCAN_POLICY_DIR) {
-    return process.env.STAGECRAFT_OVERRIDE_SCAN_POLICY_DIR;
+  if (process.env.statecraft_OVERRIDE_SCAN_POLICY_DIR) {
+    return process.env.statecraft_OVERRIDE_SCAN_POLICY_DIR;
   }
   return path.resolve(process.cwd(), "build", "policy", "orgs");
 }

@@ -414,7 +414,7 @@ The successor already *claims* the partially-superseded unit in the index:
 the indexer folds `supersedes` units into the successor's `implementing_paths`
 (`parse_implements`), so e.g. spec 214 already claims
 `platform/services/tenant-hello` and spec 114 already claims
-`platform/services/stagecraft/api/projects/clone.ts`. Phase 2b's net effect on
+`platform/services/statecraft/api/projects/clone.ts`. Phase 2b's net effect on
 such a path is therefore a **tightening**: the predecessor stops satisfying
 the path; the live successor becomes the required owner. No path loses all
 owners (§ Blast radius below).
@@ -503,7 +503,7 @@ A before/after `authorities(P)` corpus diff is the verification gate
 - **AC-017.** `registry-consumer by-authority platform/services/tenant-hello`
   reports `214 … via: supersedes` and **not** `136`; `by-authority` on a
   `crates/orchestrator/*` path does not list 044;
-  `by-authority platform/services/stagecraft/api/projects/clone.ts` reports
+  `by-authority platform/services/statecraft/api/projects/clone.ts` reports
   `114`, not `113`.
 - **AC-018.** Corpus green: `spec-compiler compile`, `codebase-indexer
   compile` + `check`, `registry-consumer validate-graph`, `spec-lint

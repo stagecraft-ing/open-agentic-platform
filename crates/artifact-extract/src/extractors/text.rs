@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Bartek Kus
 // Spec: specs/120-factory-extraction-stage/spec.md — FR-005, FR-006, FR-009
 
-//! Deterministic-text extractor. Mirrors stagecraft's
+//! Deterministic-text extractor. Mirrors statecraft's
 //! `deterministic-text.ts`. Handles `text/plain`, `text/markdown`,
 //! `application/json`, `text/csv` — decode bytes as UTF-8 (lossy) and
 //! return as `text`. No format-specific parsing.

@@ -45,10 +45,10 @@ describe("resolveSizeCaps", () => {
     expect(out.maxCommits).toBe(DEFAULT_CLONE_MAX_COMMITS);
   });
 
-  test("honours STAGECRAFT_CLONE_MAX_BYTES / _MAX_COMMITS", () => {
+  test("honours STATECRAFT_CLONE_MAX_BYTES / _MAX_COMMITS", () => {
     const out = resolveSizeCaps({
-      STAGECRAFT_CLONE_MAX_BYTES: "1024",
-      STAGECRAFT_CLONE_MAX_COMMITS: "10",
+      STATECRAFT_CLONE_MAX_BYTES: "1024",
+      STATECRAFT_CLONE_MAX_COMMITS: "10",
     });
     expect(out.maxBytes).toBe(1024);
     expect(out.maxCommits).toBe(10);
@@ -56,7 +56,7 @@ describe("resolveSizeCaps", () => {
 
   test("ignores non-numeric env values", () => {
     const out = resolveSizeCaps({
-      STAGECRAFT_CLONE_MAX_BYTES: "not-a-number",
+      STATECRAFT_CLONE_MAX_BYTES: "not-a-number",
     });
     expect(out.maxBytes).toBe(DEFAULT_CLONE_MAX_BYTES);
   });

@@ -14,7 +14,7 @@ domain: platform
 summary: >
   Removes the repo-rooted `factory/` directory and reimplements adapters,
   contracts, processes, and upstream-map configuration as first-class entities
-  inside stagecraft. Factory becomes a governed, organisationally-scoped
+  inside statecraft. Factory becomes a governed, organisationally-scoped
   feature surfaced at `/app/factory`; Factory runs continue to execute via OPC
   but are orchestrated by the platform. Supersedes spec 088 for the upstream
   sync flow.
@@ -56,7 +56,7 @@ hand-edited in the repo instead of declared per-organisation.
 
 ## 2. Decision
 
-Make Factory a first-class platform feature owned by stagecraft:
+Make Factory a first-class platform feature owned by statecraft:
 
 1. **Delete `factory/`** from the repo (adapters, contract JSON schemas,
    process definitions, upstream-map.yaml, docs).
@@ -83,16 +83,16 @@ the Factory is the execution engine. An org has one Factory configuration
 
 ## 3. Data Model
 
-Added to `platform/services/stagecraft/api/db/schema.ts`:
+Added to `platform/services/statecraft/api/db/schema.ts`:
 
 ```ts
 // One row per org — the GitHub sources that generate this org's factory.
 // Replaces upstream-map.yaml.
 factory_upstreams (
   org_id           uuid pk  references organizations(id),
-  factory_source   text not null,  // e.g. "Stagecraft-ing/legacy-factory"
+  factory_source   text not null,  // e.g. "statecrafting/legacy-factory"
   factory_ref      text not null default 'main',
-  template_source  text not null,  // e.g. "Stagecraft-ing/template"
+  template_source  text not null,  // e.g. "statecrafting/template"
   template_ref     text not null default 'main',
   last_synced_at   timestamptz,
   last_sync_sha    jsonb,  // { factory: "abc…", template: "def…" }
@@ -199,7 +199,7 @@ the sync worker. Phase 4 adds adapter/contract/process browsers.
 OPC no longer reads `factory/` from the checkout. Instead, when a user starts
 a Factory run in OPC:
 
-1. OPC authenticates against stagecraft using the existing desktop OIDC
+1. OPC authenticates against statecraft using the existing desktop OIDC
    flow (spec 106/107).
 2. OPC calls `GET /api/factory/adapters/:name`, `.../contracts/*`,
    `.../processes/:name` for the user's active org.
@@ -209,7 +209,7 @@ a Factory run in OPC:
    `factory_runs` table — defined and shipped under **spec 124**.
 
 This mirrors the existing workspace duplex pattern: OPC is the execution
-tier, stagecraft is the orchestration and persistence tier.
+tier, statecraft is the orchestration and persistence tier.
 
 ### 7.1 Punt — desktop factory-run migration
 
@@ -239,7 +239,7 @@ Deleted from the repo in Phase 2:
 - `factory/contracts/**`
 - `factory/process/**`
 - `factory/upstream-map.yaml`
-- `factory/docs/**` (migrated into `platform/services/stagecraft/docs/factory/`)
+- `factory/docs/**` (migrated into `platform/services/statecraft/docs/factory/`)
 - `.claude/commands/factory-sync.md` (replaced by UI action)
 
 Spec 088 is marked `superseded` and its implementation references are
@@ -271,12 +271,12 @@ flipped; the closing work was the §8 deletion plus downstream cleanups.
 Per-phase artefacts:
 
 - **Phase 1 (route shell + Overview):**
-  `platform/services/stagecraft/web/app/routes/app.factory.tsx` (tab strip),
+  `platform/services/statecraft/web/app/routes/app.factory.tsx` (tab strip),
   `app.factory._index.tsx` (Overview with counts, last-sync banner, "Sync now"
   button, recent runs table). Top-level nav entry in `app.tsx:35`.
 
 - **Phase 2 (DB schema + Upstreams form):**
-  `platform/services/stagecraft/api/db/schema.ts:751–815` declares
+  `platform/services/statecraft/api/db/schema.ts:751–815` declares
   `factoryUpstreams`, `factoryAdapters`, `factoryContracts`, `factoryProcesses`;
   migration `api/db/migrations/18_factory_platform_feature.up.sql`. The
   Upstreams UI lives at `app.factory.upstreams.tsx`; the Encore handlers in

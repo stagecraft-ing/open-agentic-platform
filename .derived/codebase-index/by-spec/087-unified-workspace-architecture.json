@@ -14,34 +14,34 @@
       "074-factory-ingestion",
       "075-factory-workflow-engine",
       "076-factory-desktop-panel",
-      "077-stagecraft-factory-api",
+      "077-statecraft-factory-api",
       "078-platform-completion-plan",
       "080-github-identity-onboarding",
       "082-artifact-integrity-platform-hardening"
     ],
     "implementingPaths": [
       {
-        "path": "platform/services/stagecraft/api/sync/duplex.ts",
+        "path": "platform/services/statecraft/api/sync/duplex.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/sync/registry.ts",
+        "path": "platform/services/statecraft/api/sync/registry.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/sync/relay.ts",
+        "path": "platform/services/statecraft/api/sync/relay.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/sync/service.ts",
+        "path": "platform/services/statecraft/api/sync/service.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/sync/store.ts",
+        "path": "platform/services/statecraft/api/sync/store.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/sync/types.ts",
+        "path": "platform/services/statecraft/api/sync/types.ts",
         "source": "spec-edge"
       },
       {
@@ -53,79 +53,79 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync/duplex.ts"
+            "file": "platform/services/statecraft/api/sync/duplex.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/duplex.ts"
+          "path": "platform/services/statecraft/api/sync/duplex.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync/registry.ts"
+            "file": "platform/services/statecraft/api/sync/registry.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/registry.ts"
+          "path": "platform/services/statecraft/api/sync/registry.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync/relay.ts"
+            "file": "platform/services/statecraft/api/sync/relay.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/relay.ts"
+          "path": "platform/services/statecraft/api/sync/relay.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync/service.ts"
+            "file": "platform/services/statecraft/api/sync/service.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/service.ts"
+          "path": "platform/services/statecraft/api/sync/service.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync/store.ts"
+            "file": "platform/services/statecraft/api/sync/store.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/store.ts"
+          "path": "platform/services/statecraft/api/sync/store.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync/types.ts"
+            "file": "platform/services/statecraft/api/sync/types.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/types.ts"
+          "path": "platform/services/statecraft/api/sync/types.ts"
         }
       },
       {

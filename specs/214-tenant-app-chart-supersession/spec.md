@@ -3,7 +3,7 @@ id: "214-tenant-app-chart-supersession"
 title: "Tenant App Chart Supersession (template scaffold becomes the reference tenant)"
 feature_branch: "feat/214-tenant-app-chart-supersession"
 status: approved
-implementation: complete  # Stage 1 (additive acme-vue-encore deploy path) landed via #365; Stage 2 (tenant-hello retirement) landed 2026-06-16: chart-registry cutover to the sole acme-vue-encore shape, deployd default flip, ci.yml/ci-tenant-app.yml rewire, specs 136/137 amended; all locally-verifiable gates green (coupling, spec-lint, deployd cargo 35 tests + clippy, stagecraft tsc + vitest, helm lint + renders, FR-011 gate-seam parity proven in Stage 1, featuregraph golden). DEFERRED (deploy-time / operational, not resolvable in-repo): FR-010's cd-tenant-app.yml reference-image build is workflow_dispatch-gated and fails loud until the cross-repo template source (vars.TENANT_APP_TEMPLATE_REPO/REF + read token) is wired; SC-001/SC-003/SC-005 need a live cluster (TLS endpoint, DB write round-trip, private-image pull) per the plan's Verification split.
+implementation: complete  # Stage 1 (additive acme-vue-encore deploy path) landed via #365; Stage 2 (tenant-hello retirement) landed 2026-06-16: chart-registry cutover to the sole acme-vue-encore shape, deployd default flip, ci.yml/ci-tenant-app.yml rewire, specs 136/137 amended; all locally-verifiable gates green (coupling, spec-lint, deployd cargo 35 tests + clippy, statecraft tsc + vitest, helm lint + renders, FR-011 gate-seam parity proven in Stage 1, featuregraph golden). DEFERRED (deploy-time / operational, not resolvable in-repo): FR-010's cd-tenant-app.yml reference-image build is workflow_dispatch-gated and fails loud until the cross-repo template source (vars.TENANT_APP_TEMPLATE_REPO/REF + read token) is wired; SC-001/SC-003/SC-005 need a live cluster (TLS endpoint, DB write round-trip, private-image pull) per the plan's Verification split.
 kind: platform
 domain: platform
 created: "2026-06-12"
@@ -32,7 +32,7 @@ code_aliases: ["TENANT_APP_CHART_SUPERSESSION"]
 depends_on:
   - "136-tenant-hello-demo-service"
   - "137-tenant-environment-access-gates"
-  - "138-stagecraft-create-realised-scaffold"
+  - "138-statecraft-create-realised-scaffold"
   - "119-project-as-unit-of-governance"
   - "199-factory-thin-consumer-sync"
 amends: ["136-tenant-hello-demo-service", "137-tenant-environment-access-gates", "213-tenant-repo-image-build", "151-declarative-cluster-reconciliation"]
@@ -46,13 +46,13 @@ amends: ["136-tenant-hello-demo-service", "137-tenant-environment-access-gates",
 extends:
   - spec: "136-tenant-hello-demo-service"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/deploy/chartSelector.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/deploy/chartSelector.ts }
   # The chartSelector test gains the acme-vue-encore listShapes case alongside
   # the selector change; claimed additively so this path carries a 214
   # authority (spec 160's full-id migration now resolves the test's authority).
   - spec: "136-tenant-hello-demo-service"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/deploy/chartSelector.test.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/deploy/chartSelector.test.ts }
   - spec: "136-tenant-hello-demo-service"
     nature: additive
     unit: { kind: file, path: platform/services/deployd-api-rs/src/helm.rs }
@@ -62,9 +62,9 @@ extends:
   - spec: "136-tenant-hello-demo-service"
     nature: additive
     unit: { kind: file, path: platform/services/deployd-api-rs/src/store.rs }
-  - spec: "077-stagecraft-factory-api"
+  - spec: "077-statecraft-factory-api"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/deploy/deploy.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/deploy/deploy.ts }
   # The spec-177 orchestrator gains a route dispatching the new ci-tenant-app
   # job (spec 191 / 211 precedent: a new CI job additively extends ci.yml).
   - spec: "177-ci-orchestrator-pr-gate"
@@ -76,12 +76,12 @@ extends:
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
   # Stage 2 SC-002 doc scrub: 214 co-authors the "Chart selection and deploy
-  # wire contract" section of stagecraft's CLAUDE.md (the sole-shape reality
+  # wire contract" section of statecraft's CLAUDE.md (the sole-shape reality
   # after the tenant-hello retirement), additively extending 138's file claim
   # the same way 138/140 extend it.
-  - spec: "138-stagecraft-create-realised-scaffold"
+  - spec: "138-statecraft-create-realised-scaffold"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/CLAUDE.md }
+    unit: { kind: file, path: platform/services/statecraft/CLAUDE.md }
 establishes:
   # Converted from references:planned-establishes as the implementation landed
   # these paths (spec 200 precedent). The deployResolve.* helpers and the
@@ -89,10 +89,10 @@ establishes:
   # net-new in Stage 2 (the build+push workflow).
   - unit: { kind: file, path: .github/workflows/cd-tenant-app.yml }
   - unit: { kind: directory, path: platform/charts/acme-vue-encore }
-  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/hostname.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/hostname.test.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/deployResolve.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/deployResolve.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/deploy/hostname.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/deploy/hostname.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/deploy/deployResolve.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/deploy/deployResolve.test.ts }
   - unit: { kind: file, path: .github/workflows/ci-tenant-app.yml }
   - unit: { kind: file, path: platform/infra/hetzner/manifests/ghcr-pull-secret.yaml }
 references:
@@ -110,7 +110,7 @@ references:
   - role: superseded-removed
     unit: { kind: file, path: .github/workflows/cd-tenant-hello.yml }
   - role: scaffold-fixture-source
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/templateCache.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/templateCache.ts }
   - role: variant-model-authority
     unit: { kind: crate, id: factory-contracts }
   - role: wildcard-tls-surface
@@ -126,7 +126,7 @@ references:
 **Feature Branch**: `214-tenant-app-chart-supersession`
 **Created**: 2026-06-12
 **Status**: Draft (second of the three deploy-path specs; siblings are 213
-tenant-repo-image-build and 215 stagecraft-deploy-trigger-ux)
+tenant-repo-image-build and 215 statecraft-deploy-trigger-ux)
 **Input**: The 2026-06-12 deploy-path survey plus user direction of the
 same day: rather than adding the acme-vue-encore chart alongside
 tenant-hello and maintaining two tenant shapes forever, supersede
@@ -167,7 +167,7 @@ CI fixture of FR-010 covers this spec's own verification needs).
   `chartSelector.ts:43-45`).
 - The dispatch wire (`POST /v1/deployments`, `routes.rs:21-47`) carries
   `desired_routes` (caller-invented hosts), optional `chart`, and the spec
-  137 `access_gate`; stagecraft's proxy (`deploy.ts:193`) already
+  137 `access_gate`; statecraft's proxy (`deploy.ts:193`) already
   validates a `config_refs: Record<string, string>` field
   (`deploy.ts:37,113-116`) that nothing downstream consumes.
 - Namespace is computed as `{app_id}-{env_id}` and not persisted
@@ -205,7 +205,7 @@ CI fixture of FR-010 covers this spec's own verification needs).
 ### User Story 1 - Deploy the scaffolded app and reach it (Priority: P1)
 
 Given an existing image for the scaffolded commit (spec 213, or the
-FR-010 fixture in CI), a dispatch through stagecraft's deploy proxy
+FR-010 fixture in CI), a dispatch through statecraft's deploy proxy
 installs the acme-vue-encore chart into the environment's namespace, and
 the returned endpoint URL serves the Vue SPA with the Encore API
 answering behind it.
@@ -252,7 +252,7 @@ rejoins without re-provisioning.
 
 ### User Story 3 - The platform owns the hostname (Priority: P2)
 
-Stagecraft derives the ingress host from org, project, environment, and
+Statecraft derives the ingress host from org, project, environment, and
 variant; the caller never invents one. Toggling the access gate or
 redeploying never changes the host (spec 137's stability requirement).
 
@@ -321,15 +321,15 @@ remains in `helm.rs`, `chartSelector.ts`, or workflows.
   deployd helm runner's default `--wait` timeout (`helm.rs::HelmRunner::
   from_env`) drops from `5m` to `3m`. Rationale: `create_deployment` holds
   the dispatch HTTP connection open for the whole `helm upgrade --install
-  --wait`, and stagecraft's fetch inherits undici's 300s headers timeout.
+  --wait`, and statecraft's fetch inherits undici's 300s headers timeout.
   At the old `5m` default those windows were equal, so a deploy that helm
   would report as FAILED (a tenant image stuck in ImagePullBackOff that
-  never becomes Ready) raced stagecraft's timeout and could surface as an
+  never becomes Ready) raced statecraft's timeout and could surface as an
   opaque REQUEST_FAILED instead of the helm diagnostic this edge case
   promises "verbatim, as today". A `3m` default keeps deployd inside the
   fetch window so its FAILED + helm stderr wins. `DEPLOYD_HELM_TIMEOUT`
   still overrides for operators with genuinely slower rollouts. See spec
-  215's matching edge-case amendment for the stagecraft-side diagnostic.
+  215's matching edge-case amendment for the statecraft-side diagnostic.
 - Dual-profile project: each variant is its own deployable unit (own
   image, own release, own host); a single dispatch never installs both.
 - In-flight tenant-hello deployments at cutover: existing helm releases
@@ -404,7 +404,7 @@ remains in `helm.rs`, `chartSelector.ts`, or workflows.
   crash-looped on `unable to initialize sqldb proxy: failed to resolve
   password: environment variable not found`. Wired end to end: (1) deployd-api
   `DeployExtras.preview_database` + `DeploymentRequest.preview_database` render
-  `previewDatabase.enabled: true` in `build_values`; (2) stagecraft's UI trigger
+  `previewDatabase.enabled: true` in `build_values`; (2) statecraft's UI trigger
   (`buildTriggerDeploydBody`) sets `preview_database: true` for `development`
   and `preview` environments so an Encore tenant boots self-contained, and
   **rejects** `staging`/`production` deploys (which need an external DSN the
@@ -418,13 +418,13 @@ remains in `helm.rs`, `chartSelector.ts`, or workflows.
   Single label by construction (the single-level wildcard certificate is
   the binding constraint, which is why 137's multi-label sketch is
   rejected). Implemented once in
-  `platform/services/stagecraft/api/deploy/hostname.ts` with the 63-char
+  `platform/services/statecraft/api/deploy/hostname.ts` with the 63-char
   truncate-plus-hash rule; `deploy.ts` derives `desired_routes` from it
   when the caller supplies none. Landing this FR amends spec 137
   (clarification); the amendment callout and `amended:` frontmatter on
   137 land with the implementing PR, per the amendment convention.
 - **FR-008**: Namespace forwarding: new optional dispatch field
-  `namespace`; stagecraft forwards `environments.k8sNamespace`;
+  `namespace`; statecraft forwards `environments.k8sNamespace`;
   deployd-api uses it when present (fallback: computed
   `{app_id}-{env_id}`) and persists the effective namespace on the
   deployment row (`store.rs` migration) so DELETE and status operate on
@@ -502,7 +502,7 @@ remains in `helm.rs`, `chartSelector.ts`, or workflows.
 - Production-grade database provisioning (HA Postgres, backups, restore
   drills): named deferral; candidate follow-up spec, and a prerequisite
   for promoting beyond preview/development environments.
-- The deploy trigger, UI, and deployment records in stagecraft: spec 215.
+- The deploy trigger, UI, and deployment records in statecraft: spec 215.
 - Image production for tenant repos and the ref convention: spec 213.
 - Per-adapter chart generation from adapter manifests (a chart per
   arbitrary future adapter): this spec hand-authors one chart for the
@@ -542,7 +542,7 @@ than discovering them on a tenant's first deploy.
    mechanism-agnostic on purpose.
 3. **`{base}` domain value**: the concrete `tenants.{base}` apex in use
    on the Hetzner cluster is operational config; confirm where it is
-   surfaced to stagecraft (env var on the deploy service) and that the
+   surfaced to statecraft (env var on the deploy service) and that the
    wildcard certificate's SAN matches.
 4. **Fixture materialisation mode**: whether the FR-010 fixture tree is
    committed into the monorepo (a realised snapshot, regenerated on

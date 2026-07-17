@@ -2,11 +2,11 @@
 // Rauthy seeder (spec 106 FR-002, extended by spec 107).
 //
 // Idempotently ensures the GitHub upstream auth provider, OAP custom user
-// attributes, the `oap` custom scope, scope grants on stagecraft/SPA/OPC
+// attributes, the `oap` custom scope, scope grants on statecraft/SPA/OPC
 // OIDC clients, AND (spec 107) that each client's `redirect_uris` allow-list
 // contains the URIs derived from APP_BASE_URL plus the OPC deep-link scheme.
 // Intended to run as a Helm pre-install/pre-upgrade hook BEFORE the
-// stagecraft-api Deployment rolls, so a failure fails the Helm release
+// statecraft-api Deployment rolls, so a failure fails the Helm release
 // and keeps the old pod serving traffic.
 //
 // Required env vars:
@@ -17,9 +17,9 @@
 //                                    before the `$`
 //   GITHUB_UPSTREAM_CLIENT_ID        GitHub OAuth App client_id for Rauthy
 //   GITHUB_UPSTREAM_CLIENT_SECRET    GitHub OAuth App client_secret
-//   RAUTHY_CLIENT_ID                 stagecraft OIDC client id (to allow-list scope)
-//   APP_BASE_URL                     canonical stagecraft origin (spec 107)
-//                                    e.g. https://stagecraft.example.com
+//   RAUTHY_CLIENT_ID                 statecraft OIDC client id (to allow-list scope)
+//   APP_BASE_URL                     canonical statecraft origin (spec 107)
+//                                    e.g. https://statecraft.example.com
 //
 // Optional:
 //   OIDC_SPA_CLIENT_ID               SPA client id (web frontend)
@@ -268,7 +268,7 @@ async function ensureOapScope() {
 
 // ---------------------------------------------------------------------------
 // Spec 107 — converge `redirect_uris` AND `flows_enabled` on the
-// stagecraft/OPC OIDC clients.
+// statecraft/OPC OIDC clients.
 //
 // `redirect_uris` were converged from spec 107; `flows_enabled` was added
 // after first-login broke with `400 'refresh_token' flow is not allowed for
@@ -296,7 +296,7 @@ function computeTargetRedirectUris(clientId) {
 }
 
 // Flow names come from Rauthy 0.35's `flows_enabled: Vec<String>`. Both the
-// stagecraft-server and OPC clients drive the spec 106 FR-004 callback which
+// statecraft-server and OPC clients drive the spec 106 FR-004 callback which
 // does authorization_code + refresh_token, so both flows are required.
 function computeTargetFlowsEnabled(clientId) {
   if (clientId === RAUTHY_CLIENT_ID || clientId === OPC_CLIENT_ID) {
@@ -319,15 +319,15 @@ async function fetchClients() {
 }
 
 async function ensureClientConfig() {
-  log("[4/6] Converging `redirect_uris` + `flows_enabled` on stagecraft/OPC OIDC clients");
+  log("[4/6] Converging `redirect_uris` + `flows_enabled` on statecraft/OPC OIDC clients");
 
   const clients = await fetchClients();
 
-  // stagecraft-server — hard requirement
+  // statecraft-server — hard requirement
   const server = clients.find((x) => x.id === RAUTHY_CLIENT_ID);
   if (!server) {
     die(
-      `stagecraft-server client ${RAUTHY_CLIENT_ID} not found in Rauthy — ` +
+      `statecraft-server client ${RAUTHY_CLIENT_ID} not found in Rauthy — ` +
         `create it in the Rauthy admin UI before running the seeder`,
     );
   }
@@ -386,10 +386,10 @@ async function convergeClient(client) {
 }
 
 // ---------------------------------------------------------------------------
-// Step 5 — grant `oap` scope to stagecraft, SPA, and OPC OIDC clients
+// Step 5 — grant `oap` scope to statecraft, SPA, and OPC OIDC clients
 // ---------------------------------------------------------------------------
 async function ensureClientScopeGrants() {
-  log("[5/6] Granting `oap` scope to stagecraft/SPA/OPC OIDC clients");
+  log("[5/6] Granting `oap` scope to statecraft/SPA/OPC OIDC clients");
 
   // Re-fetch: ensureClientRedirectUris may have PUT new state that we need
   // reflected here. Cheap call; hiqlite is local to Rauthy.
@@ -429,7 +429,7 @@ async function ensureClientScopeGrants() {
 // Step 6 — smoke validation. Re-read oap scope and fail if attr mapping is
 // not in effect. Catches the case where Rauthy accepted the write but
 // silently normalised it to something different. Also re-reads
-// stagecraft-server's redirect_uris (spec 107 FR-002) so a silent Rauthy
+// statecraft-server's redirect_uris (spec 107 FR-002) so a silent Rauthy
 // normalisation (trailing slash, case) fails at deploy instead of first login.
 // ---------------------------------------------------------------------------
 async function validateSeed() {
@@ -452,7 +452,7 @@ async function validateSeed() {
   const clients = await fetchClients();
   const server = clients.find((x) => x.id === RAUTHY_CLIENT_ID);
   if (!server) {
-    die(`Validation: stagecraft-server client ${RAUTHY_CLIENT_ID} missing after seed`);
+    die(`Validation: statecraft-server client ${RAUTHY_CLIENT_ID} missing after seed`);
   }
   const requiredUris = computeTargetRedirectUris(RAUTHY_CLIENT_ID);
   const existingUris = Array.isArray(server.redirect_uris) ? server.redirect_uris : [];

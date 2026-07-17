@@ -276,7 +276,7 @@ workspace-member crate. Resolution:
 *Amended 2026-05-21 by [spec 155](../155-logical-unit-resolution-semantics/spec.md) — see §2.3 for amendment rationale.*
 
 Use when a spec governs a non-crate tree as a unit (canonical cases:
-TypeScript modules within a stagecraft API, infrastructure manifest
+TypeScript modules within a statecraft API, infrastructure manifest
 trees, gitops cluster directories). Distinct from `crate:` (which
 carries workspace-member semantics with manifest validation) and from
 `file:` (which targets a single file).

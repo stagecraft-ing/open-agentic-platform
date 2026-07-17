@@ -94,7 +94,7 @@ references:
   - role: trigger-consolidation
     unit: { kind: file, path: .github/workflows/ci-spec-code-coupling.yml }
   - role: trigger-consolidation
-    unit: { kind: file, path: .github/workflows/ci-stagecraft.yml }
+    unit: { kind: file, path: .github/workflows/ci-statecraft.yml }
   - role: trigger-consolidation
     unit: { kind: file, path: .github/workflows/ci-supply-chain.yml }
   - role: trigger-consolidation
@@ -165,7 +165,7 @@ pull_request → ci.yml ─┬─ changes (paths-filter)
                        ├─ ci-parity          (if changes.parity)
                        ├─ ci-policy-kernel   (if changes.policy_kernel)
                        ├─ ci-spec-coupling   (always)
-                       ├─ ci-stagecraft      (if changes.stagecraft)
+                       ├─ ci-statecraft      (if changes.statecraft)
                        ├─ ci-supply-chain    (always)
                        ├─ ci-tenant-hello    (if changes.tenant_hello)
                        ├─ spec-conformance   (always)
@@ -324,7 +324,7 @@ The recurring OAP move is: take a piece of implicit configuration that
 governs system behavior and convert it into a declared, hashable
 artifact under spec authority. Cut D collapsed seven spec-spine tools'
 overlapping invariants into typed registry-consumer subcommands; spec
-160 absorbed loose adapter-manifest files into the stagecraft substrate;
+160 absorbed loose adapter-manifest files into the statecraft substrate;
 spec 152 codified empty-authority patterns that previously lived in a
 bypass text file. This spec is the same move applied to the merge
 contract itself: pull governance out of the GitHub UI and into a file
@@ -339,7 +339,7 @@ pre-amendment state where it conflicts.
 1. **Push-to-main trim.** §2's "the other always-on workflows run for
    push-to-main too" no longer holds for the path-routed heavy jobs
    (axiomregent, crates, deployd-api-rs, desktop, featuregraph-golden,
-   orchestrator, policy-kernel, schema-parity, stagecraft,
+   orchestrator, policy-kernel, schema-parity, statecraft,
    tenant-hello): they skip on `push`. Rationale: branch protection
    requires the merge queue, so every push-to-main commit is
    tree-identical to the merge_group candidate that just passed the

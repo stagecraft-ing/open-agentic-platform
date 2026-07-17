@@ -91,7 +91,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "specs/163-stagecraft-requirements-view/spec.md",
+        "path": "specs/163-statecraft-requirements-view/spec.md",
         "source": "spec-edge"
       }
     ],
@@ -303,14 +303,14 @@
       {
         "locations": [
           {
-            "file": "specs/163-stagecraft-requirements-view/spec.md"
+            "file": "specs/163-statecraft-requirements-view/spec.md"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "specs/163-stagecraft-requirements-view/spec.md"
+          "path": "specs/163-statecraft-requirements-view/spec.md"
         }
       }
     ],

@@ -63,7 +63,7 @@ pub struct AgentRef {
 
 /// Spec 124 §3 — content-addressed identity of a factory run's inputs.
 ///
-/// Matches the JSONB shape platform stagecraft writes to
+/// Matches the JSONB shape platform statecraft writes to
 /// `factory_runs.source_shas`:
 ///
 /// ```json

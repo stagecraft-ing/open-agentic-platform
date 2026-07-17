@@ -569,7 +569,7 @@ pub fn register_org_halt_handlers(app: AppHandle) {
         on_org_halt_activated(activated_app.clone(), env);
     });
     dispatch.register("org.halt.activated", Arc::new(activated));
-    // Spec 208 Phase 3 (FR-004/AC-4): a lift broadcast is acked so stagecraft
+    // Spec 208 Phase 3 (FR-004/AC-4): a lift broadcast is acked so statecraft
     // records this engine's per-engine lift timestamp and drives the staged
     // `reintegrating -> lifted` completion. New-session / grant refusal is
     // entirely server-side, so the engine holds no local "blocked" flag to
@@ -583,7 +583,7 @@ pub fn register_org_halt_handlers(app: AppHandle) {
 }
 
 /// Handle an inbound `org.halt.activated` broadcast: pause + checkpoint the
-/// in-scope sessions, then ack so stagecraft records this engine's propagation
+/// in-scope sessions, then ack so statecraft records this engine's propagation
 /// bound (FR-003). The handler is synchronous (the dispatch-table contract), so
 /// the async work runs on a detached task; the read loop is never blocked.
 fn on_org_halt_activated(app: AppHandle, env: &ServerEnvelopeWire) {
@@ -619,7 +619,7 @@ fn on_org_halt_activated(app: AppHandle, env: &ServerEnvelopeWire) {
         );
 
         // FR-003: ack AFTER the pause/checkpoint pass so the recorded timestamp
-        // is the real boundary. A disconnected duplex drops the ack; stagecraft
+        // is the real boundary. A disconnected duplex drops the ack; statecraft
         // reconstructs the halt for this engine off the outbox on resync.
         let acked = app
             .state::<SyncClientState>()
@@ -636,7 +636,7 @@ fn on_org_halt_activated(app: AppHandle, env: &ServerEnvelopeWire) {
 }
 
 /// Handle an inbound `org.halt.lifted` broadcast (spec 208 FR-004): ack so
-/// stagecraft records this engine's per-engine lift timestamp and can complete
+/// statecraft records this engine's per-engine lift timestamp and can complete
 /// the staged `reintegrating -> lifted` transition once every engine that
 /// halt-acked has also lift-acked. No local pause state was ever held (the
 /// grant / registration refusal is server-side), so reintegration here is the

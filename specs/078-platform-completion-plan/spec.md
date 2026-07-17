@@ -21,7 +21,7 @@ constrains:
       - "074-factory-ingestion"
       - "075-factory-workflow-engine"
       - "076-factory-desktop-panel"
-      - "077-stagecraft-factory-api"
+      - "077-statecraft-factory-api"
       - "042-multi-provider-agent-registry"
       - "049-permission-system"
       - "051-worktree-agents"
@@ -72,7 +72,7 @@ This plan sequences all work into 6 phases over ~12 weeks. Each phase delivers i
 | **074 Factory Ingestion** | Rust contract types, adapter registry, agent loader, native verification harness |
 | **075 Factory Workflow Engine** | Two-phase execution, fan-out, verification hooks, policy shards |
 | **076 Factory Desktop Panel** | Pipeline DAG, artifact inspector, gate dialogs, scaffold monitor |
-| **077 Stagecraft Factory API** | Project init, stage confirm/reject, audit trail, deployment handoff |
+| **077 Statecraft Factory API** | Project init, stage confirm/reject, audit trail, deployment handoff |
 
 ---
 
@@ -212,7 +212,7 @@ Demonstrate: start pipeline in OPC, review stage 1 artifacts in inspector, confi
 
 ## Phase 5: Platform Integration (Weeks 6-9)
 
-**Goal**: Stagecraft tracks Factory pipeline lifecycle with audit trail. Deployment handoff works.
+**Goal**: Statecraft tracks Factory pipeline lifecycle with audit trail. Deployment handoff works.
 
 ### Work Items
 
@@ -225,16 +225,16 @@ Demonstrate: start pipeline in OPC, review stage 1 artifacts in inspector, confi
 | 5.5 | Implement `POST /stage/:id/confirm` and `/reject` endpoints | 077 | 2d | 5.1 |
 | 5.6 | Implement `GET /factory/audit` endpoint | 077 | 1d | 5.1 |
 | 5.7 | Implement `POST /factory/token-spend` reporting endpoint | 077 | 1d | 5.1 |
-| 5.8 | Wire OPC → Stagecraft sync: stage confirmations + token reporting | 076, 077 | 2d | 5.2-5.7, Phase 4 |
+| 5.8 | Wire OPC → Statecraft sync: stage confirmations + token reporting | 076, 077 | 2d | 5.2-5.7, Phase 4 |
 | 5.9 | Implement `POST /factory/deploy` → deployd-api-rs handoff | 077 | 2d | 5.1 |
-| 5.10 | **Complete deployd-api-rs**: Accept deployment requests from Stagecraft | — | 3d | None |
-| 5.11 | Wire audit trail: axiomregent proof chain → Stagecraft audit_log | 077 | 2d | 5.6 |
+| 5.10 | **Complete deployd-api-rs**: Accept deployment requests from Statecraft | — | 3d | None |
+| 5.11 | Wire audit trail: axiomregent proof chain → Statecraft audit_log | 077 | 2d | 5.6 |
 | 5.12 | **Complete spec 057**: Slack notification channel for pipeline events | 057 | 2d | 5.6 |
-| 5.13 | Integration test: OPC → Stagecraft → deployd round-trip | 077 | 2d | 5.8-5.10 |
+| 5.13 | Integration test: OPC → Statecraft → deployd round-trip | 077 | 2d | 5.8-5.10 |
 
 ### Deliverable
 
-- Stagecraft tracks all Factory pipelines with full audit trail
+- Statecraft tracks all Factory pipelines with full audit trail
 - Policy bundles compiled and served to OPC
 - Stage confirmations recorded with approver identity
 - Token spend tracked centrally
@@ -243,7 +243,7 @@ Demonstrate: start pipeline in OPC, review stage 1 artifacts in inspector, confi
 
 ### Checkpoint
 
-Demonstrate: create project in Stagecraft, start pipeline in OPC, confirm stages in OPC (reflected in Stagecraft audit log), complete pipeline, trigger deployment. Verify full audit trail in Stagecraft with all events, token spend, and approver identities.
+Demonstrate: create project in Statecraft, start pipeline in OPC, confirm stages in OPC (reflected in Statecraft audit log), complete pipeline, trigger deployment. Verify full audit trail in Statecraft with all events, token spend, and approver identities.
 
 ---
 
@@ -302,7 +302,7 @@ Phase 1 (1.1-1.8)
 - Phase 2 orchestrator work (2.1-2.8) runs in parallel with spec 052 completion (2.9-2.11)
 - Phase 3 provider work (3.1-3.2) runs in parallel with permission wiring (3.4)
 - Phase 4 desktop UI (4.1-4.10) runs in parallel with worktree completion (4.12)
-- Phase 5 Stagecraft (5.1-5.7) runs in parallel with deployd completion (5.10)
+- Phase 5 Statecraft (5.1-5.7) runs in parallel with deployd completion (5.10)
 - Phase 6 multi-cloud (6.1-6.3) runs in parallel with performance tuning (6.7)
 
 ---
@@ -346,7 +346,7 @@ With parallelization across phases, a 2-person team can deliver in ~12 weeks. A 
 - **SC-001**: Business documents → frozen Build Spec via Factory process stages (s0-s5) with human gates
 - **SC-002**: Build Spec → working, tested codebase via Factory scaffolding fan-out (s6) with per-feature verification
 - **SC-003**: Full pipeline visible in OPC desktop with real-time DAG, artifacts, gates, and token tracking
-- **SC-004**: Stagecraft tracks full audit trail: who initiated, who approved, what failed, how many tokens
+- **SC-004**: Statecraft tracks full audit trail: who initiated, who approved, what failed, how many tokens
 - **SC-005**: axiomregent enforces read-only for process agents (Tier 1) and scoped write for scaffold agents (Tier 2)
 - **SC-006**: Pipeline resumes from last checkpoint after crash (no work lost)
 - **SC-007**: Completed application deploys to at least one cloud provider via deployd-api-rs

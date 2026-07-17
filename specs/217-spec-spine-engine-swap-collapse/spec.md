@@ -16,7 +16,7 @@ summary: >
   generic half of spec-lint) and replace it with the published external
   spec-spine library (spec-spine-types, spec-spine-core, spec-spine-cli).
   OAP retains only its overlay: the 16-kind enum, shape/category, compliance,
-  factory/OWASP machinery, capability/registry/profile, stagecraft://
+  factory/OWASP machinery, capability/registry/profile, statecraft://
   provenance, and the OAP-domain lint codes. The engine swap is mechanical
   and corpus-governance work, not a research problem: the library compiled
   OAP's full 217-spec corpus with zero errors on 2026-06-15. A supersession
@@ -186,7 +186,7 @@ path to it is Track 1 (done) plus pinning 0.6.0.
 This spec governs the deletion of the in-tree generic engine and the
 migration of all consumers to the library. OAP retains an overlay: the
 16-kind enum, shape/category, compliance, factory/OWASP machinery,
-capability/registry/profile, `stagecraft://` provenance, and the
+capability/registry/profile, `statecraft://` provenance, and the
 OAP-domain lint codes. The overlay is not generic spec-spine; it is
 OAP-specific typed modelling layered on `spec-spine-types` primitives.
 
@@ -621,7 +621,7 @@ primitives from `spec-spine-types` (their shapes are incompatible). It
 KEEPS the OAP-specific typed modelling its surviving consumers use (the
 16-value `kind` enum, `VALID_KINDS`, `shape`/`SHAPE_TABLE`, `category`/
 `CONVENTIONAL_CATEGORIES`, `VALID_DOMAINS`, capability/registry/profile
-fields, `stagecraft://` provenance via `ProvenanceKind`, legacy
+fields, `statecraft://` provenance via `ProvenanceKind`, legacy
 `implements`, and `split_frontmatter_*`), and deletes verified-dead code
 (`ViolationCode` plus the `V_`/`W_`/`L_` const registry, the unused
 `Severity`, and `LogicalUnit`/`RESOLVER_EXCLUSIONS` once their only
@@ -821,7 +821,7 @@ Every invocation of the deleted binaries is replaced:
   shard paths (`.derived/**/by-spec/*.json`, `by-package/*.json`), mirroring
   spec-spine's `.gitattributes`. With disjoint shards the driver becomes a rare
   same-shard fallback rather than the common path.
-- **`platform/services/stagecraft/`**: `REGISTRY_CONSUMER_BIN` and
+- **`platform/services/statecraft/`**: `REGISTRY_CONSUMER_BIN` and
   its fallback logic repoints to `spec-spine registry` or
   `oap-registry-enrich` as appropriate (WS-B risk item R5).
 - **`AGENTS.md`** and **`CLAUDE.md`**: binary name references updated.
@@ -836,7 +836,7 @@ post-deletion repo.
 consumer table reflects the new consumer binaries. The rule's
 enforcement logic and examples are accurate.
 
-**FR-403 (stagecraft binary).** `REGISTRY_CONSUMER_BIN` in stagecraft
+**FR-403 (statecraft binary).** `REGISTRY_CONSUMER_BIN` in statecraft
 resolves to `spec-spine registry` or `oap-registry-enrich`; the service
 starts without referencing a deleted binary.
 
@@ -936,7 +936,7 @@ Full CI pass on the combined deletion + wave PR:
 | FR-303 | 3 | .derived/codebase-index/ artifact shape preserved |
 | FR-401 | 4 | Makefile rewired to spec-spine subcommands |
 | FR-402 | 4 | governed-reads rule consumer table updated |
-| FR-403 | 4 | stagecraft REGISTRY_CONSUMER_BIN repointed |
+| FR-403 | 4 | statecraft REGISTRY_CONSUMER_BIN repointed |
 | FR-404 | 4 | Zero dead references to deleted binary names |
 | FR-501 | 5 | 003-031 wave: status superseded + crate-units stripped |
 | FR-502 | 5 | Wave is honest (capability-moved rationale per spec) |
@@ -1223,7 +1223,7 @@ no in-tree binary. Exit codes 0/1 are preserved.
 
 **SC-003 (overlay survives).** The OAP overlay (16-kind enum,
 shape/category, compliance, factory/OWASP report, capability/registry/
-profile, stagecraft:// provenance, W-130/131/132, V-030/031, W-161,
+profile, statecraft:// provenance, W-130/131/132, V-030/031, W-161,
 L-005) is intact and tested. No OAP-specific typed modelling is lost.
 
 **SC-004 (authority preservation).** The before/after `authorities(P)`

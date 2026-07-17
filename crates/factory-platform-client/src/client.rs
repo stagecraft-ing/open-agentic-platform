@@ -36,7 +36,7 @@ use crate::wire::{
 
 /// Abstracts the desktop's OIDC token broker so the client doesn't depend
 /// on a specific keychain / refresh implementation. Phase 5 plugs the
-/// concrete `StagecraftClient::auth_token()` plumbing in.
+/// concrete `StatecraftClient::auth_token()` plumbing in.
 ///
 /// The provider is invoked on every request — the implementation owns the
 /// refresh window and decides when to mint a new token. A `Ok(None)`
@@ -332,7 +332,7 @@ impl PlatformClient {
 // CatalogClient impl — feeds spec 123's `AgentResolver`
 // ---------------------------------------------------------------------------
 
-/// Stagecraft's org-scoped catalog endpoints (spec 123 §8.2):
+/// Statecraft's org-scoped catalog endpoints (spec 123 §8.2):
 ///
 ///   GET /api/orgs/:orgId/agents
 ///   GET /api/orgs/:orgId/agents/:id
@@ -369,7 +369,7 @@ impl CatalogClient for PlatformClient {
     }
 }
 
-/// Helper response wrapper for the list endpoint — stagecraft returns the
+/// Helper response wrapper for the list endpoint — statecraft returns the
 /// rows under a top-level `agents` key.
 #[derive(Debug, serde::Deserialize)]
 struct CatalogListResponse {

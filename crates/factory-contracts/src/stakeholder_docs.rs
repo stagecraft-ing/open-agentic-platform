@@ -25,7 +25,7 @@
 //! Schema version `STAKEHOLDER_DOC_SCHEMA_VERSION = "1.0.0"` is the
 //! compile-time anchor `tools/oap/schema-parity-check` records on the
 //! Rust side. The TS mirror reservation lives at
-//! `platform/services/stagecraft/api/governance/stakeholderDocPolicy.ts`
+//! `platform/services/statecraft/api/governance/stakeholderDocPolicy.ts`
 //! and is null-safe until authored.
 
 use crate::provenance::{AnchorHash, Citation};

@@ -62,8 +62,8 @@ export function resolveSizeCaps(env: NodeJS.ProcessEnv): {
   maxBytes: number;
   maxCommits: number;
 } {
-  const bytesRaw = env.STAGECRAFT_CLONE_MAX_BYTES;
-  const commitsRaw = env.STAGECRAFT_CLONE_MAX_COMMITS;
+  const bytesRaw = env.statecraft_CLONE_MAX_BYTES;
+  const commitsRaw = env.statecraft_CLONE_MAX_COMMITS;
   const maxBytes =
     bytesRaw !== undefined && Number.isFinite(Number(bytesRaw))
       ? Number(bytesRaw)
@@ -148,7 +148,7 @@ export async function mirrorClone(
   owner: string,
   repo: string
 ): Promise<string> {
-  const workDir = await mkdtemp(join(tmpdir(), "stagecraft-clone-"));
+  const workDir = await mkdtemp(join(tmpdir(), "statecraft-clone-"));
   const target = join(workDir, "mirror.git");
   const authUrl = `https://x-access-token:${installationToken}@github.com/${owner}/${repo}.git`;
   await runCmd("git", ["clone", "--mirror", authUrl, target]);
@@ -223,7 +223,7 @@ export async function addWorktree(
   mirrorPath: string,
   branch: string
 ): Promise<string> {
-  const wtRoot = await mkdtemp(join(tmpdir(), "stagecraft-clone-wt-"));
+  const wtRoot = await mkdtemp(join(tmpdir(), "statecraft-clone-wt-"));
   const wtPath = join(wtRoot, "tree");
   await runCmd("git", ["worktree", "add", "--detach", wtPath, branch], {
     cwd: mirrorPath,

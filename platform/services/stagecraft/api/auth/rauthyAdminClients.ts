@@ -1,7 +1,7 @@
 // Spec 137 Phase 3 — Rauthy admin client provisioning for tenant gates.
 //
 // Wraps the four-verb Rauthy admin API (GET / POST / PUT / DELETE on
-// `/auth/v1/clients`) with stagecraft's idempotent provision +
+// `/auth/v1/clients`) with statecraft's idempotent provision +
 // deprovision flows for per-environment OIDC clients.
 //
 // Empirical contract (spec 137 T003, 2026-05-15):
@@ -11,7 +11,7 @@
 // - 14-field client schema; no `password_login_enabled` / `auth_provider_id`.
 // - Admin endpoints are cluster-internal-only (PROXY_MODE rejects
 //   external origins). In tests we point fetchOverride at a stub
-//   server; in production stagecraft-api runs in the trusted CIDR.
+//   server; in production statecraft-api runs in the trusted CIDR.
 
 import log from "encore.dev/log";
 import { rauthyUrl, buildRauthyAdminAuth } from "./rauthy";
@@ -243,13 +243,13 @@ export interface ProvisionResult {
 
 /**
  * Idempotent create-or-update of a tenant gate Rauthy client. Returns
- * the client_id stagecraft writes into
+ * the client_id statecraft writes into
  * `environment_access_gates.rauthy_client_ref`.
  *
  * Two branches:
  *   - Client absent → POST /auth/v1/clients (action="created")
  *   - Client present → PUT  /auth/v1/clients/:id with the full
- *                            stagecraft-authoritative payload
+ *                            statecraft-authoritative payload
  *                            (action="updated"). Per T003, Rauthy 0.35
  *                            has no PATCH endpoint; PUT is the only
  *                            non-destructive update verb.

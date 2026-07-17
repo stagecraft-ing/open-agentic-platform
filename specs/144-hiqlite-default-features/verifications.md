@@ -29,7 +29,7 @@ However:
    restart, which is acceptable pre-GA. Flip to true and set a size/class
    when persistent deployment history is required." Hetzner is the
    currently-active deploy target per recent commit history (e.g.
-   `01e6f4fd infra(stagecraft,143): validate-spec-143 end-to-end deploy
+   `01e6f4fd infra(statecraft,143): validate-spec-143 end-to-end deploy
    validation`, `f5a2ca50 letsencrypt-dns01 ClusterIssuer + Hetzner DNS
    webhook`). The other env values files (`values-azure.yaml`,
    `values-aws.yaml`, `values-gcp.yaml`, `values-do.yaml`,

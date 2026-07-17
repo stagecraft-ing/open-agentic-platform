@@ -13,7 +13,7 @@ import { Input } from '@opc/ui/input';
 import { Label } from '@opc/ui/label';
 import { api } from '@/lib/api';
 
-const DEFAULT_URL = 'https://stagecraft.ing';
+const DEFAULT_URL = 'https://statecraft.ing';
 
 interface ServerSettingsDialogProps {
   open: boolean;
@@ -32,7 +32,7 @@ export function ServerSettingsDialog({ open, onOpenChange, onSaved }: ServerSett
     setError(null);
     (async () => {
       try {
-        const url = await api.getStagecraftBaseUrl();
+        const url = await api.getStatecraftBaseUrl();
         setCurrentUrl(url);
         setInput(url);
       } catch (err) {
@@ -45,7 +45,7 @@ export function ServerSettingsDialog({ open, onOpenChange, onSaved }: ServerSett
     setSaving(true);
     setError(null);
     try {
-      await api.setStagecraftBaseUrl(input.trim());
+      await api.setStatecraftBaseUrl(input.trim());
       onSaved?.();
       onOpenChange(false);
     } catch (err) {
@@ -67,15 +67,15 @@ export function ServerSettingsDialog({ open, onOpenChange, onSaved }: ServerSett
         <DialogHeader>
           <DialogTitle>Server settings</DialogTitle>
           <DialogDescription>
-            The Stagecraft control plane this app authenticates against. Switching
+            The Statecraft control plane this app authenticates against. Switching
             the server signs you out of the current one.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-2 py-2">
-          <Label htmlFor="stagecraft-url">Stagecraft base URL</Label>
+          <Label htmlFor="statecraft-url">Statecraft base URL</Label>
           <Input
-            id="stagecraft-url"
+            id="statecraft-url"
             type="url"
             placeholder={DEFAULT_URL}
             value={input}

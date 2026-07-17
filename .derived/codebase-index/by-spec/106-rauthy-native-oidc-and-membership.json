@@ -4,8 +4,8 @@
     "warnings": [
       {
         "code": "W-002",
-        "message": "spec '106-rauthy-native-oidc-and-membership' file unit 'platform/services/stagecraft/api/auth/rauthySeed.ts' does not exist",
-        "path": "platform/services/stagecraft/api/auth/rauthySeed.ts"
+        "message": "spec '106-rauthy-native-oidc-and-membership' file unit 'platform/services/statecraft/api/auth/rauthySeed.ts' does not exist",
+        "path": "platform/services/statecraft/api/auth/rauthySeed.ts"
       }
     ]
   },
@@ -36,19 +36,19 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/auth/membershipResolver.ts",
+        "path": "platform/services/statecraft/api/auth/membershipResolver.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/auth/rauthy.ts",
+        "path": "platform/services/statecraft/api/auth/rauthy.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/auth/rauthyCallback.ts",
+        "path": "platform/services/statecraft/api/auth/rauthyCallback.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/signin.tsx",
+        "path": "platform/services/statecraft/web/app/routes/signin.tsx",
         "source": "spec-edge"
       }
     ],
@@ -56,14 +56,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/auth/membershipResolver.ts"
+            "file": "platform/services/statecraft/api/auth/membershipResolver.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/auth/membershipResolver.ts"
+          "path": "platform/services/statecraft/api/auth/membershipResolver.ts"
         }
       },
       {
@@ -108,40 +108,40 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/auth/rauthy.ts"
+            "file": "platform/services/statecraft/api/auth/rauthy.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/auth/rauthy.ts"
+          "path": "platform/services/statecraft/api/auth/rauthy.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/auth/rauthyCallback.ts"
+            "file": "platform/services/statecraft/api/auth/rauthyCallback.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/auth/rauthyCallback.ts"
+          "path": "platform/services/statecraft/api/auth/rauthyCallback.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/signin.tsx"
+            "file": "platform/services/statecraft/web/app/routes/signin.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/signin.tsx"
+          "path": "platform/services/statecraft/web/app/routes/signin.tsx"
         }
       },
       {
@@ -176,7 +176,7 @@
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/auth/rauthySeed.ts"
+          "path": "platform/services/statecraft/api/auth/rauthySeed.ts"
         }
       }
     ],

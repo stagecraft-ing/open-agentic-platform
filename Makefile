@@ -5,7 +5,7 @@
 #   make dev     # start desktop app (Vite + Tauri with hot-reload)
 #
 # Platform services (optional, for org policy/auth work):
-#   make dev-platform   # start stagecraft + deployd-api in background
+#   make dev-platform   # start statecraft + deployd-api in background
 #   make dev-all        # desktop + platform services
 
 .PHONY: setup dev dev-platform dev-all stop \
@@ -15,13 +15,13 @@
         check-deps \
         agent-frontmatter-ts ci-agent-frontmatter-ts \
         build-certificate verify-certificate \
-        ci ci-strict ci-rust ci-tools ci-config-hash ci-desktop ci-stagecraft ci-stagecraft-encore ci-schema-parity \
+        ci ci-strict ci-rust ci-tools ci-config-hash ci-desktop ci-statecraft ci-statecraft-encore ci-schema-parity \
         factory-schema-lockstep \
         ci-supply-chain ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm \
         ci-spec-code-coupling \
         ci-cross ci-parity \
         ci-fast-rust ci-fast-tools ci-fast-desktop \
-        ci-fast-stagecraft ci-fast-schema-parity \
+        ci-fast-statecraft ci-fast-schema-parity \
         ci-fast-spec-coupling ci-fast-supply-chain
 
 # ============================================================
@@ -92,7 +92,7 @@ register-merge-driver:
 # a fork still resolve to the upstream CI build artifacts.
 AXIOMREGENT_REPO   ?= $(shell git config --get remote.origin.url 2>/dev/null | sed -E 's,.*github.com[:/](.+)\.git,\1,' | sed -E 's,.*github.com[:/](.+)$$,\1,' | head -1)
 ifeq ($(AXIOMREGENT_REPO),)
-AXIOMREGENT_REPO   := stagecraft-ing/open-agentic-platform
+AXIOMREGENT_REPO   := statecrafting/open-agentic-platform
 endif
 AXIOMREGENT_BINDIR = product/apps/opc/src-tauri/binaries
 
@@ -206,7 +206,7 @@ oap-registry-enrich:
 
 ## Cut D W-07a: emit .derived/codebase-index/index-oap.json from the
 ## generic index.json + walks over
-## platform/services/stagecraft/api/factory/ (post-spec-160 relocation,
+## platform/services/statecraft/api/factory/ (post-spec-160 relocation,
 ## see CLAUDE.md), .claude/{agents,commands,rules,schemas}, .github/workflows
 ## (specs 101 + 118). OAP-internal CI artifact; never shipped via
 ## release-tools.yml.
@@ -221,9 +221,9 @@ oap-code-index-enrich:
 ##
 ## Index inputs (see spec-spine.toml [index] extra_hashed_inputs + the always-hashed core):
 ##   Cargo.toml, workspace + tool Cargo.tomls, package.json, pnpm-workspace.yaml,
-##   specs/*/spec.md, platform/services/stagecraft/api/factory/adapter-scopes.json
+##   specs/*/spec.md, platform/services/statecraft/api/factory/adapter-scopes.json
 ##   (post-spec-160; was factory/adapters/*/manifest.yaml),
-##   platform/services/stagecraft/api/factory/process-stages/*
+##   platform/services/statecraft/api/factory/process-stages/*
 ##   (post-spec-160; was factory/process/stages/*),
 ##   .claude/{agents,commands,rules}/**/*.md,
 ##   standards/schemas/**/*.{json,yaml,yml}, .github/workflows/*.yml — i.e. most of what you'd
@@ -249,12 +249,12 @@ spec-tools: ensure-spec-spine
 #
 # The `agent-frontmatter` crate (spec 054) owns the `UnifiedFrontmatter`
 # type. `cargo test` on that crate regenerates the TypeScript mirror
-# under platform/services/stagecraft/api/agents/frontmatter/ via ts-rs.
+# under platform/services/statecraft/api/agents/frontmatter/ via ts-rs.
 # Two targets:
 #   agent-frontmatter-ts       regenerate the bindings (write-through)
 #   ci-agent-frontmatter-ts    regenerate + fail if the working tree drifts
 
-AGENT_FRONTMATTER_TS_DIR = platform/services/stagecraft/api/agents/frontmatter
+AGENT_FRONTMATTER_TS_DIR = platform/services/statecraft/api/agents/frontmatter
 
 agent-frontmatter-ts:
 	cargo test --manifest-path crates/agent-frontmatter/Cargo.toml
@@ -364,7 +364,7 @@ index-render:
 # relocation). Spec 108 moved adapter manifests into the `factory_adapters`
 # table; spec 139 then absorbed those rows into the universal
 # `factory_artifact_substrate` table. The bundled snapshot at
-# platform/services/stagecraft/api/factory/adapter-scopes.json is retained
+# platform/services/statecraft/api/factory/adapter-scopes.json is retained
 # as a static fallback and is the file the spec-spine index hashes per
 # spec 160 (replacing the legacy in-tree manifest walk).
 
@@ -382,10 +382,10 @@ dev:
 # Development — Platform Services
 # ============================================================
 
-dev-stagecraft:
-	@echo "==> Starting stagecraft (Encore.ts, port 4000)..."
+dev-statecraft:
+	@echo "==> Starting statecraft (Encore.ts, port 4000)..."
 	@command -v encore >/dev/null 2>&1 || { echo "  MISSING: encore — brew install encoredev/tap/encore"; exit 1; }
-	cd platform/services/stagecraft && npm install --silent && npm run start
+	cd platform/services/statecraft && npm install --silent && npm run start
 
 dev-deployd:
 	@echo "==> Starting deployd-api (Rust/axum, port 8080)..."
@@ -393,10 +393,10 @@ dev-deployd:
 
 dev-platform:
 	@echo "==> Starting platform services in background..."
-	@echo "    stagecraft → http://localhost:4000"
+	@echo "    statecraft → http://localhost:4000"
 	@echo "    deployd    → http://localhost:8080"
 	@echo ""
-	@$(MAKE) dev-stagecraft &
+	@$(MAKE) dev-statecraft &
 	@$(MAKE) dev-deployd &
 	@echo "Platform services starting. Use 'make stop' to kill them."
 
@@ -444,15 +444,15 @@ destroy-%:
 #                   (spec-conformance.yml)
 #   ci-desktop    — product/apps/opc: tauri rust (custom clippy flags) +
 #                   version alignment + tsc --noEmit + vitest (ci-desktop.yml)
-#   ci-stagecraft — platform/services/stagecraft: npm ci + tsc + vitest
-#                   (ci-stagecraft.yml)
+#   ci-statecraft — platform/services/statecraft: npm ci + tsc + vitest
+#                   (ci-statecraft.yml)
 #
 # Opt-in (not part of `ci-strict`):
 #   ci-cross      — axiomregent cross-target matrix (build-axiomregent.yml);
 #                   requires `rustup target add <triple>` per target.
 # ============================================================
 
-ci-strict: ci-rust ci-tools ci-config-hash ci-desktop ci-stagecraft ci-stagecraft-encore ci-schema-parity factory-schema-lockstep ci-spec-code-coupling ci-supply-chain
+ci-strict: ci-rust ci-tools ci-config-hash ci-desktop ci-statecraft ci-statecraft-encore ci-schema-parity factory-schema-lockstep ci-spec-code-coupling ci-supply-chain
 	@echo ""
 	@echo "==> ci-strict: parity-mirror gates passed."
 
@@ -559,42 +559,42 @@ ci-desktop:
 	cd product && pnpm --filter @opc/desktop exec tsc --noEmit
 	cd product && pnpm --filter @opc/desktop --filter @opc/carrier-gate --filter @opc/session-memory test
 
-ci-stagecraft: ci-agent-frontmatter-ts
-	@echo "==> ci-stagecraft: npm ci + tsc + vitest"
+ci-statecraft: ci-agent-frontmatter-ts
+	@echo "==> ci-statecraft: npm ci + tsc + vitest"
 	@# CI=true forces vitest to run-once instead of TTY watch mode.
-	cd platform/services/stagecraft && CI=true npm ci && CI=true npx tsc --noEmit && CI=true npm test
+	cd platform/services/statecraft && CI=true npm ci && CI=true npx tsc --noEmit && CI=true npm test
 
 # ============================================================
-# Stagecraft encore-test lane (spec 211) — mirrors
-# .github/workflows/ci-stagecraft-encore.yml.
+# Statecraft encore-test lane (spec 211) — mirrors
+# .github/workflows/ci-statecraft-encore.yml.
 #
 # Runs the DB-bound suites that vite.config.ts excludes from bare vitest
 # (the `encore test` lane) against Encore-provisioned per-test databases,
 # then cross-checks the reporter output against the exclude list so a
 # file can never silently skip both lanes (FR-003 skip-as-pass guard).
 # Requires the Encore CLI + Docker locally; CI installs the same pinned
-# CLI version ci-stagecraft.yml uses for codegen.
+# CLI version ci-statecraft.yml uses for codegen.
 #
 # Strict-lane only (spec 135 / FR-002 decision): the suite itself runs in
 # seconds warm, but the lane needs the Encore CLI + a Docker daemon —
 # dependencies `make ci` must not require for the daily loop. Measured
 # 2026-06-12 (M1 Pro): DB-bound set ~40s warm incl. daemon startup.
 # ============================================================
-## tag: ci-stagecraft-encore
+## tag: ci-statecraft-encore
 
-ci-stagecraft-encore:
-	@echo "==> ci-stagecraft-encore: DB-bound encore-test lane (spec 211)"
+ci-statecraft-encore:
+	@echo "==> ci-statecraft-encore: DB-bound encore-test lane (spec 211)"
 	@command -v encore >/dev/null 2>&1 || { echo "  MISSING: encore — brew install encoredev/tap/encore"; exit 1; }
-	cd platform/services/stagecraft && CI=true npm ci
-	cd platform/services/stagecraft/web && npx react-router build
-	cd platform/services/stagecraft && node scripts/encore-test-lane.mjs list > /tmp/encore-lane-files.txt
-	cd platform/services/stagecraft && CI=true encore test --run $$(cat /tmp/encore-lane-files.txt) --fileParallelism=false --reporter=default --reporter=json --outputFile=/tmp/encore-test-report.json
-	cd platform/services/stagecraft && node scripts/encore-test-lane.mjs check --report /tmp/encore-test-report.json
+	cd platform/services/statecraft && CI=true npm ci
+	cd platform/services/statecraft/web && npx react-router build
+	cd platform/services/statecraft && node scripts/encore-test-lane.mjs list > /tmp/encore-lane-files.txt
+	cd platform/services/statecraft && CI=true encore test --run $$(cat /tmp/encore-lane-files.txt) --fileParallelism=false --reporter=default --reporter=json --outputFile=/tmp/encore-test-report.json
+	cd platform/services/statecraft && node scripts/encore-test-lane.mjs check --report /tmp/encore-test-report.json
 
 # ============================================================
 # Schema parity (spec 120 FR-003) — asserts the Rust mirror in
 # `crates/factory-contracts/src/knowledge.rs` and the TS source-of-truth
-# in `platform/services/stagecraft/api/knowledge/extractionOutput.ts`
+# in `platform/services/statecraft/api/knowledge/extractionOutput.ts`
 # describe the same shape. Drift fails CI before any runtime divergence
 # can ship.
 #
@@ -646,7 +646,7 @@ factory-schema-lockstep:
 	    pin=$$(grep -E '^pinned_ref:' specs/212-factory-schema-lockstep-ci/spec.md | head -1 | sed -E 's/^pinned_ref:[[:space:]]*"?([0-9a-fA-F]+)"?.*/\1/'); \
 	    [ -n "$$pin" ] || { echo "ERROR: could not read pinned_ref from specs/212-factory-schema-lockstep-ci/spec.md"; exit 1; }; \
 	    rm -rf .factory && mkdir .factory && cd .factory && git init -q && \
-	    git remote add origin "https://x-access-token:$$UPSTREAM_SOURCES_RO_TOKEN@github.com/Stagecraft-ing/factory.git" && \
+	    git remote add origin "https://x-access-token:$$UPSTREAM_SOURCES_RO_TOKEN@github.com/statecrafting/factory.git" && \
 	    git config core.sparseCheckout true && git sparse-checkout init --cone && git sparse-checkout set contract/schemas && \
 	    git fetch --depth 1 origin $$pin && git checkout -q FETCH_HEAD && cd .. && \
 	    ./tools/oap/factory-schema-lockstep/target/release/factory-schema-lockstep --oap-dir standards/schemas/factory --factory-dir .factory/contract/schemas; \
@@ -711,8 +711,8 @@ ci-supply-chain-pnpm:
 	cd product && pnpm audit --audit-level=high
 
 ci-supply-chain-npm:
-	@echo "==> ci-supply-chain: npm audit (stagecraft)"
-	cd platform/services/stagecraft && npm audit --audit-level=high
+	@echo "==> ci-supply-chain: npm audit (statecraft)"
+	cd platform/services/statecraft && npm audit --audit-level=high
 
 # axiomregent cross-target matrix (build-axiomregent.yml). Opt-in.
 # Prerequisite per target: rustup target add <triple>
@@ -786,7 +786,7 @@ ci:
 	@echo ""
 	@$(MAKE) -j$(CIFAST_JOBS) \
 	    ci-fast-rust ci-fast-tools ci-fast-desktop \
-	    ci-fast-stagecraft ci-fast-schema-parity \
+	    ci-fast-statecraft ci-fast-schema-parity \
 	    ci-fast-spec-coupling ci-fast-supply-chain
 	@echo ""
 	@echo "==> ci: all gates passed."
@@ -866,7 +866,7 @@ ci-fast-desktop:
 	  wait $$RUST_PID; R=$$?; exit $$((R | PI))
 	@echo "==> ci-fast-desktop: tsc | vitest (concurrent)"
 	@# Each backgrounded compound needs its own `cd` (same lesson as
-	@# ci-fast-stagecraft above): `cd X && cmd &` runs in a subshell, so the
+	@# ci-fast-statecraft above): `cd X && cmd &` runs in a subshell, so the
 	@# parent shell's CWD doesn't change between the two jobs.
 	@( cd product && pnpm --filter @opc/desktop exec tsc --noEmit ) & TSC_PID=$$!; \
 	  ( cd product && pnpm --filter @opc/desktop test ) & VT_PID=$$!; \
@@ -875,16 +875,16 @@ ci-fast-desktop:
 	 PKG_V=$$(node -p "require('./product/apps/opc/package.json').version"); \
 	 [ "$$CARGO_V" = "$$PKG_V" ] || { echo "ERROR: version mismatch $$CARGO_V vs $$PKG_V"; exit 1; }
 
-ci-fast-stagecraft: ci-agent-frontmatter-ts
-	@echo "==> ci-fast-stagecraft: npm ci then (tsc | vitest)"
-	cd platform/services/stagecraft && CI=true npm ci
+ci-fast-statecraft: ci-agent-frontmatter-ts
+	@echo "==> ci-fast-statecraft: npm ci then (tsc | vitest)"
+	cd platform/services/statecraft && CI=true npm ci
 	@# Each backgrounded compound needs its own `cd` — bash treats
 	@# `cd X && cmd &` as a backgrounded subshell, so the parent shell's
 	@# CWD doesn't change. Without this fix, only the first job runs in
-	@# stagecraft/; the second runs from repo root and `npm test` fails
+	@# statecraft/; the second runs from repo root and `npm test` fails
 	@# with "Missing script: test" (the workspace root has no test script).
-	@( cd platform/services/stagecraft && CI=true npx tsc --noEmit ) & TSC_PID=$$!; \
-	  ( cd platform/services/stagecraft && CI=true npm test ) & VT_PID=$$!; \
+	@( cd platform/services/statecraft && CI=true npx tsc --noEmit ) & TSC_PID=$$!; \
+	  ( cd platform/services/statecraft && CI=true npm test ) & VT_PID=$$!; \
 	  wait $$TSC_PID; T=$$?; wait $$VT_PID; V=$$?; exit $$((T | V))
 
 ci-fast-schema-parity:
@@ -906,7 +906,7 @@ ci-fast-supply-chain:
 	@command -v cargo-deny >/dev/null 2>&1 || cargo install cargo-deny --locked --version '^0.19'
 	@echo "==> ci-fast-supply-chain: cargo-deny -P$(CIFAST_JOBS) | pnpm audit | npm audit"
 	@( cd product && pnpm audit --audit-level=high ) & PNPM_PID=$$!; \
-	  ( cd platform/services/stagecraft && npm audit --audit-level=high ) & NPM_PID=$$!; \
+	  ( cd platform/services/statecraft && npm audit --audit-level=high ) & NPM_PID=$$!; \
 	  printf '%s\n' $(SUPPLY_CHAIN_RUST_MANIFESTS) | \
 	    xargs -n1 -P$(CIFAST_JOBS) -I{} cargo deny --manifest-path {} check; \
 	  CD=$$?; \
@@ -938,7 +938,7 @@ help:
 	@echo "  make dev            Start desktop app (Vite + Tauri, hot-reload)"
 	@echo ""
 	@echo "Platform services (optional):"
-	@echo "  make dev-platform   Start stagecraft + deployd-api in background"
+	@echo "  make dev-platform   Start statecraft + deployd-api in background"
 	@echo "  make dev-all        Desktop + platform services"
 	@echo "  make stop           Stop background platform services"
 	@echo ""
@@ -965,12 +965,12 @@ help:
 	@echo ""
 	@echo "CI parity (mirrors .github/workflows):"
 	@echo "  make ci                 Spec 134 fast loop (promoted to default by spec 135) — parallel local validation, parity-exempt. Daily dev loop. ~5 min warm on M1 Pro 10c / 64 GB."
-	@echo "  make ci-strict          Parity mirror — composes ci-rust, ci-tools, ci-desktop, ci-stagecraft, ci-supply-chain. Pre-push / parity-investigation. ~90 min on M1 Pro."
+	@echo "  make ci-strict          Parity mirror — composes ci-rust, ci-tools, ci-desktop, ci-statecraft, ci-supply-chain. Pre-push / parity-investigation. ~90 min on M1 Pro."
 	@echo "  make ci-rust            All Rust manifests: check + clippy -D warnings + test"
 	@echo "  make ci-tools           OAP overlay-tool crates + spec-spine engine smokes + staleness gate"
 	@echo "  make ci-desktop         product/apps/opc rust + version alignment + tsc + vitest"
-	@echo "  make ci-stagecraft      platform/services/stagecraft: npm ci + tsc + vitest"
-	@echo "  make ci-stagecraft-encore  DB-bound encore-test lane + coverage guard (spec 211; needs encore CLI + Docker)"
+	@echo "  make ci-statecraft      platform/services/statecraft: npm ci + tsc + vitest"
+	@echo "  make ci-statecraft-encore  DB-bound encore-test lane + coverage guard (spec 211; needs encore CLI + Docker)"
 	@echo "  make ci-spec-code-coupling  PR-time spec/code coupling gate (spec 127)"
 	@echo "  make ci-supply-chain    cargo-deny + pnpm/npm audit (spec 116; blocking)"
 	@echo "  make ci-cross           axiomregent cross-target matrix (opt-in; requires rustup targets)"

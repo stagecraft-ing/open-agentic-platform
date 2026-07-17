@@ -142,7 +142,7 @@ approve it, renders as:
       target: specs/137-tenant-environment-access-gates/spec.md
       diff: <structured-diff>
     - kind: edit_code
-      target: platform/services/stagecraft/api/auth/rauthyAdminClients.ts
+      target: platform/services/statecraft/api/auth/rauthyAdminClients.ts
       diff: <structured-diff>
     - kind: invoke_tool
       tool: spec-code-coupling-check

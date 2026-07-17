@@ -3,7 +3,7 @@
 
 //! Spec 112 §6.3 — `opc://project/open?...` deep-link parser.
 //!
-//! Stagecraft's `buildProjectOpenDeepLink` emits:
+//! Statecraft's `buildProjectOpenDeepLink` emits:
 //!
 //!   opc://project/open?project_id=<uuid>&url=<clone_url>[&level=<level>]
 //!

@@ -780,10 +780,10 @@ the Phase 4 "FR-004 external" placeholder with concrete decisions.
 
 F2 established the Rust `emit_kernel` hook is unwired in production. A second
 trace weighed the two production-real candidates and decided **the tenant CI**,
-not the stagecraft scaffold (`perRequestScaffold.ts`), for generation:
+not the statecraft scaffold (`perRequestScaffold.ts`), for generation:
 
 - The scaffold pod runs `readOnlyRootFilesystem`; `@cyclonedx/cyclonedx-npm` is
-  not a stagecraft dependency and would fetch on demand into a writable cache, a
+  not a statecraft dependency and would fetch on demand into a writable cache, a
   real risk to production project creation. `spawnAndCapture` there also discards
   stdout and rejects on non-zero exit, wrong for `npm audit` (non-zero = vulns
   found = evidence, not failure).

@@ -89,7 +89,7 @@ the same `templateCache.ts`-pinned template version (spec 213
 
 - `artifacts.test.ts`: ref convention, variant suffixing, short-sha
   truncation, pr-alias form (pure, no infra).
-- stagecraft `tsc` type-check; vitest green.
+- statecraft `tsc` type-check; vitest green.
 - migration applies under `encore test` (table + unique constraint).
 - `oap-build.yml` is valid YAML and passes the workflow-ref SHA-pinning
   lint (spec 158) for any third-party `uses:`.

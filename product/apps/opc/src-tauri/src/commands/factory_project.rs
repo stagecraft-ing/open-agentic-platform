@@ -8,7 +8,7 @@
 //!   recents menu, or workspace-sync surfaced project) to decide whether
 //!   the Factory Cockpit should light up.
 //! - `fetch_project_opc_bundle` — Spec 112 §6.3. Fetches the
-//!   adapter/contracts/processes/agents bundle from stagecraft for a
+//!   adapter/contracts/processes/agents bundle from statecraft for a
 //!   project the user has activated via an `opc://` deep link or via the
 //!   workspace project list. The bundle is what populates the cockpit
 //!   on the OPC side.
@@ -20,7 +20,7 @@ use std::process::Command;
 use tauri::State;
 
 use super::keychain::{StoredCloneToken, clone_token_clear, clone_token_store};
-use super::stagecraft_client::{OpcBundleResponse, StagecraftState};
+use super::statecraft_client::{OpcBundleResponse, StatecraftState};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DetectRequest {
@@ -76,7 +76,7 @@ pub struct FetchBundleResponse {
 #[tauri::command]
 pub async fn fetch_project_opc_bundle(
     request: FetchBundleRequest,
-    state: State<'_, StagecraftState>,
+    state: State<'_, StatecraftState>,
 ) -> Result<FetchBundleResponse, String> {
     let client = match state.current() {
         Some(c) => c,
@@ -85,7 +85,7 @@ pub async fn fetch_project_opc_bundle(
                 ok: false,
                 bundle: None,
                 error: Some(
-                    "Stagecraft client is not configured. Set the stagecraft base URL \
+                    "Statecraft client is not configured. Set the statecraft base URL \
                      in OPC settings before fetching project bundles."
                         .into(),
                 ),
@@ -147,7 +147,7 @@ pub struct CloneProjectResponse {
     pub error: Option<String>,
 }
 
-/// Clone a stagecraft-handed-off project to a local directory.
+/// Clone a statecraft-handed-off project to a local directory.
 ///
 /// When `github_token` is supplied (spec 112 §6.4.3), the HTTPS clone URL
 /// is rewritten to embed `x-access-token:<token>@…` for the duration of
@@ -451,15 +451,15 @@ mod tests {
 // ---------------------------------------------------------------------------
 //
 // `refresh_clone_token` is the single Tauri entry point the React refresh
-// loop calls. It fetches a fresh token from Stagecraft's
+// loop calls. It fetches a fresh token from Statecraft's
 // `GET /api/projects/:id/clone-token` and writes the result to the OS
 // keychain under the `github-clone-token:<project_id>` slot. When
-// Stagecraft returns null (public-anonymous resolution), the cached
+// Statecraft returns null (public-anonymous resolution), the cached
 // keychain entry is cleared so the next factory run starts anonymous.
 //
-// Errors from Stagecraft (network, 401, 503) propagate as `Err(String)`
+// Errors from Statecraft (network, 401, 503) propagate as `Err(String)`
 // so the hook can distinguish "refresh failed, keep using cached
-// token" from "Stagecraft says no token available".
+// token" from "Statecraft says no token available".
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RefreshCloneTokenRequest {
@@ -479,7 +479,7 @@ pub struct RefreshCloneTokenResponse {
 #[tauri::command]
 pub async fn refresh_clone_token(
     request: RefreshCloneTokenRequest,
-    state: State<'_, StagecraftState>,
+    state: State<'_, StatecraftState>,
 ) -> Result<RefreshCloneTokenResponse, String> {
     let client = match state.current() {
         Some(c) => c,
@@ -488,7 +488,7 @@ pub async fn refresh_clone_token(
                 ok: false,
                 token: None,
                 error: Some(
-                    "Stagecraft client is not configured. Set the stagecraft base URL \
+                    "Statecraft client is not configured. Set the statecraft base URL \
                      in OPC settings before refreshing clone tokens."
                         .into(),
                 ),
@@ -533,7 +533,7 @@ pub async fn refresh_clone_token(
             })
         }
         None => {
-            // Stagecraft says: no token (public-anon path or repo-less project).
+            // Statecraft says: no token (public-anon path or repo-less project).
             // Clear the cached slot so subsequent runs do not silently re-use a
             // stale credential.
             if let Err(e) = clone_token_clear(request.project_id.clone()) {

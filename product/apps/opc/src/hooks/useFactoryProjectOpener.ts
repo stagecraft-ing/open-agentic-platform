@@ -3,7 +3,7 @@
 // Mirrors the resolve→clone→open sequence that ProjectOpenInbox runs after
 // a deep-link handoff, but starts from a `projectId` the caller already has
 // (e.g. a row in the duplex-synced project catalog). Lets the Factory tab
-// open any synced project without going through stagecraft's success page.
+// open any synced project without going through statecraft's success page.
 
 import { useCallback, useState } from 'react';
 import { apiCall } from '@/lib/apiAdapter';
@@ -81,7 +81,7 @@ export function useFactoryProjectOpener(): UseFactoryProjectOpener {
       const bundle = bundleResp.bundle;
       if (!bundle.repo) {
         throw new Error(
-          'Project has no repo configured in stagecraft — connect a GitHub repo before opening it in Factory.',
+          'Project has no repo configured in statecraft — connect a GitHub repo before opening it in Factory.',
         );
       }
 

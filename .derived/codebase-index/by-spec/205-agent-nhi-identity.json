@@ -15,35 +15,35 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/audit/audit.ts",
+        "path": "platform/services/statecraft/api/audit/audit.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/audit/auditTwoPrincipal.test.ts",
+        "path": "platform/services/statecraft/api/audit/auditTwoPrincipal.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/auth/rauthy.ts",
+        "path": "platform/services/statecraft/api/auth/rauthy.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/auth/sessionMint.ts",
+        "path": "platform/services/statecraft/api/auth/sessionMint.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db/schema.ts",
+        "path": "platform/services/statecraft/api/db/schema.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts",
+        "path": "platform/services/statecraft/api/factory/grantDuplexHandlers.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/sync/service.ts",
+        "path": "platform/services/statecraft/api/sync/service.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/vite.config.ts",
+        "path": "platform/services/statecraft/vite.config.ts",
         "source": "spec-edge"
       },
       {
@@ -55,14 +55,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/audit/auditTwoPrincipal.test.ts"
+            "file": "platform/services/statecraft/api/audit/auditTwoPrincipal.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/audit/auditTwoPrincipal.test.ts"
+          "path": "platform/services/statecraft/api/audit/auditTwoPrincipal.test.ts"
         }
       },
       {
@@ -81,92 +81,92 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/audit/audit.ts"
+            "file": "platform/services/statecraft/api/audit/audit.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/audit/audit.ts"
+          "path": "platform/services/statecraft/api/audit/audit.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/auth/rauthy.ts"
+            "file": "platform/services/statecraft/api/auth/rauthy.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/auth/rauthy.ts"
+          "path": "platform/services/statecraft/api/auth/rauthy.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/auth/sessionMint.ts"
+            "file": "platform/services/statecraft/api/auth/sessionMint.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/auth/sessionMint.ts"
+          "path": "platform/services/statecraft/api/auth/sessionMint.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/db/schema.ts"
+            "file": "platform/services/statecraft/api/db/schema.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+            "file": "platform/services/statecraft/api/factory/grantDuplexHandlers.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+          "path": "platform/services/statecraft/api/factory/grantDuplexHandlers.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync/service.ts"
+            "file": "platform/services/statecraft/api/sync/service.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/service.ts"
+          "path": "platform/services/statecraft/api/sync/service.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/vite.config.ts"
+            "file": "platform/services/statecraft/vite.config.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       },
       {

@@ -23,8 +23,8 @@ export { extractOapClaims, type OapClaims } from "./rauthy-pure";
 
 // Rauthy configuration secrets
 export const rauthyUrl = secret("RAUTHY_URL"); // e.g. https://rauthy.localdev.online
-const rauthyClientId = secret("RAUTHY_CLIENT_ID"); // Stagecraft OIDC client ID
-const rauthyClientSecret = secret("RAUTHY_CLIENT_SECRET"); // Stagecraft OIDC client secret
+const rauthyClientId = secret("RAUTHY_CLIENT_ID"); // Statecraft OIDC client ID
+const rauthyClientSecret = secret("RAUTHY_CLIENT_SECRET"); // Statecraft OIDC client secret
 const rauthyAdminToken = secret("RAUTHY_ADMIN_TOKEN"); // Rauthy admin API-Key secret (either `name$secret` or raw secret)
 const rauthyAdminTokenName = secret("RAUTHY_ADMIN_TOKEN_NAME"); // Optional API-Key name if RAUTHY_ADMIN_TOKEN is the raw secret
 
@@ -421,7 +421,7 @@ export async function setRauthyUserAttributes(rauthyUserId: string, attrs: OapUs
  *
  * Spec 106 sequence diagram step 4: the token exchange MUST carry the
  * PKCE `code_verifier` that matches the `code_challenge` sent at the
- * authorize step. The `stagecraft-server` Rauthy client requires PKCE.
+ * authorize step. The `statecraft-server` Rauthy client requires PKCE.
  */
 export async function exchangeCodeForTokens(
   code: string,

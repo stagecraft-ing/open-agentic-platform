@@ -7,7 +7,7 @@
 // regression. This test pins the canonical value so an accidental
 // change to KNOWLEDGE_UPLOAD_MAX_BYTES fails CI loudly, with a
 // reminder that the Helm chart annotation
-// (`platform/charts/stagecraft/values-hetzner.yaml`, FR-005) MUST
+// (`platform/charts/statecraft/values-hetzner.yaml`, FR-005) MUST
 // be updated to match.
 
 import { describe, expect, test } from "vitest";

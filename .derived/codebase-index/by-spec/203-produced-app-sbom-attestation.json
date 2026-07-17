@@ -36,7 +36,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/translator.ts",
+        "path": "platform/services/statecraft/api/factory/translator.ts",
         "source": "spec-edge"
       }
     ],
@@ -135,14 +135,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/translator.ts"
+            "file": "platform/services/statecraft/api/factory/translator.ts"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/translator.ts"
+          "path": "platform/services/statecraft/api/factory/translator.ts"
         }
       }
     ],

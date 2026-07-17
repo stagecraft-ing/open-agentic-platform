@@ -31,45 +31,45 @@ test('--help advertises the run factory subcommand', () => {
   assert.match(res.stdout, /--watch/)
 })
 
-test('--help documents stagecraft env and lockfile fallbacks', () => {
+test('--help documents statecraft env and lockfile fallbacks', () => {
   const res = run(['--help'])
   assert.equal(res.status, 0)
-  assert.match(res.stdout, /STAGECRAFT_URL/)
-  assert.match(res.stdout, /STAGECRAFT_TOKEN/)
-  assert.match(res.stdout, /~\/\.oap\/stagecraft\.url/)
-  assert.match(res.stdout, /~\/\.oap\/stagecraft\.token/)
+  assert.match(res.stdout, /statecraft_URL/)
+  assert.match(res.stdout, /statecraft_TOKEN/)
+  assert.match(res.stdout, /~\/\.oap\/statecraft\.url/)
+  assert.match(res.stdout, /~\/\.oap\/statecraft\.token/)
 })
 
 test('run factory without project-id or adapter prints usage and exits 1', () => {
-  const res = run(['run', 'factory'], { STAGECRAFT_URL: '', STAGECRAFT_TOKEN: '' })
+  const res = run(['run', 'factory'], { STATECRAFT_URL: '', STATECRAFT_TOKEN: '' })
   assert.equal(res.status, 1)
   assert.match(res.stderr, /Usage: oap-ctl run factory/)
 })
 
-test('run factory fails fast when stagecraft URL is not resolvable', () => {
+test('run factory fails fast when statecraft URL is not resolvable', () => {
   // Force both env and lockfile absent: override HOME to an empty dir so
-  // readFileSync on ~/.oap/stagecraft.url never finds one.
+  // readFileSync on ~/.oap/statecraft.url never finds one.
   const res = run(
     ['run', 'factory', 'some-project-id', '--adapter', 'encore-react'],
     {
-      STAGECRAFT_URL: '',
-      STAGECRAFT_TOKEN: '',
+      STATECRAFT_URL: '',
+      STATECRAFT_TOKEN: '',
       HOME: '/nonexistent-oap-home-for-tests',
     },
   )
   assert.equal(res.status, 1)
-  assert.match(res.stderr, /stagecraft URL not set/)
+  assert.match(res.stderr, /statecraft URL not set/)
 })
 
 test('run factory fails when token is missing but URL is set', () => {
   const res = run(
     ['run', 'factory', 'some-project-id', '--adapter', 'encore-react'],
     {
-      STAGECRAFT_URL: 'http://localhost:4000',
-      STAGECRAFT_TOKEN: '',
+      STATECRAFT_URL: 'http://localhost:4000',
+      STATECRAFT_TOKEN: '',
       HOME: '/nonexistent-oap-home-for-tests',
     },
   )
   assert.equal(res.status, 1)
-  assert.match(res.stderr, /stagecraft token not set/)
+  assert.match(res.stderr, /statecraft token not set/)
 })

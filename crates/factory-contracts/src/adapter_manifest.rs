@@ -438,7 +438,7 @@ pub struct Agents {
 /// `Local` is the legacy shape — a relative path under the adapter root
 /// pointing at a vendored copy of the scaffold. `Upstream` is the spec 112
 /// §8 "pointer-not-repo" shape: the scaffold lives in an upstream git
-/// repo and stagecraft is the sole consumer that resolves and seeds it
+/// repo and statecraft is the sole consumer that resolves and seeds it
 /// into the project repo at create-time. OPC's factory-engine never
 /// fetches an upstream scaffold; it operates on the seeded project.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -446,7 +446,7 @@ pub struct Agents {
 pub enum ScaffoldSource {
     /// Vendored local scaffold; relative path under the adapter root.
     Local(String),
-    /// Upstream git pointer — resolved by stagecraft only.
+    /// Upstream git pointer — resolved by statecraft only.
     Upstream {
         kind: String,
         remote: String,
@@ -464,7 +464,7 @@ impl Default for ScaffoldSource {
 impl ScaffoldSource {
     /// Returns the local relative path when present, or `None` for an
     /// upstream pointer. Callers in OPC's execution layer should treat
-    /// `None` as "stagecraft has already provisioned the project; nothing
+    /// `None` as "statecraft has already provisioned the project; nothing
     /// to copy locally."
     pub fn as_local_path(&self) -> Option<&str> {
         match self {
@@ -499,20 +499,20 @@ pub struct Scaffold {
 
     // ── Spec 112 §8 additions ──────────────────────────────────────
     /// Relative path to the scaffold entry script (e.g. "scripts/setup.ts"). Required by the
-    /// stagecraft Create path (spec 112 §5.3) — adapters without this field are not
+    /// statecraft Create path (spec 112 §5.3) — adapters without this field are not
     /// Create-eligible via the web UI.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub entry_point: Option<String>,
-    /// Execution runtime (e.g. "node-24", "deno-2"). Stagecraft Create MVP runs only
+    /// Execution runtime (e.g. "node-24", "deno-2"). Statecraft Create MVP runs only
     /// `node-24` adapters; other runtimes are Import-only until a future spec.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub runtime: Option<String>,
     /// Optional JSON Schema (serde_json::Value) describing the --args accepted by the
-    /// entry point. Stagecraft validates user-supplied scaffold arguments against this
+    /// entry point. Statecraft validates user-supplied scaffold arguments against this
     /// before invoking the entry point.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub args_schema: Option<serde_json::Value>,
-    /// Declared variant/profile combinations. Stagecraft Create surfaces these as
+    /// Declared variant/profile combinations. Statecraft Create surfaces these as
     /// dropdown options in `/app/projects/new`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub profiles: Vec<ScaffoldProfile>,

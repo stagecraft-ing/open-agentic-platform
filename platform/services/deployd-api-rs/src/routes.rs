@@ -28,7 +28,7 @@ pub struct DeploymentRequest {
     pub app_slug: Option<String>,
     pub env_slug: Option<String>,
     pub desired_routes: Option<Vec<RouteSpec>>,
-    /// Chart name resolved by stagecraft's chartSelector (spec 136 Phase 2).
+    /// Chart name resolved by statecraft's chartSelector (spec 136 Phase 2).
     /// Optional for backwards compatibility; defaults to "acme-vue-encore",
     /// the sole registered shape after the spec 214 retirement.
     pub chart: Option<String>,
@@ -45,7 +45,7 @@ pub struct DeploymentRequest {
     pub access_gate: Option<AccessGateDescriptor>,
     // endregion gate-overlay
     /// Spec 214 FR-004: opaque app config rendered as container env vars
-    /// (chart `extraEnv`). The stagecraft proxy rejects reserved
+    /// (chart `extraEnv`). The statecraft proxy rejects reserved
     /// `ENCORE_` / `KUBERNETES_` prefixes before they reach deployd.
     #[serde(default)]
     pub config_refs: Option<std::collections::BTreeMap<String, String>>,
@@ -62,14 +62,14 @@ pub struct DeploymentRequest {
     pub namespace: Option<String>,
     /// Spec 214 FR-006: when true, render the chart's opt-in preview-grade
     /// Postgres so an Encore tenant with a `SQLDatabase` boots against an
-    /// in-namespace database. Stagecraft sets this for development/preview
+    /// in-namespace database. Statecraft sets this for development/preview
     /// environments; absent/false leaves the chart default (no preview DB).
     #[serde(default)]
     pub preview_database: Option<bool>,
     /// Spec 227 FR-005: when true, render the chart's opt-in preview-grade
     /// Redis (mirrors `preview_database`) so a tenant whose baked
     /// infra.config.json declares a `redis` block boots against an
-    /// in-namespace cache. Stagecraft sets this for development/preview
+    /// in-namespace cache. Statecraft sets this for development/preview
     /// environments that opted into the Redis infrastructure resource;
     /// absent/false leaves the chart default (no preview Redis).
     #[serde(default)]
@@ -181,7 +181,7 @@ pub async fn create_deployment(
     // namespace name. Without this check a caller holding the required
     // scope (e.g. a compromised M2M credential) could point `helm install`
     // at any namespace in the cluster, including cluster-system or
-    // platform-owned namespaces (rauthy-system, stagecraft-system, etc.),
+    // platform-owned namespaces (rauthy-system, statecraft-system, etc.),
     // purely by setting `namespace` on the request body. This is a format
     // plus reserved-name check, not tenant-ownership enforcement; see
     // `is_valid_tenant_namespace`'s doc comment for the isolation lever
@@ -252,7 +252,7 @@ pub async fn create_deployment(
     // Probe the cluster first. When no cluster is reachable (local dev,
     // record-only deployments), short-circuit to ROLLED_OUT without
     // shelling helm. When the cluster IS reachable, drive helm against
-    // the chart resolved upstream by stagecraft's chartSelector.
+    // the chart resolved upstream by statecraft's chartSelector.
     let (final_status, final_endpoints) = match k8s::probe_cluster().await {
         Ok(()) => {
             let _ = store::update_status(&state.client, &deployment_id, "DEPLOYING").await;

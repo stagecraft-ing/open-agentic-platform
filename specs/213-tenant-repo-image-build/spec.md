@@ -25,34 +25,34 @@ summary: >
   active container-build workflow into created repos, locks the image-ref
   naming convention (sha tags on every default-branch push, pr-N alias tags
   on pull requests, per-variant suffixes for dual-profile trees), and gives
-  stagecraft a project_artifacts record plus a deterministic artifact-ref
+  statecraft a project_artifacts record plus a deterministic artifact-ref
   derivation so the deploy path (spec 215) can resolve "the image for this
   commit" without guessing.
 code_aliases: ["TENANT_REPO_IMAGE_BUILD"]
 depends_on:
   - "112-factory-project-lifecycle"
   - "136-tenant-hello-demo-service"
-  - "138-stagecraft-create-realised-scaffold"
+  - "138-statecraft-create-realised-scaffold"
 extends:
-  - spec: "138-stagecraft-create-realised-scaffold"
+  - spec: "138-statecraft-create-realised-scaffold"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/github/repoInit.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/github/repoInit.ts }
   - spec: "080-github-identity-onboarding"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/github/webhook.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/github/webhook.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/db/schema.ts }
   # Additive extension of 119's project-create service: FR-008 retrofit
   # endpoint (the create-time seed moved to the scaffold path, below).
   - spec: "119-project-as-unit-of-governance"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/projects.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/projects.ts }
   # FR-001 seeds oap-build.yml into the scaffold tree at commit #1; the
   # scaffold assembly is spec 112's, claimed here as an additive extension.
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts }
   # Same precedent as specs 202, 196, 194, 193, 187, 183: a new spec adds a
   # row to the featuregraph golden.
   - spec: "034-featuregraph-registry-scanner-fix"
@@ -63,16 +63,16 @@ establishes:
   # FR-006). Converted from references: planned-establishes now that the
   # implementation PR has landed them (spec 200 precedent, including the
   # migration pair).
-  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/artifacts.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/artifacts.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/deploy/artifacts.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/deploy/artifacts.test.ts }
   # FR-009: one-repo-one-project unique index + its regression cover.
-  - unit: { kind: file, path: platform/services/stagecraft/api/github/webhook.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/github/webhook.test.ts }
 refines:
   # FR-009 adds webhook.test.ts to the encore-test lane exclude list (the
   # vite.config.ts exclude list IS the lane assignment; same precedent as
   # spec 215's deployments.test.ts row).
   - aspect: "encore-test-lane-assignment"
-    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+    unit: { kind: file, path: platform/services/statecraft/vite.config.ts }
 references:
   # Precedent only while it lives: spec 214 supersedes and retires this
   # workflow; the seeded oap-build.yml below is the canonical tenant
@@ -80,9 +80,9 @@ references:
   - role: build-workflow-precedent
     unit: { kind: file, path: .github/workflows/cd-tenant-hello.yml }
   - role: seeding-precedent
-    unit: { kind: file, path: platform/services/stagecraft/api/github/repoInit.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/github/repoInit.ts }
   - role: downstream-consumer
-    unit: { kind: file, path: platform/services/stagecraft/api/deploy/deploydClient.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/deploy/deploydClient.ts }
 ---
 
 # Feature Specification: Tenant Repo Image Build and Artifact-Ref Record
@@ -90,7 +90,7 @@ references:
 **Feature Branch**: `213-tenant-repo-image-build`
 **Created**: 2026-06-12
 **Status**: Draft (first of the three deploy-path specs; siblings are 214
-tenant-app-chart-supersession and 215 stagecraft-deploy-trigger-ux)
+tenant-app-chart-supersession and 215 statecraft-deploy-trigger-ux)
 **Input**: Spec 137 §Out-of-scope, line 363: "CI / container-build for
 tenant repos (separate spec)". This is that spec. The 2026-06-12
 deploy-path survey found the chain broken at this link: the webhook
@@ -112,7 +112,7 @@ renames, and its tag convention (`:<sha>`) does not match what the
 preview-deploy webhook assumes (`:pr-<n>`).
 
 This spec makes image production a property of project creation, not a
-manual afterthought, and makes the resulting image ref something stagecraft
+manual afterthought, and makes the resulting image ref something statecraft
 can compute and verify rather than guess.
 
 ## Code reality (2026-06-12 survey)
@@ -132,14 +132,14 @@ can compute and verify rather than guess.
   directories, each with its own `apps/api`.
 - `encore build docker` requires no Encore-platform authentication
   (validated previously on this workstation).
-- There is no table or column anywhere in stagecraft that records a built
+- There is no table or column anywhere in statecraft that records a built
   image ref; `scaffold_jobs.commitSha` records the seeded commit SHA.
 
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Created project produces a deployable image (Priority: P1)
 
-An operator creates a project through stagecraft. Without any manual step
+An operator creates a project through statecraft. Without any manual step
 in the new repo, the scaffolded commit is built into an OCI image and
 pushed to the org's registry under a predictable name.
 
@@ -180,9 +180,9 @@ commit's sha tag.
    dispatches a preview deployment, **Then** the image pull succeeds in
    the cluster (no ImagePullBackOff caused by a missing tag).
 
-### User Story 3 - Stagecraft can answer "what image does this commit have?" (Priority: P2)
+### User Story 3 - Statecraft can answer "what image does this commit have?" (Priority: P2)
 
-Stagecraft (the deploy trigger UI of spec 215, or an operator via API)
+Statecraft (the deploy trigger UI of spec 215, or an operator via API)
 resolves the artifact ref for a given project + commit without scraping
 GitHub: first from the `project_artifacts` record, falling back to the
 deterministic naming convention.
@@ -271,9 +271,9 @@ string.
   `public/` and `internal/` directories each contain `apps/api`, build a
   matrix over the two variant roots; otherwise build the repo root.
 - **FR-005**: A single derivation function (new module
-  `platform/services/stagecraft/api/deploy/artifacts.ts`) MUST own the
+  `platform/services/statecraft/api/deploy/artifacts.ts`) MUST own the
   ref convention: `deriveArtifactRef({githubOrg, repoName, sha, variant})`.
-  All stagecraft call sites (webhook preview path, spec 215 trigger path)
+  All statecraft call sites (webhook preview path, spec 215 trigger path)
   MUST use it; no inline `ghcr.io/...` string construction remains.
 - **FR-006**: New table `project_artifacts` (Postgres, `schema.ts` +
   migration): `id`, `projectId`, `releaseSha`, `variant` (`root | public |
@@ -341,7 +341,7 @@ string.
   that PR no longer references a nonexistent image (the 137-era
   ImagePullBackOff class disappears for seeded repos).
 - **SC-003**: Zero inline registry-string construction outside
-  `artifacts.ts` in stagecraft (`grep -rn "ghcr.io/" api/ | grep -v
+  `artifacts.ts` in statecraft (`grep -rn "ghcr.io/" api/ | grep -v
   artifacts` returns only tests/fixtures).
 - **SC-004**: For any (project, sha, variant) with a green `oap-build`
   run, `project_artifacts` resolves the ref without a registry round trip.
@@ -362,7 +362,7 @@ string.
 
 Independent of spec 214; both are prerequisites of spec 215. The
 `encore-cd.yml.example` in template remains untouched upstream;
-the seeded `oap-build.yml` is generated by stagecraft at create time so
+the seeded `oap-build.yml` is generated by statecraft at create time so
 its contract is owned here, not in the template lineage. Once spec 214's
 supersession retires `cd-tenant-hello.yml`, the seeded workflow is the
 only tenant build path; its shape and the spec 214 FR-010 reference

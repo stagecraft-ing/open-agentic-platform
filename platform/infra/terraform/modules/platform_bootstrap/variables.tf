@@ -9,16 +9,16 @@ variable "cloud_provider" {
 variable "registry_url" {
   type        = string
   default     = ""
-  description = "Container registry URL (e.g., stagecraftdevacr.azurecr.io). Empty = use GHCR."
+  description = "Container registry URL (e.g., statecraftdevacr.azurecr.io). Empty = use GHCR."
 }
 
-variable "stagecraft_namespace" { type = string }
+variable "statecraft_namespace" { type = string }
 variable "deployd_namespace" { type = string }
 
-variable "stagecraft_host" { type = string }
+variable "statecraft_host" { type = string }
 variable "deployd_host" { type = string }
 
-variable "stagecraft_sa_name" { type = string }
+variable "statecraft_sa_name" { type = string }
 variable "deployd_sa_name" { type = string }
 
 variable "cloud_identity_id" {

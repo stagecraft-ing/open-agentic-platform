@@ -53,11 +53,11 @@ const PRODUCTS = [
     license: "AGPL-3.0",
     status: "pre-alpha",
     language: "Rust | TypeScript",
-    url: "https://github.com/stagecraft-ing/open-agentic-platform",
-    docsUrl: "https://stagecraft-ing.github.io/open-agentic-platform/",
+    url: "https://github.com/statecrafting/open-agentic-platform",
+    docsUrl: "https://statecrafting.github.io/open-agentic-platform/",
     specCount: 228,
     description:
-      "OAP is a governed control plane for AI-native software delivery. Three layers: OPC Desktop (Tauri v2 + React cockpit), Spec Spine (canonical contract system), and Platform (organisational control plane with Rauthy OIDC, deployd-api, and stagecraft). Every change is bound to a spec; every spec compiles to a deterministic JSON registry; every agent action is reconcilable to the spec that authorised it.",
+      "OAP is a governed control plane for AI-native software delivery. Three layers: OPC Desktop (Tauri v2 + React cockpit), Spec Spine (canonical contract system), and Platform (organisational control plane with Rauthy OIDC, deployd-api, and statecraft). Every change is bound to a spec; every spec compiles to a deterministic JSON registry; every agent action is reconcilable to the spec that authorised it.",
     highlights: [
       "228 markdown specs compiled to deterministic registry",
       "SHA-256 proof chains and JSONL audit logs",
@@ -75,8 +75,8 @@ const PRODUCTS = [
     license: "Apache-2.0",
     status: "stable",
     language: "Rust",
-    url: "https://github.com/stagecraft-ing/spec-spine",
-    docsUrl: "https://stagecraft-ing.github.io/spec-spine/",
+    url: "https://github.com/statecrafting/spec-spine",
+    docsUrl: "https://statecrafting.github.io/spec-spine/",
     specCount: null,
     description:
       "spec-spine turns a markdown spec corpus into a governed, hash-verifiable authority ledger and refuses code that drifts from its owning spec at PR time. Two deterministic views are emitted: the registry (spec-as-source) and the index (code-as-source), joined by a coupling gate. Every artifact-producing function is a pure function of (config, file contents): same inputs, byte-identical output, on every platform.",
@@ -97,8 +97,8 @@ const PRODUCTS = [
     license: "Apache-2.0",
     status: "active",
     language: "TypeScript",
-    url: "https://github.com/stagecraft-ing/factory-encore",
-    docsUrl: "https://stagecraft-ing.github.io/factory-encore",
+    url: "https://github.com/statecrafting/factory-encore",
+    docsUrl: "https://statecrafting.github.io/factory-encore",
     specCount: null,
     description:
       "factory-encore separates the process of building software (requirements, design, specification) from the implementation (frameworks, languages, code patterns) by placing a formal contract between the two. The process turns business documents into a structured, frozen Build Specification; an adapter turns that specification into a running application.",
@@ -119,8 +119,8 @@ const PRODUCTS = [
     license: "Apache-2.0",
     status: "active",
     language: "TypeScript",
-    url: "https://github.com/stagecraft-ing/template-encore",
-    docsUrl: "https://stagecraft-ing.github.io/template-encore",
+    url: "https://github.com/statecrafting/template-encore",
+    docsUrl: "https://statecrafting.github.io/template-encore",
     specCount: 16,
     description:
       "The runnable reference application produced by factory-encore's acme-vue-encore adapter. A public-facing SPA and a staff-facing SPA, both backed by a single Encore.ts service cluster. The backend provides a BFF API gateway, stateless RS256 JWT auth, and Postgres persistence. Both Vue 3 frontends are built on PrimeVue with pluggable authentication (Rauthy OIDC or Mock).",
@@ -141,8 +141,8 @@ const PRODUCTS = [
     license: "Apache-2.0",
     status: "scaffold",
     language: "TypeScript",
-    url: "https://github.com/stagecraft-ing/tenant-emit",
-    docsUrl: "https://stagecraft-ing.github.io/tenant-emit",
+    url: "https://github.com/statecrafting/tenant-emit",
+    docsUrl: "https://statecrafting.github.io/tenant-emit",
     specCount: null,
     description:
       "tenant-emit is an emit-only CLI that builds a signed governance-certificate.json from a finished run directory. It is the emit-side counterpart of tenant-tail: post-hoc (no pipeline orchestration), identity-bearing (an attributable signer and an operator-supplied key), and offline. The emitted certificate carries no platform countersign.",
@@ -163,8 +163,8 @@ const PRODUCTS = [
     license: "Apache-2.0",
     status: "scaffold",
     language: "Rust",
-    url: "https://github.com/stagecraft-ing/tenant-tail",
-    docsUrl: "https://stagecraft-ing.github.io/tenant-tail/",
+    url: "https://github.com/statecrafting/tenant-tail",
+    docsUrl: "https://statecrafting.github.io/tenant-tail/",
     specCount: null,
     description:
       "tenant-tail is a verify-only CLI that re-checks the run-side artifacts the factory asserted about its build, with no trust in the producer. It is offline-capable, identity-free, and read-only all the way down to the package boundary. The verify/emit boundary is load-bearing.",
@@ -185,7 +185,7 @@ const PRODUCTS = [
     license: "Apache-2.0",
     status: "implemented",
     language: "Go",
-    url: "https://github.com/stagecraft-ing/oap-bootstrap",
+    url: "https://github.com/statecrafting/oap-bootstrap",
     docsUrl: null,
     specCount: 1,
     description:

@@ -31,6 +31,6 @@ spec:
         selector:
           # Only this issuer answers DNS-01 challenges for tenant
           # hostnames. The existing `letsencrypt-prod` (HTTP-01) keeps
-          # handling stagecraft / deployd / rauthy / minio Ingresses.
+          # handling statecraft / deployd / rauthy / minio Ingresses.
           dnsZones:
             - "tenants.${DOMAIN}"

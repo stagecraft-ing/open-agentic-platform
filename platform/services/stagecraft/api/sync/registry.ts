@@ -6,7 +6,7 @@
  * This is runtime state only. It is NOT a source of truth. Membership,
  * authority, and audit all live in the Postgres control plane.
  *
- * Horizontal scale-out: when stagecraft runs >1 replica, server-originated
+ * Horizontal scale-out: when statecraft runs >1 replica, server-originated
  * events must fan out via PubSub/Redis to all replicas; each replica then
  * consults its own local registry. The service layer is structured so the
  * registry boundary is the only place that needs to learn about that.

@@ -13,7 +13,7 @@ depends_on:
   - "032-opc-inspect-governance-wiring-mvp"  # opc-inspect-governance-wiring-mvp (the cockpit this spec gates entry to)
   - "073-axiomregent-unification"  # axiomregent-unification (the sidecar this spec asserts liveness of)
   - "087-unified-workspace-architecture"  # unified-workspace-architecture (the duplex stream whose `sync.hello` is the org-session verification anchor)
-  - "106-rauthy-native-oidc-and-membership"  # rauthy-native-oidc-and-membership (the OIDC identity layer whose org claim materialises into `StagecraftState.org_id`)
+  - "106-rauthy-native-oidc-and-membership"  # rauthy-native-oidc-and-membership (the OIDC identity layer whose org claim materialises into `StatecraftState.org_id`)
   - "112-factory-project-lifecycle"  # factory-project-lifecycle (the `project.catalog.snapshot.complete` envelope is one of the org-session-verified post-handshake snapshots)
   - "133-amends-aware-coupling-gate"  # amends-aware-coupling-gate (satisfaction predicate this spec rides under)
   - "147-spec-kind-grammar"  # spec-kind-grammar (`kind: governance`)
@@ -40,7 +40,7 @@ refines:
     unit: { kind: file, path: product/apps/opc/src-tauri/src/sidecars.rs }
     refines_specs: ["073-axiomregent-unification"]
   - aspect: "org-session-materialisation-observation"
-    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/stagecraft_client.rs }
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/statecraft_client.rs }
     refines_specs: ["087-unified-workspace-architecture"]
   - aspect: "boot-gate-org-claim-decoding-on-restore"
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/auth.rs }
@@ -50,7 +50,7 @@ refines:
     refines_specs: ["106-rauthy-native-oidc-and-membership"]
   - aspect: "sync-hello-observer-and-duplex-give-up-signal"
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/sync_client.rs }
-    refines_specs: ["110-stagecraft-to-opc-factory-trigger"]
+    refines_specs: ["110-statecraft-to-opc-factory-trigger"]
   - aspect: "boot-gate-command-registration-and-quit-handler"
     unit: { kind: file, path: product/apps/opc/src-tauri/src/lib.rs }
     refines_specs: ["180-opc-shell-codification"]
@@ -80,8 +80,8 @@ summary: >
   axiomregent sidecar's probe port has been observed AND a TCP connection
   to that port succeeds (the diagnostic listener accepts the connection
   before closing it); and the desktop holds a materialised org session
-  (`org_id` populated on the Rust-side `StagecraftState` AND a
-  `sync.hello` envelope received from stagecraft over the duplex stream,
+  (`org_id` populated on the Rust-side `StatecraftState` AND a
+  `sync.hello` envelope received from statecraft over the duplex stream,
   which proves the org was accepted by the server for this client).
   While in boot, the only affordances are precondition status, retry
   bound to those preconditions, a logs entrypoint, and a Quit action
@@ -150,18 +150,18 @@ authority on eleven files that the boot gate touches:
   the bundled sidecar starts under a Finder-launched `.app` (cwd `/`)
   and a startup failure is diagnosable rather than an opaque
   "terminated code 1" (FR-T1 launch environment, below).
-- `product/apps/opc/src-tauri/src/commands/stagecraft_client.rs` —
+- `product/apps/opc/src-tauri/src/commands/statecraft_client.rs` —
   the Rust-side org-session holder; gains a "verified org session"
   observability surface keyed on `sync.hello` receipt (refines spec
   087's duplex-stream authority).
 - `product/apps/opc/src/contexts/AuthContext.tsx` — frontend auth
-  context; gains a tighter coupling to the Rust-side `StagecraftState`
+  context; gains a tighter coupling to the Rust-side `StatecraftState`
   org_id-materialisation moment (refines spec 106's Rauthy/OIDC
   identity authority).
 - `product/apps/opc/src-tauri/src/commands/sync_client.rs` — the
   duplex consumer that observes `sync.hello` (FR-T2(b) gate-flip)
   and emits the duplex give-up signal (FR-T5(b) precondition-loss)
-  (refines spec 110's stagecraft→OPC trigger authority). Its
+  (refines spec 110's statecraft→OPC trigger authority). Its
   `ENVELOPE_SCHEMA_VERSION` MUST equal the server's (v2 per spec 119);
   a stale version makes every server frame — `sync.hello` included —
   fail the `is_server_envelope` guard, so FR-T2(b) can never flip
@@ -177,13 +177,13 @@ authority on eleven files that the boot gate touches:
   the boot-gate command surface (refines spec 180's OPC shell
   authority).
 - `product/apps/opc/src-tauri/src/commands/settings.rs` — gains the
-  `reconnect_stagecraft_duplex` recovery command, the manual
+  `reconnect_statecraft_duplex` recovery command, the manual
   counterpart to the existing FR-T2(a) URL-change re-spawn; it
   re-spawns the duplex consumer to reset the per-outage refresh budget
   and force an immediate reconnect (§3.8) (refines spec 180's OPC shell
   authority).
 - `product/apps/opc/src-tauri/src/bindings.rs` — registers
-  `reconnect_stagecraft_duplex` in the tauri-specta `collect_commands!`
+  `reconnect_statecraft_duplex` in the tauri-specta `collect_commands!`
   set alongside its `generate_handler!` registration in `lib.rs`
   (refines spec 180's OPC shell authority).
 - `crates/axiomregent/src/db/mod.rs` — the sidecar's hiqlite
@@ -281,18 +281,18 @@ an environment where it can actually start:
 **FR-T2.** The OPC shell MUST observe both of the following before
 transitioning out of the boot state:
 
-(a) `StagecraftState.org_id` is populated with a non-empty value on
+(a) `StatecraftState.org_id` is populated with a non-empty value on
 the Rust side
-(`product/apps/opc/src-tauri/src/commands/stagecraft_client.rs`); AND
+(`product/apps/opc/src-tauri/src/commands/statecraft_client.rs`); AND
 
 (b) the duplex client has received a `sync.hello` envelope from
-stagecraft for the current session (the envelope kind is owned by
+statecraft for the current session (the envelope kind is owned by
 spec 087; receipt is observable in
 `product/apps/opc/src-tauri/src/commands/sync_client.rs`'s
 `run_duplex_session`). `sync.hello` is the server's acknowledgment
 that the handshake was accepted for the claimed `(clientId, orgId)`
 pair — its receipt is the green-light signal that the org claim has
-been *accepted by stagecraft*, not merely set locally.
+been *accepted by statecraft*, not merely set locally.
 
 `is_some()` alone is insufficient: a stale, fabricated, or
 not-yet-acknowledged `org_id` would pass the local-presence test
@@ -323,19 +323,19 @@ dropped frame — into a hard, observable boot block.)
 
 **FR-T2(b) token liveness (binding, amended 2026-06-01).** Receipt of
 `sync.hello` also presupposes the duplex upgrade is *authorized*. The consumer
-attaches a Rauthy bearer JWT to the WebSocket handshake; stagecraft's Encore
+attaches a Rauthy bearer JWT to the WebSocket handshake; statecraft's Encore
 gateway rejects a missing/expired/invalid token with HTTP 401 *before* the
 socket opens, so (b) can never flip. The duplex consumer therefore resolves
 its bearer at connect time from the shared OS keychain and, on a 401, drives a
-silent Rauthy refresh (`StagecraftClient::refresh_jwt`) before retrying —
+silent Rauthy refresh (`StatecraftClient::refresh_jwt`) before retrying —
 recovering an expired access token without user action as long as the refresh
-token is still valid. It also spawns whenever a Stagecraft base URL is
+token is still valid. It also spawns whenever a Statecraft base URL is
 configured (idling until sign-in materialises a session) rather than requiring
 a token at launch. Before this, an expired access token loaded from the
 keychain wedged the org-session gate in an unrecoverable `401 → backoff → 401`
 loop with `sync.hello` never received — the precise hang this gate made
 observable. Sites: `sync_client.rs::run_forever` / `connect_and_run`, `lib.rs`
-(consumer spawn), `stagecraft_client.rs::refresh_jwt`.
+(consumer spawn), `statecraft_client.rs::refresh_jwt`.
 
 *Amended 2026-06-01 (follow-up hardening).* The recovery path above is
 hardened so the gate cannot be left wedged by its own reconnect bookkeeping:
@@ -345,15 +345,15 @@ only genuine unreachability (transient errors, failed refresh, or 401s past a
 per-outage refresh budget) trips the precondition-loss signal, so a routine
 session rotation no longer races the gate toward give-up; and (2) the blocking
 OS keychain read is moved off the tokio worker via `spawn_blocking`, split into
-the free function `stagecraft_client.rs::read_session_token_from_keychain`
-(blocking read) and `StagecraftClient::adopt_token` (in-memory apply), so the
+the free function `statecraft_client.rs::read_session_token_from_keychain`
+(blocking read) and `StatecraftClient::adopt_token` (in-memory apply), so the
 gate's connect loop cannot stall a worker thread on keychain I/O. Sites:
 `sync_client.rs::run_forever` / `resolve_token` / `reload_session_token`,
-`stagecraft_client.rs::{read_session_token_from_keychain, adopt_token}`.
+`statecraft_client.rs::{read_session_token_from_keychain, adopt_token}`.
 
 *Amended 2026-06-07 (server-side reconnect race — residual wedge).* The
 #303/#305 fixes above are all **client-side**. A residual **server-side**
-race remained: the stagecraft duplex `registry` is keyed `(orgId, clientId)`
+race remained: the statecraft duplex `registry` is keyed `(orgId, clientId)`
 and the desktop reuses one `clientId` across reconnects, so a reconnect's
 `register` installs the new session while the prior connection's `finally`
 then ran a `clientId`-only `unregister` that evicted the *live* replacement —
@@ -363,24 +363,24 @@ reproducing the exact connect→close→reconnect loop this gate guards against
 Closed by **spec 087 FR-SYNC-011** (stream-identity-scoped teardown:
 `registry.unregister(orgId, clientId, stream)` deletes only on a stream match;
 `duplex.ts`'s `finally` passes its own stream). Sites:
-`platform/services/stagecraft/api/sync/{registry.ts, duplex.ts}`.
+`platform/services/statecraft/api/sync/{registry.ts, duplex.ts}`.
 
 **FR-T2(a) in-memory propagation (binding, amended 2026-06-02).** Receipt
 of a non-empty `org_id` (a) presupposes the value *propagates* to the
 boot-gate reader. `boot_gate_status` reads `org_id` from the live
-`StagecraftState` (`sidecars.rs::boot_gate_status`), not from the OS
+`StatecraftState` (`sidecars.rs::boot_gate_status`), not from the OS
 keychain, so (a)'s local-presence test is only meaningful if the
 sign-in's `org_id` write lands on the *same* client instance that read
-serves. `StagecraftState` previously held a value-type `StagecraftClient`
+serves. `StatecraftState` previously held a value-type `StatecraftClient`
 whose `current()` returned a snapshot clone, and the OAuth callback
 (`auth.rs::auth_handle_callback` / `auth_select_org`) mutated that
 throwaway clone via `set_org_id` / `set_auth_token` without writing it
 back. The keychain was updated, but the stored client's in-memory
 `org_id` stayed empty — so (a) read `false` and the gate stuck at
-"Waiting for stagecraft duplex handshake (sync.hello)…" *even after*
+"Waiting for statecraft duplex handshake (sync.hello)…" *even after*
 `sync.hello` had been received and (b) was satisfied. A relaunch masked
 it: startup's `load_token_from_keychain` repopulates the stored client.
-The fix makes `StagecraftState` hold an `Arc<StagecraftClient>` so the
+The fix makes `StatecraftState` hold an `Arc<StatecraftClient>` so the
 boot-gate reader, the duplex consumer's auth handle (FR-T2(b)), and every
 authenticated REST command share ONE interior-mutable instance — a
 `set_org_id` / `set_auth_token` / `adopt_token` write is visible to all of
@@ -389,34 +389,34 @@ value-clone left (a fresh sign-in's token never reached REST callers until
 the next launch). The `Arc` widening threads mechanically through the
 `current()`-consuming call sites that take the handle by value
 (`factory.rs::resolve_sc_context` and the factory dual-write paths,
-`factory_platform.rs::StagecraftOidcProvider`, `settings.rs`); those edits
+`factory_platform.rs::StatecraftOidcProvider`, `settings.rs`); those edits
 are pure type propagation with no behavioural change to their own domains.
-Sites: `stagecraft_client.rs::{StagecraftState, current, replace}`,
+Sites: `statecraft_client.rs::{StatecraftState, current, replace}`,
 `lib.rs` (consumer wiring — `sc` and the duplex `auth` handle are one
 shared `Arc`), `sync_client.rs::{spawn, run_forever}` (accept
-`Arc<StagecraftClient>`). Regression guard: the `stagecraft_client.rs`
-unit test `stagecraft_state_shares_one_client_across_current_handles`.
+`Arc<StatecraftClient>`). Regression guard: the `statecraft_client.rs`
+unit test `statecraft_state_shares_one_client_across_current_handles`.
 
 *Spawn-time binding — resolved 2026-06-02.* The Arc-sharing invariant holds
 for a client's lifetime; a base-URL change swaps the instance via
-`StagecraftState::replace`. `commands::settings::set_stagecraft_base_url`
+`StatecraftState::replace`. `commands::settings::set_statecraft_base_url`
 therefore **re-spawns the duplex consumer** against the new client (the
 re-`spawn` aborts the prior loop; a cleared URL stops it via
 `SyncClientState::shutdown`), so the loop follows the URL switch instead of
 authenticating against the old host indefinitely. The stable `client_id`
 survives the re-spawn via the `OpcInstanceId` managed state. Sites:
-`settings.rs::set_stagecraft_base_url`, `lib.rs` (`OpcInstanceId` manage),
+`settings.rs::set_statecraft_base_url`, `lib.rs` (`OpcInstanceId` manage),
 `sync_client.rs::OpcInstanceId`.
 
-*Lock-poison robustness.* `StagecraftState::{current, replace}` recover a
+*Lock-poison robustness.* `StatecraftState::{current, replace}` recover a
 poisoned `RwLock` (log + `into_inner`) rather than swallowing to `None` /
 dropping the write silently — a panicked holder would otherwise wedge the
 boot gate and skip REST dual-write with no trace, a wider blast radius now
 that all callers share one `Arc`. Guard:
-`stagecraft_state_recovers_from_poisoned_lock`.
+`statecraft_state_recovers_from_poisoned_lock`.
 
 **Files FR-T2 binds on:**
-- `product/apps/opc/src-tauri/src/commands/stagecraft_client.rs` —
+- `product/apps/opc/src-tauri/src/commands/statecraft_client.rs` —
   org_id residence + the verified-receipt flag.
 - `product/apps/opc/src-tauri/src/commands/sync_client.rs` — the
   `sync.hello` observer that flips the verified-receipt flag.
@@ -435,9 +435,9 @@ Three reinforcements keep `org_session_ready` reachable from a saved
 session without user re-entry:
 
 - **Keychain survives a same-server settings save.**
-  `set_stagecraft_base_url` clears the keychain and forces re-auth only on
+  `set_statecraft_base_url` clears the keychain and forces re-auth only on
   a *genuine* base-URL change; a same-server re-save keeps the session and
-  reloads it onto the freshly-built `StagecraftClient` (a new client starts
+  reloads it onto the freshly-built `StatecraftClient` (a new client starts
   with empty `auth_token`/`org_id`, which would otherwise wedge the gate).
 - **`auth_get_status` is self-healing.** On an expired access token it
   attempts a silent `refresh_jwt` before reporting `authenticated: false`,
@@ -459,7 +459,7 @@ are restricted to:
 - precondition status (sidecar status row; sign-in / org-session
   status row);
 - retry controls bound to those preconditions (Retry sidecar; and the
-  contextual auth controls Sign in to stagecraft / Sign out — see the
+  contextual auth controls Sign in to statecraft / Sign out — see the
   2026-06-04 sub-clause below);
 - a logs entrypoint (Open logs);
 - a Quit action.
@@ -480,9 +480,9 @@ together:
    whenever a session exists — including the authenticated-but-no-org
    state where `org_session_ready` never flips because the gate's
    `has_org` term stays false (the keychain-restored JWT carried no
-   `oap_org_id` claim, so `StagecraftClient::apply_token` left `org_id`
+   `oap_org_id` claim, so `StatecraftClient::apply_token` left `org_id`
    empty). Sign out routes through `auth_logout` →
-   `StagecraftClient::clear_auth()`, which clears the in-memory token
+   `StatecraftClient::clear_auth()`, which clears the in-memory token
    AND the OS-keychain `session` entry, so the next sign-in re-runs the
    interactive org-resolution path (`auth_handle_callback` /
    `auth_select_org` write `org_id` *directly*) rather than depending on
@@ -591,7 +591,7 @@ subscribes to that signal. A single disconnect that the reconnect
 loop recovers from before the threshold MUST NOT trigger restore;
 crossing the threshold MUST. This lapses FR-T2(b);
 
-(c) `StagecraftState.org_id` is cleared (e.g., explicit logout, or
+(c) `StatecraftState.org_id` is cleared (e.g., explicit logout, or
 the auth refresh path determines the session is irrecoverable) —
 this lapses FR-T2(a).
 
@@ -616,7 +616,7 @@ silently behind the boot screen.
   consumer).
 - `product/apps/opc/src-tauri/src/commands/sync_client.rs` — the
   reconnect-window-exceeded signal.
-- `product/apps/opc/src-tauri/src/commands/stagecraft_client.rs` —
+- `product/apps/opc/src-tauri/src/commands/statecraft_client.rs` —
   org_id-cleared observer.
 - `product/apps/opc/src/App.tsx` — the conditional render boundary
   that flips back to `<BootGate>`.
@@ -708,7 +708,7 @@ over §3.7 — a wedged consumer. The recovery is a re-spawn: `run_forever`
 holds the budget and failure counters as loop-locals, so a fresh spawn
 starts them at zero and connects immediately with the current bearer.
 
-A new `reconnect_stagecraft_duplex` Tauri command
+A new `reconnect_statecraft_duplex` Tauri command
 (`commands/settings.rs`, registered in `bindings.rs` + `lib.rs`) exposes
 exactly the FR-T2(a) URL-change re-spawn as a user/-caller action.
 `BootGate.tsx` surfaces it as a **Reconnect** affordance in precisely the
@@ -720,7 +720,7 @@ button, and the underlying loop's backoff cadence is unchanged.
 
 **(b) Refresh-budget reset on sign-in.** A fresh sign-in (or an org
 selection / switch) establishes a new valid bearer, so `AuthContext.tsx`
-fires the same `reconnect_stagecraft_duplex` on its authenticated
+fires the same `reconnect_statecraft_duplex` on its authenticated
 transition. This guarantees the per-outage refresh budget resets when a
 new session is established, closing the "re-login is unrecoverable after
 a burned budget" seam without waiting for the loop's own clean-connect
@@ -764,15 +764,15 @@ assume; the precondition-loss semantics (FR-T5) are unchanged.
 
 ### 3.9 Post-approval hardening: org-claim decoding on keychain restore (2026-06-08)
 
-The §3.7/§3.8 persistence work made the Stagecraft session survive a
+The §3.7/§3.8 persistence work made the Statecraft session survive a
 restart — the JWT is restored from the OS keychain on launch. That
 exposed a long-latent decoding defect on the same FR-T2(b)
 `org_id`-materialisation path. Rauthy emits the OAP attributes
 (`oap_org_id`, `oap_user_id`, `oap_org_slug`, …) nested under a top-level
-`custom` object in the minted JWT (see stagecraft
+`custom` object in the minted JWT (see statecraft
 `api/auth/sessionMint.ts` and the `oap` scope's `attr_include_access`
 mapping in `scripts/seed-rauthy.mjs`), but the OPC Rust read them at the
-**top level**. So `apply_token` (`commands/stagecraft_client.rs`) derived
+**top level**. So `apply_token` (`commands/statecraft_client.rs`) derived
 an empty `org_id` from every keychain-restored / refreshed token, the
 gate's `has_org` term never flipped, and the cockpit never opened on cold
 start — the user had to sign out and sign in again on every launch. A
@@ -786,7 +786,7 @@ through `apply_token` and through `auth_get_status` / `auth_switch_org`
 (`commands/auth.rs`) so a restored session reports its org and identity,
 not just an authenticated-but-empty shell. `auth.rs` joins this spec's
 `refines:` set under the same org-session-materialisation concern the boot
-gate already observes on `stagecraft_client.rs` — it is the auth-command
+gate already observes on `statecraft_client.rs` — it is the auth-command
 half of that one discipline. The duplex still connected on restart
 throughout (the server resolves org from the JWT server-side), so this was
 purely a client-side derivation defect, distinct from the §3.7/§3.8
@@ -863,7 +863,7 @@ loop), not timing.
   ```bash
   registry-consumer by-authority product/apps/opc/src/App.tsx
   registry-consumer by-authority product/apps/opc/src-tauri/src/sidecars.rs
-  registry-consumer by-authority product/apps/opc/src-tauri/src/commands/stagecraft_client.rs
+  registry-consumer by-authority product/apps/opc/src-tauri/src/commands/statecraft_client.rs
   registry-consumer by-authority product/apps/opc/src/contexts/AuthContext.tsx
   ```
 
@@ -877,11 +877,11 @@ loop), not timing.
   parsed + still serving."
 - **AC-6.** A unit / integration test asserts FR-T2(b): a
   `sync.hello` envelope must be observable before the org-session
-  gate flips. Stagecraft already emits `sync.hello` on accepted
+  gate flips. Statecraft already emits `sync.hello` on accepted
   handshake (`api/sync/duplex.ts` line 121, kind `sync.hello`); the
   test fixture exercises the desktop's observer in `sync_client.rs`.
 - **AC-7.** An end-to-end assertion on a built OPC: with the
-  sidecar binary present but stagecraft unreachable, the boot screen
+  sidecar binary present but statecraft unreachable, the boot screen
   MUST render and remain rendered (FR-T1 passes via TCP-connect to
   the local probe; FR-T2 stalls on `sync.hello` and the boot screen
   surfaces the sign-in / connection failure). The cockpit MUST NOT
@@ -953,7 +953,7 @@ SHOULD ride per-PR.
   stream and the `sync.hello` envelope this spec uses as the
   org-session verification anchor.
 - **Spec 106** — Rauthy native OIDC and membership; the identity
-  layer whose org claim materialises into `StagecraftState.org_id`.
+  layer whose org claim materialises into `StatecraftState.org_id`.
 - **Spec 112** — factory project lifecycle; the
   `project.catalog.snapshot.complete` envelope (added 2026-05-25)
   is one of the post-handshake snapshots that ride the

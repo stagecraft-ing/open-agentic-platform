@@ -240,9 +240,9 @@ The hcloud CSI provisioner (`csi.hetzner.cloud`) enforces a 10 GiB
 minimum. T002 evidence on the live `oap-hetzner-master1` cluster:
 all four existing PVCs allocated through `hcloud-volumes` provisioned
 at 10 GiB or larger (`rauthy-system/data-rauthy-0` = 10Gi,
-`stagecraft-system/data-postgresql-0` = 10Gi,
-`stagecraft-system/minio` = 20Gi,
-`stagecraft-system/stagecraft-api-workspace` = 10Gi). The 10 GiB pin
+`statecraft-system/data-postgresql-0` = 10Gi,
+`statecraft-system/minio` = 20Gi,
+`statecraft-system/statecraft-api-workspace` = 10Gi). The 10 GiB pin
 matches that empirical floor. The `hcloud-volumes` StorageClass is
 the cluster default (`storageclass.kubernetes.io/is-default-class:
 "true"`) but is pinned explicitly to avoid silent re-binding.
@@ -724,10 +724,10 @@ Documents:
   coordination across replicas is a future spec (audit Phase 5
   "future-spec" cluster, open question 1).
 - **`listen_notify` SSE wiring** to stream deploy events into
-  stagecraft's audit_log table. Future spec; not motivated by any
-  current failure (today's stagecraft path polls `/v1/deployments/.../status`).
+  statecraft's audit_log table. Future spec; not motivated by any
+  current failure (today's statecraft path polls `/v1/deployments/.../status`).
 - **axiomregent durability.** Hiqlite-level S3 backup at axiomregent
-  was rejected by the audit (durable copy lives in stagecraft
+  was rejected by the audit (durable copy lives in statecraft
   Postgres). The "axiomregent offline audit buffering" question
   (audit open question 2) is its own future spec.
 - **orchestrator changes.** Spec 144 covers manifest hygiene there.

@@ -13,8 +13,8 @@ description = "Deterministic artifact extractor for the Factory s-1-extract stag
 name = "artifact_extract"
 path = "src/lib.rs"
 
-# Legacy CLI shim for stagecraft's `advanceKnowledgeToExtracted` incident-
-# response path (spec 115 `STAGECRAFT_EXTRACT_LEGACY_TRANSITION`). Walks
+# Legacy CLI shim for statecraft's `advanceKnowledgeToExtracted` incident-
+# response path (spec 115 `STATECRAFT_EXTRACT_LEGACY_TRANSITION`). Walks
 # `<root>/.artifacts/raw/` and invokes the spec-120 deterministic library
 # per file, emitting JSONL summary on stdout. Modern flow is the spec-120
 # `POST /api/projects/:projectId/knowledge/objects/:id/extraction-output`

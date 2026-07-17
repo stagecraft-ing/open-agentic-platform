@@ -5,10 +5,10 @@
 // Spec 139 Phase 1 — Rust mirror of the TypeScript SUBSTRATE_VERSION const.
 //
 // Project-memory discipline: schema versions are compile-time consts;
-// mismatches between the TypeScript host (stagecraft) and the Rust
+// mismatches between the TypeScript host (statecraft) and the Rust
 // consumers (factory-engine, OPC desktop) MUST fail at build, not at
 // runtime. Bump this constant in lockstep with
-// `platform/services/stagecraft/api/factory/substrate.ts:SUBSTRATE_VERSION`
+// `platform/services/statecraft/api/factory/substrate.ts:SUBSTRATE_VERSION`
 // in the same commit, and the parity test below catches stale mirrors at
 // `cargo test` time.
 
@@ -23,7 +23,7 @@ pub const SUBSTRATE_VERSION: u32 = 2;
 /// The expected TS-side const, asserted at build time.
 ///
 /// Update both this constant and
-/// `platform/services/stagecraft/api/factory/substrate.ts:SUBSTRATE_VERSION`
+/// `platform/services/statecraft/api/factory/substrate.ts:SUBSTRATE_VERSION`
 /// in the same commit. The CI parity check (spec 104) reads the TS source
 /// and asserts the two values agree; this Rust-side const is what
 /// downstream consumers (`VirtualRoot` in Phase 3) compare against the

@@ -227,7 +227,7 @@ export interface SidecarPorts {
 export interface BootGateStatus {
   /** FR-T1: probe port announced AND TCP-connect succeeds within timeout. */
   sidecar_alive: boolean;
-  /** FR-T2: org_id materialised on StagecraftState AND sync.hello received. */
+  /** FR-T2: org_id materialised on StatecraftState AND sync.hello received. */
   org_session_ready: boolean;
   /** Convenience: announced probe port (null if not yet announced). */
   axiomregent_port: number | null;
@@ -270,7 +270,7 @@ export interface PublishLocalAgentResult {
   version: number;
   status: string;
   content_hash: string;
-  /** Relative path into the stagecraft web app — append to the configured base URL. */
+  /** Relative path into the statecraft web app — append to the configured base URL. */
   web_path: string;
 }
 
@@ -652,12 +652,12 @@ export const api = {
     return await apiCall<any>("auth_switch_org", { orgId });
   },
 
-  async getStagecraftBaseUrl(): Promise<string> {
-    return await apiCall<string>("get_stagecraft_base_url");
+  async getStatecraftBaseUrl(): Promise<string> {
+    return await apiCall<string>("get_statecraft_base_url");
   },
 
-  async setStagecraftBaseUrl(baseUrl: string): Promise<void> {
-    await apiCall<null>("set_stagecraft_base_url", { baseUrl });
+  async setStatecraftBaseUrl(baseUrl: string): Promise<void> {
+    await apiCall<null>("set_statecraft_base_url", { baseUrl });
   },
 
   /**
@@ -1028,7 +1028,7 @@ export const api = {
   },
 
   /**
-   * Publishes a local agent to the stagecraft workspace as a draft (spec 111 Phase 6).
+   * Publishes a local agent to the statecraft workspace as a draft (spec 111 Phase 6).
    * Promoting the draft to published still flows through the RBAC-gated web UI.
    */
   async publishAgentToWorkspace(id: number): Promise<PublishLocalAgentResult> {
@@ -2400,8 +2400,8 @@ export const api = {
    * on sign-in so a session that burned its refresh budget while expired is
    * recoverable by re-logging-in. Errors if the integration is disabled.
    */
-  async reconnectStagecraftDuplex(): Promise<void> {
-    await apiCall<null>("reconnect_stagecraft_duplex");
+  async reconnectStatecraftDuplex(): Promise<void> {
+    await apiCall<null>("reconnect_statecraft_duplex");
   },
 
   /**
@@ -2451,11 +2451,11 @@ export const api = {
 
   // ── Factory Pipeline (076) ───────────────────────────────────────────
 
-  async startFactoryPipeline(projectPath: string, adapterName: string, businessDocPaths: string[], stagecraftProjectId?: string, processName?: string): Promise<{ run_id: string }> {
-    return await apiCall<{ run_id: string }>("start_factory_pipeline", { projectPath, adapterName, businessDocPaths, stagecraftProjectId, processName });
+  async startFactoryPipeline(projectPath: string, adapterName: string, businessDocPaths: string[], statecraftProjectId?: string, processName?: string): Promise<{ run_id: string }> {
+    return await apiCall<{ run_id: string }>("start_factory_pipeline", { projectPath, adapterName, businessDocPaths, statecraftProjectId, processName });
   },
 
-  /** Spec 076 — adapters resolved from the stagecraft platform (`GET
+  /** Spec 076 — adapters resolved from the statecraft platform (`GET
    *  /api/factory/adapters`) so the desktop's adapter picker reflects what
    *  the org actually has rather than a free-typed/hardcoded name. */
   async listFactoryAdapters(): Promise<{ name: string; version: string }[]> {
@@ -2490,13 +2490,13 @@ export const api = {
     runId: string,
     projectPath: string,
     adapterName: string,
-    stagecraftProjectId?: string
+    statecraftProjectId?: string
   ): Promise<void> {
     await apiCall<void>("resume_factory_pipeline", {
       runId,
       projectPath,
       adapterName,
-      stagecraftProjectId,
+      statecraftProjectId,
     });
   },
 

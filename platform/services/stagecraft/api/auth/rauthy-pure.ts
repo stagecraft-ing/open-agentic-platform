@@ -7,7 +7,7 @@
  */
 
 /**
- * Stagecraft-visible claim shape. Rauthy emits custom scope attributes under
+ * Statecraft-visible claim shape. Rauthy emits custom scope attributes under
  * `payload.custom.*`; legacy top-level layouts are still accepted for the
  * spec 106 cutover window.
  *
@@ -78,7 +78,7 @@ export type PlatformRole = "owner" | "admin" | "member";
  * Read the Rauthy-managed `platform_role` attribute from a raw JWT payload.
  *
  * Rauthy is the authoritative store for role elevation: an admin edits the
- * `platform_role` user attribute in the Rauthy UI, and stagecraft respects
+ * `platform_role` user attribute in the Rauthy UI, and statecraft respects
  * that value on each login instead of hardcoding "member" for every resolved
  * org. Returns null when the claim is absent or set to an unrecognised value
  * (e.g. the first login before `setRauthyUserAttributes` has populated it).

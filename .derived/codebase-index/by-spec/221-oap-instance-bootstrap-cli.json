@@ -18,7 +18,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/charts/stagecraft/values-hetzner.yaml",
+        "path": "platform/charts/statecraft/values-hetzner.yaml",
         "source": "spec-edge"
       },
       {
@@ -26,11 +26,11 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/github/webhook.ts",
+        "path": "platform/services/statecraft/api/github/webhook.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/scripts/seed-rauthy.mjs",
+        "path": "platform/services/statecraft/scripts/seed-rauthy.mjs",
         "source": "spec-edge"
       },
       {
@@ -86,40 +86,40 @@
       {
         "locations": [
           {
-            "file": "platform/charts/stagecraft/values-hetzner.yaml"
+            "file": "platform/charts/statecraft/values-hetzner.yaml"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/charts/stagecraft/values-hetzner.yaml"
+          "path": "platform/charts/statecraft/values-hetzner.yaml"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/github/webhook.ts"
+            "file": "platform/services/statecraft/api/github/webhook.ts"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/github/webhook.ts"
+          "path": "platform/services/statecraft/api/github/webhook.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/scripts/seed-rauthy.mjs"
+            "file": "platform/services/statecraft/scripts/seed-rauthy.mjs"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/scripts/seed-rauthy.mjs"
+          "path": "platform/services/statecraft/scripts/seed-rauthy.mjs"
         }
       },
       {

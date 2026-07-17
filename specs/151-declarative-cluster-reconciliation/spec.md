@@ -16,7 +16,7 @@ kind: platform
 domain: platform
 risk: high
 depends_on:
-  - "087-unified-workspace-architecture"  # unified-workspace-architecture (stagecraft is the operator surface; this defines how its operator actions reach the cluster)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (statecraft is the operator surface; this defines how its operator actions reach the cluster)
   - "143-presigned-upload-public-endpoint"  # presigned-upload-public-endpoint (FU-008 names the setup.sh-monolith seam this spec retires)
 code_aliases: ["GITOPS_RECONCILIATION"]
 establishes:
@@ -86,11 +86,11 @@ summary: >
 Certificate-manifest annotation change, neither reached the cluster on
 merge — the canonical path is "re-run setup.sh," a monolith that interleaves
 cluster create, helm installs, kubectl creates, secret materialisation,
-stagecraft rollouts, and GitHub Actions sync. Re-running it has known
-side effects (FU-009 CronJob clobber, force-roll of stagecraft-api).
+statecraft rollouts, and GitHub Actions sync. Re-running it has known
+side effects (FU-009 CronJob clobber, force-roll of statecraft-api).
 Spec 143 §12 names the setup.sh-monolith seam pattern this spec retires.
 The active follow-ups on that pattern — FU-008
-(`stagecraft-knowledge-sweeper-credentials`) and FU-003 (which covers
+(`statecraft-knowledge-sweeper-credentials`) and FU-003 (which covers
 three sibling sweepers: `extraction-staleness-sweeper`,
 `connector-sync-scheduler`, `factory-runs-staleness-sweeper` per spec
 143 §12) — all retire through this spec's M-002 contract for declarative
@@ -105,7 +105,7 @@ continuously. PR-merge → cluster-converged becomes the loop, not
 
 Application image deploys today flow through CD as `helm upgrade --install
 --set image.tag=sha-${SHA}` invoked directly against the cluster
-(`cd-stagecraft.yml:117-118`, `cd-deployd-api-rs.yml:110-111`). That
+(`cd-statecraft.yml:117-118`, `cd-deployd-api-rs.yml:110-111`). That
 mechanism is incompatible with Flux owning the HelmRelease — two helm
 clients writing to the same release would dual-writer-fight. So this spec
 not only adds Flux for cluster declarative state, it also migrates the
@@ -134,7 +134,7 @@ reconciliation. The git ref is the cluster's intended state.
   Certificate, and SOPS-encrypted Secret manifests. The complete declared
   cluster state is readable from this tree at any git ref.
 - Migrate existing cluster-side concerns (reflector — new; cert-manager —
-  existing; ingress-nginx — existing; rauthy chart — existing; stagecraft
+  existing; ingress-nginx — existing; rauthy chart — existing; statecraft
   chart — existing; deployd-api chart — existing; tenant-hello chart
   hosting; per-purpose Secrets) into the gitops tree, one PR per
   concern, with `setup.sh` shrinking as each lands.
@@ -142,14 +142,14 @@ reconciliation. The git ref is the cluster's intended state.
   M2M credentials. The cluster holds the SOPS age private key; git holds
   encrypted ciphertext only.
 - Drift detection: Flux events + Prometheus metrics surface drift.
-  Stagecraft UI surfacing of drift is a follow-up, not this spec.
+  Statecraft UI surfacing of drift is a follow-up, not this spec.
 - Disaster recovery: re-bootstrapping Flux against the same git ref
   reconverges the cluster to declared state.
 
 **Explicitly out of scope:**
 
 - Application image rollouts (stays on the existing per-service CD
-  workflows: `cd-stagecraft.yml`, `cd-deployd-api-rs.yml`,
+  workflows: `cd-statecraft.yml`, `cd-deployd-api-rs.yml`,
   `cd-tenant-hello.yml`). Image tags do not flow through git.
   Flux Image Reflector / Image Update Automation may be adopted later
   as a separate spec; this one keeps the image-push → rollout-restart
@@ -160,7 +160,7 @@ reconciliation. The git ref is the cluster's intended state.
 - Multi-cluster federation (one Flux instance per cluster; the gitops
   tree supports Kustomize overlays for per-cluster differences but each
   cluster pulls independently).
-- Stagecraft UI for editing cluster state. Operators still author YAML
+- Statecraft UI for editing cluster state. Operators still author YAML
   in PRs; the PR review is the governance surface.
 - Replacing terraform for cluster creation (terraform stays the entry
   point; Flux takes over after `kubectl` is reachable).
@@ -174,15 +174,15 @@ reconciliation. The git ref is the cluster's intended state.
   cluster create via `hcloud-cli` + `kubeone`, helm installs (cert-manager,
   ingress-nginx, rauthy, reflector as of #157), `kubectl create secret`
   calls (rauthy-secrets, deployd-api-secrets, per-purpose M2M creds),
-  stagecraft-api rollout, deployd-api helm-managed rollout, GitHub Actions
+  statecraft-api rollout, deployd-api helm-managed rollout, GitHub Actions
   secret sync. One sequential, partially-idempotent script.
 - `platform/infra/hetzner/post-create.sh` (called by setup.sh) carries
   additional concerns including the FU-009 CronJob clobber at lines
   419-422 that fires on every re-run.
 - Three application-level CD workflows handle image rollouts cleanly:
-  `cd-stagecraft.yml`, `cd-deployd-api-rs.yml`, `cd-tenant-hello.yml`.
+  `cd-statecraft.yml`, `cd-deployd-api-rs.yml`, `cd-tenant-hello.yml`.
   These work and are not the seam this spec addresses.
-- `platform/charts/` holds Helm charts for stagecraft, deployd-api,
+- `platform/charts/` holds Helm charts for statecraft, deployd-api,
   rauthy, tenant-hello, oauth2-proxy-gate. They are referenced from
   setup.sh by helm CLI invocation.
 - `platform/infra/hetzner/manifests/` holds raw Kubernetes manifests
@@ -221,7 +221,7 @@ paths. The path is determined by the kind of mutation, not by operator
 preference.
 
 - **M-001 (application image rollouts):** Image tag bumps for
-  `stagecraft-api`, `deployd-api`, `tenant-hello`, and any future
+  `statecraft-api`, `deployd-api`, `tenant-hello`, and any future
   in-tree application service MUST flow through the per-service CD
   workflow, which (a) builds and pushes the image to GHCR with the
   commit-SHA tag, then (b) commits the new `image.tag` value to the
@@ -308,7 +308,7 @@ Constraints on the contract:
   the gitops tree before this spec closes.
 - **FR-004:** Application image rollouts MUST migrate from the current
   imperative `helm upgrade --install --set image.tag=...` flow (which
-  CD invokes directly against the cluster — see `cd-stagecraft.yml:117-118`
+  CD invokes directly against the cluster — see `cd-statecraft.yml:117-118`
   and `cd-deployd-api-rs.yml:110-111`) to a git-write flow: CD commits
   the new `image.tag` value to the per-service HelmRelease values file
   under `platform/gitops/clusters/<cluster>/` and pushes to main. The
@@ -331,7 +331,7 @@ Constraints on the contract:
   after Phase 5 lands.
 - **FR-006:** Flux drift detection MUST emit cluster events for every
   reconciliation; Prometheus metrics MUST expose reconciliation success
-  rate, drift count, and last-reconcile-time per resource. Stagecraft
+  rate, drift count, and last-reconcile-time per resource. Statecraft
   surfacing of these signals is a follow-up, not this spec.
 - **FR-007:** Disaster recovery MUST be expressible as a runbook of:
   recreate cluster via terraform/setup.sh → `flux bootstrap` against
@@ -370,7 +370,7 @@ Constraints on the contract:
   cleanup-ownership clause ensures the migration debt is bounded in time.
 - **FR-009:** Migration of existing cluster state into gitops MUST be
   incremental — one PR per concern (cert-manager, ingress-nginx, rauthy,
-  stagecraft chart, deployd-api chart, tenant-hello chart, per-purpose
+  statecraft chart, deployd-api chart, tenant-hello chart, per-purpose
   Secrets). Each PR MUST be independently mergeable and the cluster
   MUST remain operational after each merge.
 - **FR-010:** v1 lands one cluster (`platform/gitops/clusters/hetzner-prod/`)
@@ -575,9 +575,9 @@ Constraints on the contract:
   Migrating tenant rendering to Flux is a different conversation.
 - **Replacing terraform** — cluster creation stays on terraform / hcloud-cli
   / kubeone. Flux installs after `kubectl` is reachable.
-- **Stagecraft UI for declared state** — operators continue to edit YAML
+- **Statecraft UI for declared state** — operators continue to edit YAML
   in PRs; PR review is the governance surface. A future spec may add a
-  stagecraft view over the gitops tree, but authoring stays in git.
+  statecraft view over the gitops tree, but authoring stays in git.
 - **Cross-region disaster recovery** — single-region per cluster for v1.
   Multi-region is a different problem class.
 - **Multi-tenant Flux** — one Flux instance per cluster with cluster-admin
@@ -664,13 +664,13 @@ not decisions.
 1. **Reconciliation tool: Flux v2 vs Argo CD vs other?** Recommend
    **Flux v2** for one constitutional reason and a small set of
    tiebreakers. *Constitutional reason:* Spec 087 establishes
-   stagecraft as the platform's operator surface. Argo CD ships a
+   statecraft as the platform's operator surface. Argo CD ships a
    first-class operator dashboard that would create a competing
    operator surface for cluster state — operators would face two
-   surfaces (stagecraft for tenant + governance, Argo for cluster)
+   surfaces (statecraft for tenant + governance, Argo for cluster)
    instead of one. Flux v2 has no operator UI; its interface is
    controller-set + cluster events + Prometheus metrics, leaving
-   stagecraft as the single operator surface per spec 087.
+   statecraft as the single operator surface per spec 087.
    *Tiebreakers:* lighter-weight runtime, Helm-native (HelmRelease
    is a first-class CRD), no dashboard server to operate, aligns
    with our minimal-binary aesthetic. Other tools (Rancher Fleet,
@@ -702,7 +702,7 @@ not decisions.
    image tags to the gitops tree, Flux reconciles, helm-controller rolls
    pods. CD never touches the cluster.** Concretely:
    - **Current CD flow (to be retired per service):**
-     `cd-stagecraft.yml:117-118` and `cd-deployd-api-rs.yml:110-111`
+     `cd-statecraft.yml:117-118` and `cd-deployd-api-rs.yml:110-111`
      invoke `helm upgrade --install --set image.tag=sha-${SHA}`
      directly against the cluster. That is a second helm client; under
      Flux this is the dual-writer fight.
@@ -740,7 +740,7 @@ not decisions.
      # HelmRelease's `spec.values` block. Charts without this file are
      # NOT CD-managed (operator pins tags manually).
      images:
-       - container: stagecraft               # required: container name in Deployment template
+       - container: statecraft               # required: container name in Deployment template
          values_path: image.tag              # required: dotted YAML key CD writes
          repository_path: image.repository   # informational; CD never bumps repository
          init: false                         # optional, default false; marks init containers
@@ -884,16 +884,16 @@ not decisions.
    mechanical — kustomize-compatible file naming, single
    `Kustomization` per cluster, no implicit dependencies between
    manifest files — but the extraction itself is deferred.
-7. **Drift surfacing: cluster events + Prometheus only vs stagecraft UI
+7. **Drift surfacing: cluster events + Prometheus only vs statecraft UI
    vs Slack/PagerDuty?** Recommend **cluster events + Prometheus for v1**.
    These are the Flux defaults and require no additional integration.
-   Stagecraft UI surfacing is a follow-up that uses the same Prometheus
+   Statecraft UI surfacing is a follow-up that uses the same Prometheus
    metrics; Slack/PagerDuty hooks into the existing notification stack
    are also a follow-up. Don't gate this spec on observability ergonomics.
 8. **Migration ordering: which existing concerns migrate first vs last?**
    Recommend **reverse-risk ordering**: lowest-stakes first (reflector,
    which is new and standalone), then operational helpers (cert-manager,
-   ingress-nginx), then identity (rauthy), then app-charts (stagecraft,
+   ingress-nginx), then identity (rauthy), then app-charts (statecraft,
    deployd-api), then per-purpose Secrets (highest stakes, gated on
    SOPS path being solid). Each migration is one PR; setup.sh shrinks
    monotonically.
@@ -1069,13 +1069,13 @@ not decisions.
 
 ## Cross-references
 
-- **Spec 087 (unified-workspace-architecture):** Stagecraft is the
-  operator surface; this spec defines how stagecraft's operator
+- **Spec 087 (unified-workspace-architecture):** Statecraft is the
+  operator surface; this spec defines how statecraft's operator
   actions (and PRs from any author) reach the cluster.
 - **Spec 143 (presigned-upload-public-endpoint) §12 FU-008 + FU-003:**
   This spec is the structural fix that retires the setup.sh-monolith
   seam pattern. FU-008 names the pattern explicitly
-  (`stagecraft-knowledge-sweeper-credentials`); FU-003 names three
+  (`statecraft-knowledge-sweeper-credentials`); FU-003 names three
   sibling sweepers that inherit the same pattern
   (`extraction-staleness-sweeper`, `connector-sync-scheduler`,
   `factory-runs-staleness-sweeper`, per spec 143 §12). SC-006 here
@@ -1266,7 +1266,7 @@ entry per the same pattern as the prep section above.
   '!node-role.kubernetes.io/master' --timeout=10m` per dr-baseline.md
   §F5 (k3s master's `CriticalAddonsOnly` taint blocks Flux controller
   scheduling — gating on a worker node Ready is the load-bearing wait).
-  `flux bootstrap github --owner=stagecraft-ing
+  `flux bootstrap github --owner=statecrafting
   --repo=open-agentic-platform --branch=main
   --path=platform/gitops/clusters/hetzner-prod --personal=false
   --network-policy=true` invoked between cluster creation and
@@ -1327,10 +1327,10 @@ points at.
   restored. See agent memory `hetzner-k3s-upgrade-comparator` for
   the durable note; recorded in tasks.md under T-007 (B0).
 - **Flux v2.8.7 bootstrap** (T-007 (B)): `flux bootstrap github
-  --owner=stagecraft-ing --repo=open-agentic-platform --branch=main
+  --owner=statecrafting --repo=open-agentic-platform --branch=main
   --path=platform/gitops/clusters/hetzner-prod --personal=false
   --network-policy=true`. First attempt failed 422 at deploy-key
-  creation — `stagecraft-ing` org default-disables deploy keys
+  creation — `statecrafting` org default-disables deploy keys
   (dr-baseline.md §F6). Org admin enabled the toggle (Settings →
   Repository policies → Deploy keys); re-run succeeded idempotently
   on the already-pushed components. The bootstrap pushed two
@@ -1359,7 +1359,7 @@ points at.
 - F4 amended in dr-baseline.md — the pre-check is a hard gate
   inside `flux bootstrap`, not a soft warning. K3s in-place upgrade
   is a REQUIRED operator step; sequenced as T-007 (B0) in tasks.md.
-- F6 added to dr-baseline.md — `stagecraft-ing` org default-disables
+- F6 added to dr-baseline.md — `statecrafting` org default-disables
   deploy keys; first-time bootstrap fails 422 unless the org-level
   toggle is enabled (path taken 2026-05-18) or `--token-auth` is
   used (in-cluster long-lived PAT trade-off).
@@ -1389,14 +1389,14 @@ the GitRepository to refetch immediately).
   Secret objects and registers no CRDs of its own.
 - `platform/gitops/clusters/hetzner-prod/manifests/tenants-wildcard-certificate.yaml`
   (T-009) — `cert-manager.io/v1` Certificate covering
-  `*.tenants.stagecraft.ing` + the apex `tenants.stagecraft.ing`.
+  `*.tenants.statecraft.ing` + the apex `tenants.statecraft.ing`.
   ECDSA P-256, 90-day duration, 15-day renewal window.
   `spec.secretTemplate.annotations` carries reflector
   `reflection-allowed` + `reflection-auto-enabled` +
   `reflection-auto-namespaces: ".+"`; cert-manager propagates
   those onto the generated `tenants-wildcard-tls` Secret;
   reflector clones the Secret into every namespace. Domain is
-  hardcoded (`stagecraft.ing`) because the tree under
+  hardcoded (`statecraft.ing`) because the tree under
   `clusters/hetzner-prod/` is cluster-specific by convention;
   multi-cluster parity (if/when needed) refactors to Flux's
   `postBuild.substituteFrom` ConfigMap pattern.
@@ -1493,7 +1493,7 @@ within ~90s of GitRepository refresh.
   present in `cert-manager` (source, AGE 20h) + cloned by reflector
   into 10 additional namespaces (`default`, `deployd-system`,
   `flux-system`, `ingress-nginx`, `kube-node-lease`, `kube-public`,
-  `kube-system`, `rauthy-system`, `stagecraft-system`,
+  `kube-system`, `rauthy-system`, `statecraft-system`,
   `system-upgrade`). Clones AGE ~107s — refreshed by reflector when
   the source's reflector annotations were re-asserted by Flux's
   apply. Catch-all `reflection-auto-namespaces: ".+"` regex
@@ -1582,7 +1582,7 @@ downtime, no certificate re-issuance, no ACME re-registration.
   `cert-manager-webhook-hetzner` install + the dormant
   `letsencrypt-dns01` ClusterIssuer heredoc, framing them as
   "fallback for a future DNS migration." That framing was wrong:
-  Hetzner DNS holds no zone for `stagecraft.ing`, authoritative
+  Hetzner DNS holds no zone for `statecraft.ing`, authoritative
   nameservers are at Cloudflare (`leo.ns.cloudflare.com` /
   `rosalie.ns.cloudflare.com`), and the DNS-01 validation chain
   would fail twice over (no zone for the webhook to write into;
@@ -1627,7 +1627,7 @@ state stabilises:
 - `kubectl -n cert-manager get certificate tenants-wildcard` → still
   READY=True, AGE unchanged (no re-issuance — Phase 2's cutover
   pattern repeated).
-- Existing platform ingress Certificates (stagecraft, deployd,
+- Existing platform ingress Certificates (statecraft, deployd,
   rauthy, minio) remain Ready under `letsencrypt-prod`; no
   renewals triggered by the cutover.
 - `grep -E 'helm upgrade --install (cert-manager|ingress-nginx)\b|kind: ClusterIssuer' platform/infra/hetzner/post-create.sh`
@@ -1652,12 +1652,12 @@ places:
 1. The webhook would call Hetzner DNS Console API
    (`https://dns.hetzner.com/api/v1`) to write the
    `_acme-challenge.<host>` TXT record — but Hetzner DNS holds
-   **no zone** for `stagecraft.ing` (verified empirically:
+   **no zone** for `statecraft.ing` (verified empirically:
    Hetzner Console → DNS shows "You don't have any DNS zones
    yet"). The API call would return zone-not-found.
 2. Even if the zone existed and the TXT record were written, Let's
    Encrypt's validator queries the **authoritative** nameservers
-   for `stagecraft.ing` — which are `leo.ns.cloudflare.com` and
+   for `statecraft.ing` — which are `leo.ns.cloudflare.com` and
    `rosalie.ns.cloudflare.com` per the registry's NS records. The
    TXT record written into a non-authoritative provider is
    invisible to the validator; the challenge times out.
@@ -1665,7 +1665,7 @@ places:
 The dormant code was speculative copy-paste from a Hetzner-only
 tutorial that pre-dated the project's commitment to Cloudflare-as-
 authoritative-DNS. Resurrection path is real but expensive: revert
-the Phase-3-follow-up strikes AND migrate `stagecraft.ing`'s
+the Phase-3-follow-up strikes AND migrate `statecraft.ing`'s
 registrar NS records from Cloudflare to Hetzner. The migration is
 out of scope for any current plan; capturing it here as the
 explicit "resurrection cost" rather than implicit "fallback
@@ -1752,10 +1752,10 @@ platform Certificate untouched.
 
   | Certificate | Namespace | AGE | Status |
   |---|---|---|---|
-  | `stagecraft-tls` | stagecraft-system | 39d | Ready |
+  | `statecraft-tls` | statecraft-system | 39d | Ready |
   | `rauthy-tls` | rauthy-system | 40d | Ready |
   | `deployd-api-tls` | deployd-system | 29d | Ready |
-  | `minio-tls` | stagecraft-system | 10d | Ready |
+  | `minio-tls` | statecraft-system | 10d | Ready |
   | `tenants-wildcard` | cert-manager | 22h | Ready |
 - **Hetzner DNS webhook removed:** `kubectl -n cert-manager get
   pods` no longer lists `cert-manager-webhook-hetzner-*`. No
@@ -1797,7 +1797,7 @@ didn't change; helm just recorded the upgrade transaction.
 
 ### Phase 4 — rauthy chart to Flux (T-019/T-020/T-021)
 
-Identity-critical: rauthy is the OIDC identity provider for stagecraft,
+Identity-critical: rauthy is the OIDC identity provider for statecraft,
 deployd-api, and every tenant magic-link / federated-login flow. The
 cutover lands in a maintenance window per T-020. The Phase 2 + Phase 3
 zero-downtime adoption pattern (helm-controller assumes ownership of an
@@ -1841,7 +1841,7 @@ plus a conditional `--set smtp.enabled=true` when SMTP_USERNAME was in
 DOMAIN-pinned overrides directly under `spec.values` (the chart's own
 `values.yaml` is helm's default, so it is loaded automatically by
 helm-controller and doesn't need to be re-listed). The Hetzner-prod
-domain (`stagecraft.ing`) is hardcoded for the same reason
+domain (`statecraft.ing`) is hardcoded for the same reason
 `tenants-wildcard-certificate.yaml` hardcodes it: the manifest lives
 under `clusters/hetzner-prod/`, the gitops-tree convention is
 cluster-specific. `values-hetzner.yaml` is deleted in the same PR
@@ -1866,7 +1866,7 @@ this PR:
 - `setup.sh` line ~339-348: the `helm upgrade --install rauthy ...`
   block. The `RAUTHY_SMTP_HELM_ARGS` plumbing retires alongside.
 - `platform/Makefile` `deploy-hetzner` target: the parallel
-  `helm upgrade --install rauthy ...` block (stagecraft + deployd-api
+  `helm upgrade --install rauthy ...` block (statecraft + deployd-api
   blocks stay imperative until spec 152's migration).
 
 Both paths would dual-writer-fight with Flux's HelmRelease ownership
@@ -1886,11 +1886,11 @@ to rauthy.
    `rauthy` release in `rauthy-system`, and adopts it in-place. Expect
    `helm list -A | grep rauthy` to show `rauthy.v2` (Phase 3 adoption
    pattern).
-4. Validate end-to-end: load `https://auth.stagecraft.ing/auth/v1/`
-   (admin login form), trigger a magic-link from the stagecraft
+4. Validate end-to-end: load `https://auth.statecraft.ing/auth/v1/`
+   (admin login form), trigger a magic-link from the statecraft
    sign-in flow (exercises the rauthy-smtp-secret mount + SMTP
    submission path), confirm the OIDC token-exchange round-trip from
-   stagecraft completes.
+   statecraft completes.
 
 **Phase 4 done-when:** when the next flux-system Kustomization
 reconciliation cycle picks up the new gitops file and the cluster
@@ -1904,7 +1904,7 @@ state stabilises:
   identical to the pre-Phase-4 imperative-apply state).
 - `kubectl -n rauthy-system get certificate rauthy-tls` → still
   READY=True, AGE unchanged.
-- OIDC login flow (stagecraft → rauthy → callback → stagecraft) still
+- OIDC login flow (statecraft → rauthy → callback → statecraft) still
   works end-to-end; magic-link flow still delivers email.
 - `grep -nE 'helm upgrade --install rauthy\b' platform/infra/hetzner/setup.sh platform/Makefile`
   → no matches (only comment hits explaining the retirement).
@@ -1961,7 +1961,7 @@ window), Certificate AGE 40d preserved, Ingress AGE 40d preserved.
 - **Certificate preserved** (`kubectl -n rauthy-system get cert`):
   - `rauthy-tls`: READY=True, SECRET `rauthy-tls`, AGE 40d.
 - **Ingress preserved** (`kubectl -n rauthy-system get ingress`):
-  - `rauthy`: CLASS=nginx, HOST `auth.stagecraft.ing`, AGE 40d.
+  - `rauthy`: CLASS=nginx, HOST `auth.statecraft.ing`, AGE 40d.
 - **Secrets present** (cross-namespace dependencies the HelmRelease
   mounts): `rauthy-secrets` (AGE 40d, 5 keys), `rauthy-smtp-secret`
   (AGE 25h, 8 keys). Both stay imperative until spec 153 SOPS-
@@ -1972,11 +1972,11 @@ rauthy -n rauthy-system`):
 
 ```
 bootstrap:
-  adminEmail: admin@stagecraft.ing
+  adminEmail: admin@statecraft.ing
 ingress:
-  host: auth.stagecraft.ing
+  host: auth.statecraft.ing
 oidc:
-  issuer: https://auth.stagecraft.ing/auth/v1/
+  issuer: https://auth.statecraft.ing/auth/v1/
 persistence:
   size: 2Gi
 proxyMode: true
@@ -1992,7 +1992,7 @@ trustedProxies:
 
 **End-to-end validation:**
 
-- `curl -sS -o /dev/null -w "%{http_code}" https://auth.stagecraft.ing/auth/v1/health`
+- `curl -sS -o /dev/null -w "%{http_code}" https://auth.statecraft.ing/auth/v1/health`
   → **200**. The health endpoint responds through the full chain:
   Cloudflare edge → Hetzner node hostPort → ingress-nginx (Phase 3
   Flux-reconciled) → rauthy Service → rauthy-0 pod. Every link in

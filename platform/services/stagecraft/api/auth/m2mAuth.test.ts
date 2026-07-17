@@ -66,7 +66,7 @@ describe("validateM2mJwt — issuer via OIDC discovery (FU-011 Finding 1)", () =
 
     const token = signJwt(privateKey, {
       iss: "https://rauthy.test/auth/v1/",
-      sub: "stagecraft-knowledge-sweeper",
+      sub: "statecraft-knowledge-sweeper",
       exp: Math.floor(Date.now() / 1000) + 1800,
       scope: "platform:knowledge:sweep",
     });
@@ -86,7 +86,7 @@ describe("validateM2mJwt — issuer via OIDC discovery (FU-011 Finding 1)", () =
 
     const token = signJwt(privateKey, {
       iss: "https://rauthy.test/auth/v1",
-      sub: "stagecraft-knowledge-sweeper",
+      sub: "statecraft-knowledge-sweeper",
       exp: Math.floor(Date.now() / 1000) + 1800,
       scope: "platform:knowledge:sweep",
     });
@@ -123,7 +123,7 @@ describe("validateM2mJwt — issuer via OIDC discovery (FU-011 Finding 1)", () =
     });
 
     const token = signJwt(privateKey, {
-      sub: "stagecraft-knowledge-sweeper",
+      sub: "statecraft-knowledge-sweeper",
       exp: Math.floor(Date.now() / 1000) + 1800,
       scope: "platform:knowledge:sweep",
     });
@@ -163,7 +163,7 @@ describe("validateM2mJwt — issuer via OIDC discovery (FU-011 Finding 1)", () =
 
     const token = signJwt(privateKey, {
       iss: "https://rauthy.test/auth/v1/",
-      sub: "stagecraft-knowledge-sweeper",
+      sub: "statecraft-knowledge-sweeper",
       exp: Math.floor(Date.now() / 1000) - 60, // expired 60s ago
       scope: "platform:knowledge:sweep",
     });

@@ -8,87 +8,87 @@
     ],
     "implementingPaths": [
       {
-        "path": "platform/services/stagecraft/api/knowledge/auditActions.ts",
+        "path": "platform/services/statecraft/api/knowledge/auditActions.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractionCore.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractionCore.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractionEvents.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractionEvents.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractionOutput.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractionOutput.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractionPolicy.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractionPolicy.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractionWorker.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractionWorker.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractors/agent-base.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractors/agent-base.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractors/agent-cost-helpers.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractors/agent-cost-helpers.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractors/agent-image-vision.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractors/agent-image-vision.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractors/agent-pdf-vision.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractors/agent-pdf-vision.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractors/deterministic-docx.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractors/deterministic-docx.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractors/deterministic-pdf-embedded.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractors/deterministic-pdf-embedded.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractors/deterministic-text.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractors/deterministic-text.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractors/dispatch.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractors/dispatch.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractors/index.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractors/index.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractors/types.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractors/types.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/knowledge.ts",
+        "path": "platform/services/statecraft/api/knowledge/knowledge.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/magic.ts",
+        "path": "platform/services/statecraft/api/knowledge/magic.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/prompts.ts",
+        "path": "platform/services/statecraft/api/knowledge/prompts.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.knowledge.tsx",
         "source": "spec-edge"
       }
     ],
@@ -96,274 +96,274 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/auditActions.ts"
+            "file": "platform/services/statecraft/api/knowledge/auditActions.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/auditActions.ts"
+          "path": "platform/services/statecraft/api/knowledge/auditActions.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractionCore.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractionCore.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractionCore.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractionCore.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractionEvents.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractionEvents.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractionEvents.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractionEvents.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractionOutput.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractionOutput.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractionOutput.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractionOutput.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractionPolicy.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractionPolicy.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractionPolicy.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractionPolicy.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractionWorker.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractionWorker.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractionWorker.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractionWorker.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractors/agent-base.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractors/agent-base.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractors/agent-base.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractors/agent-base.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractors/agent-cost-helpers.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractors/agent-cost-helpers.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractors/agent-cost-helpers.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractors/agent-cost-helpers.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractors/agent-image-vision.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractors/agent-image-vision.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractors/agent-image-vision.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractors/agent-image-vision.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractors/agent-pdf-vision.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractors/agent-pdf-vision.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractors/agent-pdf-vision.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractors/agent-pdf-vision.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractors/deterministic-docx.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractors/deterministic-docx.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractors/deterministic-docx.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractors/deterministic-docx.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractors/deterministic-pdf-embedded.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractors/deterministic-pdf-embedded.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractors/deterministic-pdf-embedded.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractors/deterministic-pdf-embedded.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractors/deterministic-text.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractors/deterministic-text.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractors/deterministic-text.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractors/deterministic-text.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractors/dispatch.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractors/dispatch.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractors/dispatch.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractors/dispatch.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractors/index.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractors/index.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractors/index.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractors/index.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractors/types.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractors/types.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractors/types.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractors/types.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/knowledge.ts"
+            "file": "platform/services/statecraft/api/knowledge/knowledge.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/knowledge.ts"
+          "path": "platform/services/statecraft/api/knowledge/knowledge.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/magic.ts"
+            "file": "platform/services/statecraft/api/knowledge/magic.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/magic.ts"
+          "path": "platform/services/statecraft/api/knowledge/magic.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/prompts.ts"
+            "file": "platform/services/statecraft/api/knowledge/prompts.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/prompts.ts"
+          "path": "platform/services/statecraft/api/knowledge/prompts.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app.project.$projectId.knowledge.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.knowledge.tsx"
         }
       }
     ],

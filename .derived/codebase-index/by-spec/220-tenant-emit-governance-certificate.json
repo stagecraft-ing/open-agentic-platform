@@ -42,35 +42,35 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/create.ts",
+        "path": "platform/services/statecraft/api/projects/create.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/regenerateProducedClient.test.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/regenerateProducedClient.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/templateCache.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.test.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/tenantSigningKey.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/tenantSigningKey.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/types.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/types.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/package.json",
+        "path": "platform/services/statecraft/package.json",
         "source": "spec-edge"
       },
       {
@@ -90,40 +90,40 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/regenerateProducedClient.test.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/regenerateProducedClient.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/regenerateProducedClient.test.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/regenerateProducedClient.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.test.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/tenantSigningKey.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.test.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/tenantSigningKey.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/tenantSigningKey.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/tenantSigningKey.ts"
         }
       },
       {
@@ -181,66 +181,66 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/create.ts"
+            "file": "platform/services/statecraft/api/projects/create.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/create.ts"
+          "path": "platform/services/statecraft/api/projects/create.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/templateCache.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/templateCache.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/types.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/types.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/types.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/types.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/package.json"
+            "file": "platform/services/statecraft/package.json"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/package.json"
+          "path": "platform/services/statecraft/package.json"
         }
       },
       {

@@ -88,7 +88,7 @@
         "role": "target-renderer",
         "unit": {
           "kind": "file",
-          "path": "specs/163-stagecraft-requirements-view/spec.md"
+          "path": "specs/163-statecraft-requirements-view/spec.md"
         }
       }
     ],
@@ -98,7 +98,7 @@
       "1. Problem",
       "2. Decision",
       "2.1 Emission contract (producer: OPC decomposition pipeline)",
-      "2.2 Rendering contract (consumer: stagecraft Requirements view)",
+      "2.2 Rendering contract (consumer: statecraft Requirements view)",
       "2.3 Round-trip property",
       "3. Functional Requirements",
       "4. Success Criteria",
@@ -110,7 +110,7 @@
     ],
     "specPath": "specs/161-knowledge-requirements-provenance-emission/spec.md",
     "status": "approved",
-    "summary": "Spec 156 established the `references:` edge sibling `provenance:` field with two typed kinds (`knowledge`, `code-fingerprint`). The grammar exists; the two consumers don't. This spec specifies (a) the *emission contract* the OPC decomposition pipeline (spec 165) must follow when it lands a draft spec derived from a stagecraft knowledge item or an xray code fingerprint, and (b) the *rendering contract* the stagecraft Requirements view (spec 163) must follow when it displays such a spec to a developer reviewing the lineage. The two contracts are paired: an emitted provenance entry that the renderer cannot resolve is a drift event; a renderer that can resolve an entry that was not emitted is impossible by construction.\nSpec 161 closes the loop that AIDE-VELOCITY leaves implicit. In AIDE, a SharePoint document produces a `requirements.md` and the link between them is operational convention. In OAP, the link is a typed relationship-graph edge with two evidentiary anchors — `stagecraft://project/<uuid>/knowledge/<uuid>` or a content-addressed xray fingerprint — and both the authoring tool and the review surface honour the same typed shape.\n",
+    "summary": "Spec 156 established the `references:` edge sibling `provenance:` field with two typed kinds (`knowledge`, `code-fingerprint`). The grammar exists; the two consumers don't. This spec specifies (a) the *emission contract* the OPC decomposition pipeline (spec 165) must follow when it lands a draft spec derived from a statecraft knowledge item or an xray code fingerprint, and (b) the *rendering contract* the statecraft Requirements view (spec 163) must follow when it displays such a spec to a developer reviewing the lineage. The two contracts are paired: an emitted provenance entry that the renderer cannot resolve is a drift event; a renderer that can resolve an entry that was not emitted is impossible by construction.\nSpec 161 closes the loop that AIDE-VELOCITY leaves implicit. In AIDE, a SharePoint document produces a `requirements.md` and the link between them is operational convention. In OAP, the link is a typed relationship-graph edge with two evidentiary anchors — `statecraft://project/<uuid>/knowledge/<uuid>` or a content-addressed xray fingerprint — and both the authoring tool and the review surface honour the same typed shape.\n",
     "title": "Knowledge → Requirements provenance: emission contract and Requirements-view rendering"
   },
   "shardHash": "dfb3716503ce17cac7b7b0b71843acc90110cf292ecd419317c24eff1a883626",

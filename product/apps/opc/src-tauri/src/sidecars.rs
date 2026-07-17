@@ -119,8 +119,8 @@ async fn probe_port_alive(port: u16) -> bool {
 pub struct BootGateStatus {
     /// FR-T1: probe port announced AND TCP-connect succeeds.
     pub sidecar_alive: bool,
-    /// FR-T2: StagecraftState has a non-empty org_id AND the duplex
-    /// consumer has received `sync.hello` from stagecraft.
+    /// FR-T2: StatecraftState has a non-empty org_id AND the duplex
+    /// consumer has received `sync.hello` from statecraft.
     pub org_session_ready: bool,
     /// Convenience: announced probe port (None if unannounced).
     pub axiomregent_port: Option<u16>,
@@ -262,14 +262,14 @@ pub async fn boot_gate_status(app: AppHandle) -> Result<BootGateStatus, String> 
         None => false,
     };
 
-    // Org-session readiness combines org_id presence on StagecraftState
+    // Org-session readiness combines org_id presence on StatecraftState
     // with sync.hello receipt on the duplex consumer. Either missing → not
     // ready. The duplex consumer is only spawned when both base URL and JWT
     // are loaded (see lib.rs); before that, sync_hello_received() is false
     // and the gate stays closed — which is exactly the expected pre-login
     // boot state.
     let (org_id, has_org) = {
-        match app.try_state::<crate::commands::stagecraft_client::StagecraftState>() {
+        match app.try_state::<crate::commands::statecraft_client::StatecraftState>() {
             Some(sc_state) => match sc_state.current() {
                 Some(client) => {
                     let id = client.org_id();

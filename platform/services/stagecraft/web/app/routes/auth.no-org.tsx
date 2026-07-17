@@ -1,7 +1,7 @@
 /**
  * No connected org error page (spec 080 FR-002 step 11, Phase 4 generalized).
  * Shown when a user logs in but none of their organizations are connected
- * to Stagecraft (no GitHub App installed or no OIDC provider configured).
+ * to Statecraft (no GitHub App installed or no OIDC provider configured).
  */
 
 import { Link, useSearchParams } from "react-router";
@@ -36,16 +36,16 @@ export default function NoOrg() {
         {login ? (
           <>
             Signed in as <strong>{login}</strong>, but none of your
-            organizations are connected to Stagecraft.
+            organizations are connected to Statecraft.
           </>
         ) : (
-          "None of your organizations are connected to Stagecraft."
+          "None of your organizations are connected to Statecraft."
         )}
       </p>
       <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
         {isEnterprise
           ? "Ask your organization admin to configure the OIDC identity provider connection, then try signing in again."
-          : "Ask your organization admin to install the Stagecraft GitHub App, then try signing in again."}
+          : "Ask your organization admin to install the Statecraft GitHub App, then try signing in again."}
       </p>
       <div className="mt-6">
         <Link

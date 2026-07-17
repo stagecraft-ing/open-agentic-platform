@@ -1,4 +1,4 @@
-# Stagecraft runtime base image.
+# Statecraft runtime base image.
 #
 # Consumed by `encore build docker --base <this-image>`. Encore lays the
 # compiled main.mjs, the native runtime, and the bundled source tree
@@ -10,7 +10,7 @@
 # directly. node:22-trixie-slim (Debian 13, glibc 2.41) is the minimal
 # Debian-based image that carries node AND clears the glibc 2.39 floor
 # the produced app's pinned `@spec-spine/cli-linux-x64` requires.
-# stagecraft runs that binary in-container at scaffold time (spec 112
+# statecraft runs that binary in-container at scaffold time (spec 112
 # regenerate-index step, spec 220 AC-2); on the older node:22-slim
 # (bookworm, glibc 2.36) it aborted with `GLIBC_2.39 not found`.
 #
@@ -24,8 +24,8 @@
 #
 #   cargo build --release --manifest-path crates/Cargo.toml \
 #       -p artifact-extract -p factory-project-detect
-#   cp crates/target/release/artifact-extract       platform/services/stagecraft/
-#   cp crates/target/release/factory-project-detect platform/services/stagecraft/
+#   cp crates/target/release/artifact-extract       platform/services/statecraft/
+#   cp crates/target/release/factory-project-detect platform/services/statecraft/
 
 FROM node:22-trixie-slim
 

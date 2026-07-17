@@ -64,21 +64,21 @@
         "role": "context",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/github/webhook.ts"
+          "path": "platform/services/statecraft/api/github/webhook.ts"
         }
       },
       {
         "role": "context",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/scripts/seed-rauthy.mjs"
+          "path": "platform/services/statecraft/scripts/seed-rauthy.mjs"
         }
       },
       {
         "role": "context",
         "unit": {
           "kind": "file",
-          "path": "platform/charts/stagecraft/values-hetzner.yaml"
+          "path": "platform/charts/statecraft/values-hetzner.yaml"
         }
       },
       {

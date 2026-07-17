@@ -4,12 +4,12 @@
     "warnings": [
       {
         "code": "W-002",
-        "message": "spec '175-stagecraft-project-dashboard-observability' file unit 'docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md' does not exist",
+        "message": "spec '175-statecraft-project-dashboard-observability' file unit 'docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md' does not exist",
         "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
       },
       {
         "code": "W-002",
-        "message": "spec '175-stagecraft-project-dashboard-observability' file unit 'docs/owasp/factory/AIDE-VELOCITY-blueprint-spec.md' does not exist",
+        "message": "spec '175-statecraft-project-dashboard-observability' file unit 'docs/owasp/factory/AIDE-VELOCITY-blueprint-spec.md' does not exist",
         "path": "docs/owasp/factory/AIDE-VELOCITY-blueprint-spec.md"
       }
     ]
@@ -22,8 +22,8 @@
       "124-opc-factory-run-platform-integration",
       "127-spec-code-coupling-gate",
       "147-spec-kind-grammar",
-      "163-stagecraft-requirements-view",
-      "164-stagecraft-development-lifecycle-board",
+      "163-statecraft-requirements-view",
+      "164-statecraft-development-lifecycle-board",
       "168-per-project-governance-certificate"
     ],
     "implementingPaths": [
@@ -32,63 +32,63 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/audit/audit.ts",
+        "path": "platform/services/statecraft/api/audit/audit.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projectDashboard/dashboard.test.ts",
+        "path": "platform/services/statecraft/api/projectDashboard/dashboard.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projectDashboard/dashboard.ts",
+        "path": "platform/services/statecraft/api/projectDashboard/dashboard.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projectDashboard/dashboardHelpers.ts",
+        "path": "platform/services/statecraft/api/projectDashboard/dashboardHelpers.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projectDashboard/encore.service.ts",
+        "path": "platform/services/statecraft/api/projectDashboard/encore.service.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projectDashboard/riskAssessor.test.ts",
+        "path": "platform/services/statecraft/api/projectDashboard/riskAssessor.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projectDashboard/riskAssessor.ts",
+        "path": "platform/services/statecraft/api/projectDashboard/riskAssessor.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projectDashboard/types.ts",
+        "path": "platform/services/statecraft/api/projectDashboard/types.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/components/ProjectDashboardAudit.tsx",
+        "path": "platform/services/statecraft/web/app/components/ProjectDashboardAudit.tsx",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/components/ProjectDashboardCertificate.tsx",
+        "path": "platform/services/statecraft/web/app/components/ProjectDashboardCertificate.tsx",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/components/ProjectDashboardLifecycle.tsx",
+        "path": "platform/services/statecraft/web/app/components/ProjectDashboardLifecycle.tsx",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/components/ProjectDashboardRiskBanner.tsx",
+        "path": "platform/services/statecraft/web/app/components/ProjectDashboardRiskBanner.tsx",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/components/ProjectDashboardRuns.tsx",
+        "path": "platform/services/statecraft/web/app/components/ProjectDashboardRuns.tsx",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/lib/project-dashboard-api.server.ts",
+        "path": "platform/services/statecraft/web/app/lib/project-dashboard-api.server.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app.project.$projectId._index.tsx",
         "source": "spec-edge"
       },
       {
@@ -96,11 +96,11 @@
         "source": "spec-edge"
       },
       {
-        "path": "specs/163-stagecraft-requirements-view/spec.md",
+        "path": "specs/163-statecraft-requirements-view/spec.md",
         "source": "spec-edge"
       },
       {
-        "path": "specs/164-stagecraft-development-lifecycle-board/spec.md",
+        "path": "specs/164-statecraft-development-lifecycle-board/spec.md",
         "source": "spec-edge"
       }
     ],
@@ -108,170 +108,170 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projectDashboard/dashboard.test.ts"
+            "file": "platform/services/statecraft/api/projectDashboard/dashboard.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projectDashboard/dashboard.test.ts"
+          "path": "platform/services/statecraft/api/projectDashboard/dashboard.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projectDashboard/dashboard.ts"
+            "file": "platform/services/statecraft/api/projectDashboard/dashboard.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projectDashboard/dashboard.ts"
+          "path": "platform/services/statecraft/api/projectDashboard/dashboard.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projectDashboard/dashboardHelpers.ts"
+            "file": "platform/services/statecraft/api/projectDashboard/dashboardHelpers.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projectDashboard/dashboardHelpers.ts"
+          "path": "platform/services/statecraft/api/projectDashboard/dashboardHelpers.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projectDashboard/encore.service.ts"
+            "file": "platform/services/statecraft/api/projectDashboard/encore.service.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projectDashboard/encore.service.ts"
+          "path": "platform/services/statecraft/api/projectDashboard/encore.service.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projectDashboard/riskAssessor.test.ts"
+            "file": "platform/services/statecraft/api/projectDashboard/riskAssessor.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projectDashboard/riskAssessor.test.ts"
+          "path": "platform/services/statecraft/api/projectDashboard/riskAssessor.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projectDashboard/riskAssessor.ts"
+            "file": "platform/services/statecraft/api/projectDashboard/riskAssessor.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projectDashboard/riskAssessor.ts"
+          "path": "platform/services/statecraft/api/projectDashboard/riskAssessor.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projectDashboard/types.ts"
+            "file": "platform/services/statecraft/api/projectDashboard/types.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projectDashboard/types.ts"
+          "path": "platform/services/statecraft/api/projectDashboard/types.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/components/ProjectDashboardAudit.tsx"
+            "file": "platform/services/statecraft/web/app/components/ProjectDashboardAudit.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/components/ProjectDashboardAudit.tsx"
+          "path": "platform/services/statecraft/web/app/components/ProjectDashboardAudit.tsx"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/components/ProjectDashboardCertificate.tsx"
+            "file": "platform/services/statecraft/web/app/components/ProjectDashboardCertificate.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/components/ProjectDashboardCertificate.tsx"
+          "path": "platform/services/statecraft/web/app/components/ProjectDashboardCertificate.tsx"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/components/ProjectDashboardLifecycle.tsx"
+            "file": "platform/services/statecraft/web/app/components/ProjectDashboardLifecycle.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/components/ProjectDashboardLifecycle.tsx"
+          "path": "platform/services/statecraft/web/app/components/ProjectDashboardLifecycle.tsx"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/components/ProjectDashboardRiskBanner.tsx"
+            "file": "platform/services/statecraft/web/app/components/ProjectDashboardRiskBanner.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/components/ProjectDashboardRiskBanner.tsx"
+          "path": "platform/services/statecraft/web/app/components/ProjectDashboardRiskBanner.tsx"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/components/ProjectDashboardRuns.tsx"
+            "file": "platform/services/statecraft/web/app/components/ProjectDashboardRuns.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/components/ProjectDashboardRuns.tsx"
+          "path": "platform/services/statecraft/web/app/components/ProjectDashboardRuns.tsx"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/lib/project-dashboard-api.server.ts"
+            "file": "platform/services/statecraft/web/app/lib/project-dashboard-api.server.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/project-dashboard-api.server.ts"
+          "path": "platform/services/statecraft/web/app/lib/project-dashboard-api.server.ts"
         }
       },
       {
@@ -290,27 +290,27 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/audit/audit.ts"
+            "file": "platform/services/statecraft/api/audit/audit.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/audit/audit.ts"
+          "path": "platform/services/statecraft/api/audit/audit.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app.project.$projectId._index.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId._index.tsx"
         }
       },
       {
@@ -347,31 +347,31 @@
       {
         "locations": [
           {
-            "file": "specs/163-stagecraft-requirements-view/spec.md"
+            "file": "specs/163-statecraft-requirements-view/spec.md"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "specs/163-stagecraft-requirements-view/spec.md"
+          "path": "specs/163-statecraft-requirements-view/spec.md"
         }
       },
       {
         "locations": [
           {
-            "file": "specs/164-stagecraft-development-lifecycle-board/spec.md"
+            "file": "specs/164-statecraft-development-lifecycle-board/spec.md"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "specs/164-stagecraft-development-lifecycle-board/spec.md"
+          "path": "specs/164-statecraft-development-lifecycle-board/spec.md"
         }
       }
     ],
-    "specId": "175-stagecraft-project-dashboard-observability",
+    "specId": "175-statecraft-project-dashboard-observability",
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",

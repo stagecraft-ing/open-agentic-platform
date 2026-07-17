@@ -4,7 +4,7 @@
     "dependsOn": [
       "075-factory-workflow-engine",
       "076-factory-desktop-panel",
-      "077-stagecraft-factory-api",
+      "077-statecraft-factory-api",
       "087-unified-workspace-architecture",
       "092-workspace-runtime-threading",
       "094-unified-artifact-store",
@@ -24,7 +24,7 @@
         "spec": "087-unified-workspace-architecture",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/types.ts"
+          "path": "platform/services/statecraft/api/sync/types.ts"
         }
       },
       {
@@ -32,7 +32,7 @@
         "spec": "087-unified-workspace-architecture",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/relay.ts"
+          "path": "platform/services/statecraft/api/sync/relay.ts"
         }
       },
       {
@@ -48,7 +48,7 @@
         "spec": "109-factory-pat-and-pubsub-sync",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/factory.ts"
+          "path": "platform/services/statecraft/api/factory/factory.ts"
         }
       },
       {
@@ -61,14 +61,14 @@
       }
     ],
     "extraFrontmatter": {
-      "slug": "stagecraft-to-opc-factory-trigger"
+      "slug": "statecraft-to-opc-factory-trigger"
     },
-    "id": "110-stagecraft-to-opc-factory-trigger",
+    "id": "110-statecraft-to-opc-factory-trigger",
     "implementation": "complete",
     "kind": "platform",
     "owner": "bart",
     "sectionHeadings": [
-      "110 — Stagecraft-initiated Factory Run Trigger over the Duplex Channel",
+      "110 — Statecraft-initiated Factory Run Trigger over the Duplex Channel",
       "1. Problem",
       "2. Decision",
       "2.1 `ServerEnvelope::factory.run.request` variant (new control-plane)",
@@ -85,10 +85,10 @@
       "9. Dependencies already shipped",
       "10. Implementation notes"
     ],
-    "specPath": "specs/110-stagecraft-to-opc-factory-trigger/spec.md",
+    "specPath": "specs/110-statecraft-to-opc-factory-trigger/spec.md",
     "status": "approved",
-    "summary": "Closes the \"no stagecraft → OPC trigger\" gap surfaced during the 2026-04-21 audit. Adds a `ServerEnvelope::factory.run.request` variant to the duplex sync channel (spec 087 §5.3), a paired `ClientEnvelope::factory.run.ack` for desktop acknowledgement, a tab-session model as the unit of execution dispatch on OPC, and a knowledge-bundle materialisation contract so the engine receives local file paths even when knowledge lives in the workspace object store. Makes \"click Initialize in stagecraft → run starts in OPC\" a governed, type-safe flow.\n",
-    "title": "Stagecraft-initiated Factory Run Trigger over the Duplex Channel"
+    "summary": "Closes the \"no statecraft → OPC trigger\" gap surfaced during the 2026-04-21 audit. Adds a `ServerEnvelope::factory.run.request` variant to the duplex sync channel (spec 087 §5.3), a paired `ClientEnvelope::factory.run.ack` for desktop acknowledgement, a tab-session model as the unit of execution dispatch on OPC, and a knowledge-bundle materialisation contract so the engine receives local file paths even when knowledge lives in the workspace object store. Makes \"click Initialize in statecraft → run starts in OPC\" a governed, type-safe flow.\n",
+    "title": "Statecraft-initiated Factory Run Trigger over the Duplex Channel"
   },
   "shardHash": "c1d422b88991fc292877aefcc900f75931432450afb1ea6e78aead09339fa65f",
   "specVersion": "1.1.0"

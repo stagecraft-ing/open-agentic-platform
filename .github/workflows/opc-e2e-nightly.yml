@@ -84,7 +84,7 @@ jobs:
           # not (spec 187 §3.5.2 contract 2).
 
       # AC-8/AC-9 need a real, killable axiomregent sidecar; AC-7 needs it alive
-      # while stagecraft is unreachable. Build it like release Stage 1 and drop
+      # while statecraft is unreachable. Build it like release Stage 1 and drop
       # it where the Tauri build.rs expects the per-target sidecar.
       - name: Build axiomregent sidecar
         run: |

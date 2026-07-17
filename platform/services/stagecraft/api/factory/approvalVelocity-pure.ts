@@ -35,10 +35,10 @@ const DEFAULT_WINDOW_SECS = 60;
  *  tune via env until the envelope carries an authoritative threshold. */
 const DEFAULT_THRESHOLD = 10;
 
-/** Override via `STAGECRAFT_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC=<secs>`. */
-const ENV_WINDOW = "STAGECRAFT_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC";
-/** Override via `STAGECRAFT_FACTORY_APPROVAL_VELOCITY_THRESHOLD=<count>`. */
-const ENV_THRESHOLD = "STAGECRAFT_FACTORY_APPROVAL_VELOCITY_THRESHOLD";
+/** Override via `STATECRAFT_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC=<secs>`. */
+const ENV_WINDOW = "STATECRAFT_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC";
+/** Override via `STATECRAFT_FACTORY_APPROVAL_VELOCITY_THRESHOLD=<count>`. */
+const ENV_THRESHOLD = "STATECRAFT_FACTORY_APPROVAL_VELOCITY_THRESHOLD";
 
 /** Parse a positive-integer env override, falling back to `fallback` on an
  *  unset, non-numeric, or non-positive value (same posture as

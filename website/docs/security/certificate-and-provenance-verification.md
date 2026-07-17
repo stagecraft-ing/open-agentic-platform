@@ -23,7 +23,7 @@ You can verify the SLSA attestation using the GitHub CLI:
 
 ```bash
 gh attestation verify path/to/opc_<version>_aarch64.dmg \
-  --repo stagecraft-ing/open-agentic-platform
+  --repo statecrafting/open-agentic-platform
 ```
 
 This command confirms that the binary was built by the official GitHub Actions workflow from the correct repository and commit.

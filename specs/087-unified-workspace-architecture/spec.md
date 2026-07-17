@@ -24,7 +24,7 @@ depends_on:
   - "074-factory-ingestion"  # factory-ingestion
   - "075-factory-workflow-engine"  # factory-workflow-engine
   - "076-factory-desktop-panel"  # factory-desktop-panel
-  - "077-stagecraft-factory-api"  # stagecraft-factory-api
+  - "077-statecraft-factory-api"  # statecraft-factory-api
   - "078-platform-completion-plan"  # platform-completion-plan
   - "080-github-identity-onboarding"  # github-identity-onboarding
   - "082-artifact-integrity-platform-hardening"  # artifact-integrity-platform-hardening
@@ -32,12 +32,12 @@ kind: architecture
 domain: platform
 risk: high
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/sync/types.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/sync/service.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/sync/duplex.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/sync/relay.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/sync/store.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/sync/registry.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/sync/types.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/sync/service.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/sync/duplex.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/sync/relay.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/sync/store.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/sync/registry.ts }
 references:
   - role: historical
     unit: { kind: directory, path: product/packages/project-sdk }
@@ -49,7 +49,7 @@ references:
 
 ## 1. Problem Statement
 
-Open Agentic Platform has two user-facing planes (web and desktop), a delivery engine (factory), and an organisational control plane (stagecraft). All are individually functional but architecturally siloed: separate auth paths, separate state models, and no shared project abstraction. Users experience three tools rather than one system.
+Open Agentic Platform has two user-facing planes (web and desktop), a delivery engine (factory), and an organisational control plane (statecraft). All are individually functional but architecturally siloed: separate auth paths, separate state models, and no shared project abstraction. Users experience three tools rather than one system.
 
 Additionally, the business documents that feed factory pipelines are treated as loose attachments rather than a first-class knowledge substrate. Documents may arrive from direct upload, SharePoint, or other enterprise sources, but there is no normalisation layer, no provenance model, and no project-scoped knowledge domain.
 
@@ -110,7 +110,7 @@ A Project is the unit of:
 
 ### 3.1 Plane Responsibilities
 
-#### Web Plane — stagecraft.ing
+#### Web Plane — statecraft.ing
 
 The web plane is the governance, management, and collaboration surface. It is read-heavy: observe, govern, approve, configure.
 
@@ -242,10 +242,10 @@ Connectors are project-scoped configuration objects. Adding a new connector type
 
 | Domain | Authoritative Plane | Sync Direction |
 |--------|-------------------|----------------|
-| Identity & membership | Web (Stagecraft) | Web → Desktop |
-| Policy bundles | Web (Stagecraft) | Web → Desktop |
-| Audit trail | Web (Stagecraft) | Desktop → Web |
-| Knowledge objects | Web (Stagecraft) | Web → Desktop (metadata only) |
+| Identity & membership | Web (Statecraft) | Web → Desktop |
+| Policy bundles | Web (Statecraft) | Web → Desktop |
+| Audit trail | Web (Statecraft) | Desktop → Web |
+| Knowledge objects | Web (Statecraft) | Web → Desktop (metadata only) |
 | Pipeline execution state | Desktop (OPC) | Desktop → Web |
 | Artifact content | Desktop (OPC) | Desktop → Web (hashes + upload) |
 | Checkpoint state | Desktop (OPC) | Local only |
@@ -257,7 +257,7 @@ Connectors are project-scoped configuration objects. Adding a new connector type
 
 ```
 ┌──────────────┐                           ┌──────────────┐
-│  STAGECRAFT  │                           │     OPC      │
+│  STATECRAFT  │                           │     OPC      │
 │  (web plane) │                           │  (desktop)   │
 │              │                           │              │
 │              │──── WebSocket ────────────→│              │
@@ -274,15 +274,15 @@ Connectors are project-scoped configuration objects. Adding a new connector type
 └──────────────┘                           └──────────────┘
 ```
 
-A WebSocket relay on Stagecraft pushes events to connected OPC instances, scoped by project. OPC pushes state updates to Stagecraft via HTTP POST (fire-and-forget, best-effort — failures never block local execution).
+A WebSocket relay on Statecraft pushes events to connected OPC instances, scoped by project. OPC pushes state updates to Statecraft via HTTP POST (fire-and-forget, best-effort — failures never block local execution).
 
 ### 5.3 Duplex Sync Substrate
 
 > Added 2026-04-20. Supersedes the "HTTP POST + WebSocket push" model of §5.2 for new consumers. The legacy `projectEventStream` streamOut and `ingestOpcEvent` HTTP endpoint are retained during migration (see FR-SYNC-010). Envelope and cursor identifier names use project-scoped form per spec 119; the substrate's authority split and protocol are unchanged.
 
-The canonical sync channel between Stagecraft and OPC is an **authenticated duplex WebSocket** at `POST /api/sync/duplex` (Encore `api.streamInOut`). A single bidirectional stream carries a disjoint pair of typed envelope unions — `ClientEnvelope` (desktop → server) and `ServerEnvelope` (server → desktop) — with project cursors, ACK/NACK semantics, and resync on reconnect.
+The canonical sync channel between Statecraft and OPC is an **authenticated duplex WebSocket** at `POST /api/sync/duplex` (Encore `api.streamInOut`). A single bidirectional stream carries a disjoint pair of typed envelope unions — `ClientEnvelope` (desktop → server) and `ServerEnvelope` (server → desktop) — with project cursors, ACK/NACK semantics, and resync on reconnect.
 
-Implementation: `platform/services/stagecraft/api/sync/` — `types.ts`, `service.ts`, `duplex.ts`, `registry.ts`, `store.ts`, `relay.ts`.
+Implementation: `platform/services/statecraft/api/sync/` — `types.ts`, `service.ts`, `duplex.ts`, `registry.ts`, `store.ts`, `relay.ts`.
 
 #### Authority Invariant (Type-System-Enforced)
 
@@ -292,7 +292,7 @@ The envelope union encodes the §5.1 authority split in TypeScript:
 - `ServerEnvelope` variants carry all control-plane truth: `policy.updated`, `grant.updated`, `deploy.status`, `project.updated`, `factory.event`, plus transport. (The original 087 §5.3 also listed `workspace.updated`; spec 119 retired the workspace entity, and the variant collapses into `project.updated`.)
 - **Extension rule.** Adding a new `ClientEnvelope` variant is a **governance act**, not a types change. A variant that asserts authoritative server state (e.g. "policy override", "deploy trigger") requires a spec amendment; a variant that reports a local observation is within scope.
 
-`audit.candidate` is the one inbound variant that results in a durable write. Stagecraft normalises the action (`opc.` prefix), stamps `actor_user_id` from the authenticated JWT, and writes to `audit_log` — the desktop cannot forge the actor or the project.
+`audit.candidate` is the one inbound variant that results in a durable write. Statecraft normalises the action (`opc.` prefix), stamps `actor_user_id` from the authenticated JWT, and writes to `audit_log` — the desktop cannot forge the actor or the project.
 
 #### Functional Requirements
 
@@ -303,7 +303,7 @@ The envelope union encodes the §5.1 authority split in TypeScript:
 | **FR-SYNC-003** | Every envelope's `meta` MUST carry `v: 1`. The inbound guard enforces strict equality; mismatched or missing `v` is rejected as `invalid`. Bumping the protocol is a wire-format change: the `EnvelopeSchemaVersion` literal and the guard move together. | correctness | shipped |
 | **FR-SYNC-004** | `ClientAuditCandidate` MUST be written as `audit_log` with server-stamped `actor_user_id`, `projectId`, and `clientId`. Client-supplied timestamps and actors are ignored. | correctness | shipped |
 | **FR-SYNC-005** | The outbox and inbox MUST persist to Postgres (`sync_outbox(project_id, cursor, event_id, payload, created_at)`, `sync_outbox_delivery(project_id, event_id, client_id, acked_at)`, `sync_inbox(...)`). The in-memory stores in `store.ts` are a foundation; the interfaces (`OutboxStore`, `InboxStore`, `CursorIssuer`) exist specifically to accept a Drizzle-backed swap without touching `service.ts` or `duplex.ts`. | durability | not shipped |
-| **FR-SYNC-006** | When stagecraft runs with replicas > 1, `dispatchServerEvent` MUST fan out via PubSub (or equivalent) so every replica's local registry sees every project event. Without this, a producer on replica A does not reach a client connected to replica B. | correctness (multi-replica) | not shipped |
+| **FR-SYNC-006** | When statecraft runs with replicas > 1, `dispatchServerEvent` MUST fan out via PubSub (or equivalent) so every replica's local registry sees every project event. Without this, a producer on replica A does not reach a client connected to replica B. | correctness (multi-replica) | not shipped |
 | **FR-SYNC-007** | The broadcast loop MUST apply backpressure: a slow client MUST NOT stall other clients. Implementation options: per-client bounded send queue with drop policy, or concurrent sends with a per-client deadline. | liveness | not shipped |
 | **FR-SYNC-008** | Metrics MUST be exposed: `sync_connections_total`, `sync_events_inbound_total{kind,status}`, `sync_events_outbound_total{kind}`, `sync_ack_latency_seconds`. | observability | not shipped |
 | **FR-SYNC-009** | Inbound MUST be rate-limited per `clientId` (token-bucket, default 100/s, burst 200). Excess events are NACKed with `reason: "invalid"` and `detail: "rate_limited"`. | abuse resistance | not shipped |
@@ -314,7 +314,7 @@ The envelope union encodes the §5.1 authority split in TypeScript:
 
 The in-memory outbox cap is `MAX_OUTBOX_PER_PROJECT = 500` (`store.ts`). At a target project event rate of **~10 events/s** (factory progress + audit + periodic deploy/grant changes), this retains roughly **50 seconds** of history. At a burst rate of **50 events/s** (e.g., factory stage fan-out), retention falls to **10 seconds**.
 
-A client that reconnects after a gap greater than the retained window receives `sync.resync_required(reason: "cursor_gap")` and must refetch state via existing REST endpoints. This is acceptable while stagecraft deploys take single-digit seconds; it is NOT acceptable for deploys exceeding the retention window or for any scenario where in-flight state cannot be refetched. FR-SYNC-005 removes this constraint.
+A client that reconnects after a gap greater than the retained window receives `sync.resync_required(reason: "cursor_gap")` and must refetch state via existing REST endpoints. This is acceptable while statecraft deploys take single-digit seconds; it is NOT acceptable for deploys exceeding the retention window or for any scenario where in-flight state cannot be refetched. FR-SYNC-005 removes this constraint.
 
 The in-memory inbox cap is `MAX_INBOX_HISTORY = 1000` and is used only for debug/inspection; audit candidates are durably written regardless.
 
@@ -323,7 +323,7 @@ The in-memory inbox cap is `MAX_INBOX_HISTORY = 1000` and is used only for debug
 The registry is keyed `(orgId, clientId)` and the desktop reuses one `clientId` across reconnects (spec 183 — the `client_id` survives a settings-driven re-spawn). Every reconnect therefore collides on the same slot:
 
 1. Conn **A** is registered and awaiting its inbound loop.
-2. The desktop reconnects (e.g. spec 183's sign-in `reconnect_stagecraft_duplex`) → Conn **B**, same `clientId`. `register` closes A's stream and installs B.
+2. The desktop reconnects (e.g. spec 183's sign-in `reconnect_statecraft_duplex`) → Conn **B**, same `clientId`. `register` closes A's stream and installs B.
 3. A's inbound loop ends (its stream was just closed) → A's `finally` runs `registry.unregister(orgId, clientId)`.
 4. A *clientId-only* delete here removes **B's** entry — B is orphaned; its next heartbeat finds no session, flips `heartbeatAlive = false`, and B's loop breaks and closes. The client sees connect → close with **no `sync.hello`**, reconnects, and the cycle repeats.
 
@@ -361,7 +361,7 @@ if (!hasMembership) {
 GitHub App Installation ──→ Organization (trust anchor)
 GitHub OAuth             ──→ User identity + org membership
 Rauthy                   ──→ Session tokens (JWT) for both planes
-                              M2M tokens for OPC ↔ Stagecraft
+                              M2M tokens for OPC ↔ Statecraft
 ```
 
 One identity, two sessions:
@@ -385,16 +385,16 @@ packages/
     └── auth.ts            — Token management (Rauthy JWT)
 ```
 
-`@opc/project-sdk` is consumed by both the Stagecraft web UI and the OPC React frontend, ensuring identical domain models and state rendering across planes.
+`@opc/project-sdk` is consumed by both the Statecraft web UI and the OPC React frontend, ensuring identical domain models and state rendering across planes.
 
 ## 8. Implementation Phases
 
 ### Phase 1: Project Foundation
 
-- Add `projects` table to Stagecraft schema (originally proposed `workspaces` + `projects`; collapsed to a single `projects` table by spec 119)
+- Add `projects` table to Statecraft schema (originally proposed `workspaces` + `projects`; collapsed to a single `projects` table by spec 119)
 - Project CRUD endpoints
-- Replace `DEFAULT_ORG_ID` with project-scoped queries across all Stagecraft endpoints
-- Add project sync to OPC's `StagecraftClient`
+- Replace `DEFAULT_ORG_ID` with project-scoped queries across all Statecraft endpoints
+- Add project sync to OPC's `StatecraftClient`
 - Create `@opc/project-sdk` package with core types
 
 ### Phase 2: Knowledge Intake Domain
@@ -408,8 +408,8 @@ packages/
 
 ### Phase 3: Web UI + Sync Channel
 
-- Stagecraft web UI (React SPA sharing `@opc/ui`)
-- WebSocket relay on Stagecraft (project-scoped event channel)
+- Statecraft web UI (React SPA sharing `@opc/ui`)
+- WebSocket relay on Statecraft (project-scoped event channel)
 - OPC WebSocket client for real-time updates
 - Factory pipeline dashboard (web)
 - Knowledge object browser and selection UI (web)
@@ -425,12 +425,12 @@ packages/
 
 ### Phase 5: Identity + Governance Hardening
 
-- Remove password auth from Stagecraft
+- Remove password auth from Statecraft
 - OIDC JWT enforcement on all seams (A, B, C, D) per spec 082
 - OS keychain storage for desktop session
 - Unified RBAC model in `@opc/project-sdk`
 
-## 9. Database Schema Additions (Stagecraft)
+## 9. Database Schema Additions (Statecraft)
 
 > **Historical record (2026-04-09):** the schema below was the original proposal in this spec. Spec 119 (2026-04-29) collapsed `workspaces` into `projects`, retired `document_bindings`, and renamed `workspace_id` → `project_id` on `source_connectors`, `knowledge_objects`, and downstream consumers. The canonical post-amendment schema lives in spec 119 §4. The original SQL is retained verbatim below for traceability.
 
@@ -502,7 +502,7 @@ CREATE TABLE document_bindings (
 - **NF-004:** OPC must function fully offline. Platform connectivity is optional for all execution operations. Sync happens opportunistically when connectivity is available.
 - **NF-005:** The WebSocket relay must be project-scoped. An OPC instance only receives events for projects it is authenticated to.
 - **NF-006:** Factory policy shards are project-scoped and travel with the pipeline — they must not require live platform connectivity during execution.
-- **NF-007** _(maintenance, 2026-05-05):_ `platform/services/stagecraft/package-lock.json` is regenerated under npm 10 to match the CI runtime; the lockfile shape is non-load-bearing for spec semantics but is owned by 087 (and joint-claimed by 077, 080) for the spec/code coupling gate. Lockfile churn from npm version drift does not require a content amendment to this spec — recording the maintenance event here is sufficient.
+- **NF-007** _(maintenance, 2026-05-05):_ `platform/services/statecraft/package-lock.json` is regenerated under npm 10 to match the CI runtime; the lockfile shape is non-load-bearing for spec semantics but is owned by 087 (and joint-claimed by 077, 080) for the spec/code coupling gate. Lockfile churn from npm version drift does not require a content amendment to this spec — recording the maintenance event here is sufficient.
 - **NF-007.1** _(maintenance, 2026-05-05):_ second `package-lock.json` regen under npm 10 cut alongside the OPC desktop v0.3.2 + axiomregent v0.1.5 release. Same maintenance pattern as NF-007.
 
 ## 11. End-State Model Summary
@@ -516,7 +516,7 @@ Knowledge store     = canonical project document substrate
 Factory             = execution artifact that transforms project
                       knowledge into project output
 Desktop (OPC)       = execution plane
-Web (stagecraft.ing)= governance and management plane
+Web (statecraft.ing)= governance and management plane
 ```
 
 The factory is not merely turning prompts into code. It is operating over a governed body of project knowledge. Cross-project knowledge use happens via the clone pipeline (specs 113, 114), which copies into the destination — superseding the original 087 model where multiple projects shared a workspace knowledge corpus via `document_bindings`.
@@ -525,17 +525,17 @@ The factory is not merely turning prompts into code. It is operating over a gove
 
 This section was opened by the spec 143 implementation (Hetzner end-to-end deploy on 2026-05-08) surfacing a data-integrity finding that belongs on this spec's surface — `object_store_bucket` is defined here in §9 / NF-002. Future entries land here.
 
-**FU-005 — Bucket-name-length validation at project creation.** S3 (and S3-compatible backends including MinIO) rejects bucket names longer than 63 characters per the AWS S3 bucket-naming rules. Stagecraft project creation currently composes `object_store_bucket` (defined here in §9, browser-reachability requirement added in NF-002 by spec 143) by concatenating an `oap-stagecraft-ing-` prefix with the project slug; long project names produce buckets that exceed the ceiling and silently fail to be created in MinIO when the first upload is requested. The project row is otherwise valid, so the failure is invisible to the project list — it manifests only when `mc share upload` / `putObject` is finally called and errors with "Bucket name cannot be longer than 63 characters".
+**FU-005 — Bucket-name-length validation at project creation.** S3 (and S3-compatible backends including MinIO) rejects bucket names longer than 63 characters per the AWS S3 bucket-naming rules. Statecraft project creation currently composes `object_store_bucket` (defined here in §9, browser-reachability requirement added in NF-002 by spec 143) by concatenating an `oap-statecrafting-` prefix with the project slug; long project names produce buckets that exceed the ceiling and silently fail to be created in MinIO when the first upload is requested. The project row is otherwise valid, so the failure is invisible to the project list — it manifests only when `mc share upload` / `putObject` is finally called and errors with "Bucket name cannot be longer than 63 characters".
 
-Empirical evidence (Hetzner cluster, 2026-05-08): a project named "Acme Vendor Onboarding and Eligibility Determination Services Portal" produced bucket `oap-stagecraft-ing-acme-example-portal` (over the 63-char bucket limit). The bucket was never created in MinIO; every upload to that project would have failed at the storage layer. Surfaced during spec 143 deploy validation when the validate script's `ORDER BY created_at ASC LIMIT 1` query happened to pick this project as the canary - see spec 143 §12 FU-004(a) for the script-side fixture fix.
+Empirical evidence (Hetzner cluster, 2026-05-08): a project named "Acme Vendor Onboarding and Eligibility Determination Services Portal" produced bucket `oap-statecrafting-acme-example-portal` (over the 63-char bucket limit). The bucket was never created in MinIO; every upload to that project would have failed at the storage layer. Surfaced during spec 143 deploy validation when the validate script's `ORDER BY created_at ASC LIMIT 1` query happened to pick this project as the canary - see spec 143 §12 FU-004(a) for the script-side fixture fix.
 
 Required fix at the schema / project-creation surface (this is the **production data-integrity** fix; the script-side fix lives on spec 143 as FU-004(a)):
 
-1. **Runtime guard at project creation.** Stagecraft's project-creation handler MUST reject (or truncate with a deterministic suffix) a composed bucket name whose length exceeds 63 characters. Surface as `APIError.invalidArgument` with a user-facing diagnostic naming the limit, the prefix, and the slug headroom (`63 - length("oap-stagecraft-ing-") = 44 chars` available for the slug).
+1. **Runtime guard at project creation.** Statecraft's project-creation handler MUST reject (or truncate with a deterministic suffix) a composed bucket name whose length exceeds 63 characters. Surface as `APIError.invalidArgument` with a user-facing diagnostic naming the limit, the prefix, and the slug headroom (`63 - length("oap-statecrafting-") = 44 chars` available for the slug).
 
 2. **Schema-level CHECK constraint.** Add `CHECK (length(object_store_bucket) <= 63)` in a new migration on the `projects` table (or wherever the column ended up post-spec 119). The constraint protects against any future composer that drifts away from the slug-based shape.
 
-3. **Backfill audit.** `SELECT id, name, length(object_store_bucket) FROM projects WHERE length(object_store_bucket) > 63;` enumerates the affected set. The 2026-05-08 audit found at least one row (the project named above). Existing violators need a remediation plan — likely a deterministic rehash to a 32-char prefix-keyed shape (e.g. `oap-stagecraft-ing-<sha256(slug)[:32]>`), since renaming a project's bucket post-hoc requires either a data move (none, in this case — the bucket was never created) or, for projects with extant blobs, a migration that copies objects bucket-to-bucket and updates `storage_key` references in `knowledge_objects`.
+3. **Backfill audit.** `SELECT id, name, length(object_store_bucket) FROM projects WHERE length(object_store_bucket) > 63;` enumerates the affected set. The 2026-05-08 audit found at least one row (the project named above). Existing violators need a remediation plan — likely a deterministic rehash to a 32-char prefix-keyed shape (e.g. `oap-statecrafting-<sha256(slug)[:32]>`), since renaming a project's bucket post-hoc requires either a data move (none, in this case — the bucket was never created) or, for projects with extant blobs, a migration that copies objects bucket-to-bucket and updates `storage_key` references in `knowledge_objects`.
 
 4. **Slug derivation review.** The slug component should itself be length-bounded at the slug-derivation surface (likely the project-creation API handler or a UI-side pre-check), so the user gets feedback at name-entry time rather than at first-upload time. AWS S3 bucket names also restrict character set (lowercase, digits, hyphens, no consecutive hyphens, etc.); the derivation should cover those constraints in the same pass.
 

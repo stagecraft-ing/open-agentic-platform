@@ -329,7 +329,7 @@ pub async fn orchestrate_manifest(
     manifest_path: String,
     project_path: String,
     db: State<'_, AgentDb>,
-    stagecraft: State<'_, super::stagecraft_client::StagecraftState>,
+    statecraft: State<'_, super::statecraft_client::StatecraftState>,
 ) -> Result<RunSummary, String> {
     let manifest_text = std::fs::read_to_string(&manifest_path)
         .map_err(|e| format!("read manifest failed: {e}"))?;
@@ -338,7 +338,7 @@ pub async fn orchestrate_manifest(
 
     // Inject the active org/project id into the manifest if not already set (spec 092).
     if manifest.project_id.is_none()
-        && let Some(client) = stagecraft.current()
+        && let Some(client) = statecraft.current()
     {
         let ws = client.org_id();
         if !ws.is_empty() {

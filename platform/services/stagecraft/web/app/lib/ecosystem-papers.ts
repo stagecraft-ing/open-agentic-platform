@@ -1,6 +1,6 @@
 /**
  * Governed Whitepaper Data Model
- * 
+ *
  * Each paper demonstrates the spec-to-content binding:
  * - Bound to a governing spec (from spec-spine)
  * - Content hash (SHA-256 of the content body)
@@ -119,7 +119,7 @@ export const papers: Paper[] = [
       specSpineAttestation: "a7f3c9d2e1b4f8a6c3d5e7f9a1b2c4d6e8f0a2b4c6d8e0f1a3b5c7d9e1f3a5b7",
       sbomHash: "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5",
       signatureAlgorithm: "Ed25519",
-      signerIdentity: "platform-arch-team@stagecraft.ing",
+      signerIdentity: "platform-arch-team@statecraft.ing",
       issuedAt: "2026-06-15T09:00:00Z",
       expiresAt: "2027-06-15T09:00:00Z",
     },
@@ -184,7 +184,7 @@ export const papers: Paper[] = [
       specSpineAttestation: "b8c4d1e2f3a5b7c9d1e3f5a7b9c1d3e5f7a9b1c3d5e7f9a1b3c5d7e9f1a3b5c7",
       sbomHash: "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6",
       signatureAlgorithm: "Ed25519",
-      signerIdentity: "spec-spine-maintainers@stagecraft.ing",
+      signerIdentity: "spec-spine-maintainers@statecraft.ing",
       issuedAt: "2026-06-20T10:30:00Z",
       expiresAt: "2027-06-20T10:30:00Z",
     },
@@ -249,7 +249,7 @@ export const papers: Paper[] = [
       specSpineAttestation: "c9d5e2f3a6b8c0d2e4f6a8b0c2d4e6f8a0b2c4d6e8f0a2b4c6d8e0f2a4b6c8d0",
       sbomHash: "f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7",
       signatureAlgorithm: "Ed25519",
-      signerIdentity: "factory-engineering@stagecraft.ing",
+      signerIdentity: "factory-engineering@statecraft.ing",
       issuedAt: "2026-06-25T08:00:00Z",
       expiresAt: "2027-06-25T08:00:00Z",
     },
@@ -314,7 +314,7 @@ export const papers: Paper[] = [
       specSpineAttestation: "d0e6f3a4b7c9d1e3f5a7b9c1d3e5f7a9b1c3d5e7f9a1b3c5d7e9f1a3b5c7d9e1",
       sbomHash: "a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8",
       signatureAlgorithm: "Ed25519",
-      signerIdentity: "trust-verification@stagecraft.ing",
+      signerIdentity: "trust-verification@statecraft.ing",
       issuedAt: "2026-06-30T11:00:00Z",
       expiresAt: "2027-06-30T11:00:00Z",
     },
@@ -348,7 +348,7 @@ export const papers: Paper[] = [
       {
         id: "s2",
         heading: "Eight Idempotent Phases",
-        content: "The bootstrap process consists of eight phases, each idempotent (detect-or-create):\n\n1. **init**: Generate configuration from user inputs, create the state directory\n2. **doctor**: Validate all required tools (gh, kubectl, helm, sops, age) are present and configured\n3. **github**: Fork OAP repos into the target org, register the GitHub App, wire webhooks\n4. **cluster**: Provision Hetzner K3s nodes, install base infrastructure (cert-manager, ingress)\n5. **dns**: Configure DNS records for the platform domain\n6. **identity**: Deploy Rauthy OIDC, create initial admin user, configure clients\n7. **platform**: Deploy the OAP platform services (deployd-api, stagecraft, spec-spine CI)\n8. **verify**: Run tenant-tail against the deployed instance to confirm governance integrity\n\nEach phase checks whether its work has already been done before attempting it. Re-running a phase is how you resume after a fix. There is no \"rollback\", only \"re-run with the problem fixed.\"",
+        content: "The bootstrap process consists of eight phases, each idempotent (detect-or-create):\n\n1. **init**: Generate configuration from user inputs, create the state directory\n2. **doctor**: Validate all required tools (gh, kubectl, helm, sops, age) are present and configured\n3. **github**: Fork OAP repos into the target org, register the GitHub App, wire webhooks\n4. **cluster**: Provision Hetzner K3s nodes, install base infrastructure (cert-manager, ingress)\n5. **dns**: Configure DNS records for the platform domain\n6. **identity**: Deploy Rauthy OIDC, create initial admin user, configure clients\n7. **platform**: Deploy the OAP platform services (deployd-api, statecraft, spec-spine CI)\n8. **verify**: Run tenant-tail against the deployed instance to confirm governance integrity\n\nEach phase checks whether its work has already been done before attempting it. Re-running a phase is how you resume after a fix. There is no \"rollback\", only \"re-run with the problem fixed.\"",
         specBinding: "spec-001 § 2.1",
         contentHash: "e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1",
       },
@@ -379,7 +379,7 @@ export const papers: Paper[] = [
       specSpineAttestation: "e1f7a4b5c8d0e2f4a6b8c0d2e4f6a8b0c2d4e6f8a0b2c4d6e8f0a2b4c6d8e0f2",
       sbomHash: "b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9",
       signatureAlgorithm: "Ed25519",
-      signerIdentity: "infrastructure-team@stagecraft.ing",
+      signerIdentity: "infrastructure-team@statecraft.ing",
       issuedAt: "2026-07-02T14:00:00Z",
       expiresAt: "2027-07-02T14:00:00Z",
     },

@@ -84,7 +84,7 @@ Phase 4 is verification. Phase 5 is closure.
   land their TS mirrors as descriptors.
 - **Encore parser regression.** If anyone re-introduces a zod import
   into `extractionOutput.ts`, the original crash returns. Mitigation:
-  A-5 grep gate (`! rg "from \"zod" platform/services/stagecraft/api/knowledge/extractionOutput.ts`).
+  A-5 grep gate (`! rg "from \"zod" platform/services/statecraft/api/knowledge/extractionOutput.ts`).
 - **Hidden enum values.** Some `Validator` checks accept enum
   membership via a private helper. The descriptor must list those
   values explicitly. Mitigation: Phase 2's test enumerates the
@@ -115,13 +115,13 @@ Phase 4 is verification. Phase 5 is closure.
   - Spec 122 (`stakeholder-doc-inversion`) — third parity surface;
     same migration story
 - Existing primitives this spec touches:
-  - `platform/services/stagecraft/api/knowledge/extractionOutput.ts`
+  - `platform/services/statecraft/api/knowledge/extractionOutput.ts`
     — the validator that gains the descriptor
   - `tools/oap/schema-parity-check/index.mjs` — the walker getting
     dispatched
   - `crates/factory-contracts/src/knowledge.rs` — Rust mirror
     (untouched; reference only)
-- Cross-crate dependencies: none. This spec is a stagecraft + tools
+- Cross-crate dependencies: none. This spec is a statecraft + tools
   change; no Rust source moves.
 - Related specs: 120 (origin of parity check), 121 (second parity
   surface), 122 (third parity surface), 123 (envelope types — out of

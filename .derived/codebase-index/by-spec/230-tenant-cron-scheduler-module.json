@@ -9,11 +9,11 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/moduleCatalog.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app.projects.new.tsx",
         "source": "spec-edge"
       }
     ],
@@ -34,27 +34,27 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/moduleCatalog.ts"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/moduleCatalog.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app.projects.new.tsx"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.projects.new.tsx"
         }
       }
     ],

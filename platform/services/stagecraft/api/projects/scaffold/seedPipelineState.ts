@@ -1,6 +1,6 @@
 // Spec 112 §3.5 — L0 pipeline-state.json seed.
 //
-// Stagecraft is the sole author of commit #1's `.factory/pipeline-state.json`
+// Statecraft is the sole author of commit #1's `.factory/pipeline-state.json`
 // for newly-created factory projects. Post-commit writes are OPC's
 // responsibility (spec 112 §5.4 boundary).
 //

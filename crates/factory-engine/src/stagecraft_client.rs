@@ -2,10 +2,10 @@
 // Copyright (C) 2026 Bartek Kus
 // Spec: specs/120-factory-extraction-stage/spec.md — FR-016, FR-018, FR-019
 
-//! Trait abstraction for the stagecraft endpoints the `s-1-extract` stage
+//! Trait abstraction for the statecraft endpoints the `s-1-extract` stage
 //! needs (yield-extraction, fetch-extraction-output, post-extraction-output).
 //! The desktop crate (`apps/opc/src-tauri`) provides the real HTTP impl;
-//! tests use `MockStagecraftClient`.
+//! tests use `MockStatecraftClient`.
 //!
 //! Keeping the trait inside `factory-engine` means the engine has no Tauri
 //! or HTTP dependency.
@@ -17,8 +17,8 @@ use std::sync::Mutex;
 use tokio::sync::oneshot;
 
 #[derive(Debug, thiserror::Error)]
-pub enum StagecraftClientError {
-    #[error("stagecraft client unavailable: {0}")]
+pub enum StatecraftClientError {
+    #[error("statecraft client unavailable: {0}")]
     Unavailable(String),
     #[error("network error: {0}")]
     Network(String),
@@ -28,7 +28,7 @@ pub enum StagecraftClientError {
     Decode(String),
 }
 
-type YieldOutcome = Result<ExtractionOutput, StagecraftClientError>;
+type YieldOutcome = Result<ExtractionOutput, StatecraftClientError>;
 
 /// One-shot subscription handle for `knowledge.object.updated` notifications
 /// scoped to a specific `(object_id, content_hash)` pair. The implementation
@@ -41,7 +41,7 @@ pub struct YieldSubscription {
 }
 
 #[async_trait]
-pub trait StagecraftClient: Send + Sync {
+pub trait StatecraftClient: Send + Sync {
     /// FR-018 — request a server-side agent extraction. Returns the run id
     /// and a oneshot subscription that fires when the duplex channel
     /// reports the object as `extracted`.
@@ -52,7 +52,7 @@ pub trait StagecraftClient: Send + Sync {
         content_hash: &str,
         requested_kind: Option<&str>,
         reason: &str,
-    ) -> Result<YieldSubscription, StagecraftClientError>;
+    ) -> Result<YieldSubscription, StatecraftClientError>;
 
     /// FR-019 — fetch a typed extraction-output by content hash.
     async fn fetch_extraction_output(
@@ -60,7 +60,7 @@ pub trait StagecraftClient: Send + Sync {
         project_id: &str,
         object_id: &str,
         content_hash: &str,
-    ) -> Result<Option<ExtractionOutput>, StagecraftClientError>;
+    ) -> Result<Option<ExtractionOutput>, StatecraftClientError>;
 
     /// FR-016 — post a typed extraction-output produced by OPC. Idempotent
     /// on `(object_id, content_hash, extractor.version)` server-side.
@@ -69,7 +69,7 @@ pub trait StagecraftClient: Send + Sync {
         project_id: &str,
         object_id: &str,
         output: &ExtractionOutput,
-    ) -> Result<PostOutputResult, StagecraftClientError>;
+    ) -> Result<PostOutputResult, StatecraftClientError>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -80,14 +80,14 @@ pub struct PostOutputResult {
 
 /// In-memory mock for tests. Captures invocations and resolves yield
 /// subscriptions on a cue from the test driver.
-pub struct MockStagecraftClient {
+pub struct MockStatecraftClient {
     pub posted: Mutex<Vec<(String, String, ExtractionOutput)>>,
     pub yields: Mutex<HashMap<(String, String), oneshot::Sender<YieldOutcome>>>,
     pub fetched: Mutex<HashMap<(String, String, String), ExtractionOutput>>,
     pub run_counter: Mutex<u64>,
 }
 
-impl Default for MockStagecraftClient {
+impl Default for MockStatecraftClient {
     fn default() -> Self {
         Self {
             posted: Mutex::new(Vec::new()),
@@ -98,7 +98,7 @@ impl Default for MockStagecraftClient {
     }
 }
 
-impl MockStagecraftClient {
+impl MockStatecraftClient {
     /// Resolve an in-flight yield with a successful output. The test driver
     /// calls this to simulate the server-side worker completing.
     pub fn resolve_yield(&self, project_id: &str, content_hash: &str, output: ExtractionOutput) {
@@ -140,7 +140,7 @@ impl MockStagecraftClient {
 }
 
 #[async_trait]
-impl StagecraftClient for MockStagecraftClient {
+impl StatecraftClient for MockStatecraftClient {
     async fn yield_extraction(
         &self,
         project_id: &str,
@@ -148,7 +148,7 @@ impl StagecraftClient for MockStagecraftClient {
         content_hash: &str,
         _requested_kind: Option<&str>,
         _reason: &str,
-    ) -> Result<YieldSubscription, StagecraftClientError> {
+    ) -> Result<YieldSubscription, StatecraftClientError> {
         let (tx, rx) = oneshot::channel();
         self.yields
             .lock()
@@ -172,7 +172,7 @@ impl StagecraftClient for MockStagecraftClient {
         project_id: &str,
         object_id: &str,
         content_hash: &str,
-    ) -> Result<Option<ExtractionOutput>, StagecraftClientError> {
+    ) -> Result<Option<ExtractionOutput>, StatecraftClientError> {
         Ok(self
             .fetched
             .lock()
@@ -186,7 +186,7 @@ impl StagecraftClient for MockStagecraftClient {
         project_id: &str,
         object_id: &str,
         output: &ExtractionOutput,
-    ) -> Result<PostOutputResult, StagecraftClientError> {
+    ) -> Result<PostOutputResult, StatecraftClientError> {
         self.posted
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())

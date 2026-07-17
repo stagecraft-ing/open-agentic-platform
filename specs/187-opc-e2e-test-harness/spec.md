@@ -1,7 +1,7 @@
 ---
 id: "187-opc-e2e-test-harness"
 slug: opc-e2e-test-harness
-title: "OPC end-to-end test harness — built-binary driver, mock-stagecraft, process-tree introspection"
+title: "OPC end-to-end test harness — built-binary driver, mock-statecraft, process-tree introspection"
 status: approved
 implementation: in-progress
 owner: bart
@@ -12,7 +12,7 @@ risk: medium
 depends_on:
   - "032-opc-inspect-governance-wiring-mvp"  # opc-inspect-governance-wiring-mvp (the cockpit surface under test)
   - "073-axiomregent-unification"  # axiomregent-unification (the sidecar e2e fixtures must spawn / kill)
-  - "087-unified-workspace-architecture"  # unified-workspace-architecture (the duplex stream mock-stagecraft must emulate)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (the duplex stream mock-statecraft must emulate)
   - "134-fast-local-ci-mode"  # fast-local-ci-mode (the daily-dev cadence the harness must not erode)
   - "147-spec-kind-grammar"  # spec-kind-grammar (`kind: capability`)
   - "177-ci-orchestrator-pr-gate"  # ci-orchestrator-pr-gate (the gate-orchestration contract a future nightly job will register against)
@@ -70,13 +70,13 @@ summary: >
   Establishes the test infrastructure required to execute spec-bound
   end-to-end acceptance criteria against a built OPC desktop binary.
   The canonical motivating consumer is spec 183 AC-7/8/9 (boot-screen
-  stickiness when stagecraft is unreachable; mid-session restore on
+  stickiness when statecraft is unreachable; mid-session restore on
   axiomregent kill; clean process-tree teardown on Quit) which were
   explicitly deferred to nightly/manual at spec-183 PR time because no
   e2e harness existed. The harness has three load-bearing components:
   a built-binary driver that launches the OPC Tauri executable and
   introspects WebView render state (the BootGate→Cockpit transition is
-  the canonical assertion target); a mock-stagecraft duplex server
+  the canonical assertion target); a mock-statecraft duplex server
   that can be made selectively unreachable (network-level deny vs.
   protocol-level reject) so AC-7-style "substrate-unavailable" cases
   are deterministic; and platform-portable process-tree introspection
@@ -98,9 +98,9 @@ queries, and unit tests on the load-bearing primitives
 AC-9) require a *built OPC binary* under conditions the unit-test
 shape cannot express:
 
-- **AC-7** — "with sidecar binary present but stagecraft unreachable,
+- **AC-7** — "with sidecar binary present but statecraft unreachable,
   the boot screen MUST render and remain rendered; the cockpit MUST
-  NOT appear." Requires a controlled stagecraft-unreachable context
+  NOT appear." Requires a controlled statecraft-unreachable context
   AND a way to assert which subtree the WebView currently mounts.
 - **AC-8** — "killing axiomregent MUST cause the cockpit to unmount
   and `<BootGate>` to mount in its place within an implementer-bounded
@@ -134,7 +134,7 @@ implementation-time amendment that created them now declares the
 
 - `product/apps/opc/tests-e2e/` — the harness root.
 - `product/apps/opc/tests-e2e/harness/` — the load-bearing harness
-  primitives: built-binary driver, mock-stagecraft duplex server,
+  primitives: built-binary driver, mock-statecraft duplex server,
   process-tree introspection adapters. Edits here require this
   spec's spec.md edit (per spec 133 coupling gate).
 - `product/apps/opc/tests-e2e/fixtures/` — per-AC test fixtures
@@ -179,14 +179,14 @@ can read which top-level component is currently mounted.
 
 **Files FR-T1 binds on:** `product/apps/opc/tests-e2e/harness/driver.*`.
 
-### 3.2 Mock-stagecraft duplex server (FR-T2)
+### 3.2 Mock-statecraft duplex server (FR-T2)
 
-**FR-T2.** The harness MUST provide a configurable stagecraft
+**FR-T2.** The harness MUST provide a configurable statecraft
 double — a duplex WebSocket server that speaks the spec 087 envelope
 grammar — with at least these selectable modes:
 
 (a) **healthy** — accepts the handshake, emits `sync.hello`, then
-keeps the connection open as a stagecraft would.
+keeps the connection open as a statecraft would.
 
 (b) **network-unreachable** — accepts no connections (TCP RST or
 listen-refused). The desktop's reconnect loop should fail at the
@@ -203,12 +203,12 @@ duplex-side variant.
 The selection MUST be controllable from the test fixture (test sets
 the mode, harness configures the server, then proceeds).
 
-> *Rationale.* Spec 183 AC-7 binds "stagecraft unreachable" without
+> *Rationale.* Spec 183 AC-7 binds "statecraft unreachable" without
 > specifying a level. The harness exposes both transport-level and
 > protocol-level rejection so consumer specs can pick the level that
 > matches their invariant.
 
-**Files FR-T2 binds on:** `product/apps/opc/tests-e2e/harness/mock_stagecraft.*`.
+**Files FR-T2 binds on:** `product/apps/opc/tests-e2e/harness/mock_statecraft.*`.
 
 ### 3.3 Process-tree introspection (FR-T3)
 
@@ -478,7 +478,7 @@ absence of a skip flag, not a flake-rate ceiling.
   launches the OPC binary on at least one supported target and
   reports the WebView's mounted top-level component name. This is
   the load-bearing smoke test for the harness itself.
-- **AC-6.** The mock-stagecraft server (FR-T2) supports all four
+- **AC-6.** The mock-statecraft server (FR-T2) supports all four
   modes (healthy, network-unreachable, handshake-rejects,
   mid-session-drop) and a fixture demonstrating each mode passes.
 - **AC-7.** Process-tree introspection (FR-T3) correctly identifies
@@ -490,7 +490,7 @@ absence of a skip flag, not a flake-rate ceiling.
   158, and triggers on schedule + workflow_dispatch.
 - **AC-9.** Spec 183's AC-7, AC-8, AC-9 are migrated to harness
   fixtures under `product/apps/opc/tests-e2e/fixtures/183/`. **AC-7**
-  (boot stays sticky when stagecraft is unreachable) and **AC-9** (no
+  (boot stays sticky when statecraft is unreachable) and **AC-9** (no
   orphan axiomregent after Quit) are migrated and registered in the
   nightly run; neither requires sign-in. Both are *verified by the
   first green nightly* — they have never executed locally, because
@@ -530,7 +530,7 @@ designed, not friction.
   edits to consumer specs that need to declare co-authority).
 - **Other consumer-spec migrations.** A future spec MAY enumerate
   other deferred-to-nightly ACs across the corpus (e.g., factory-run
-  end-to-end, stagecraft duplex resync) and migrate them to this
+  end-to-end, statecraft duplex resync) and migrate them to this
   harness. Out of scope here; each migration is a separate PR.
 - **Performance benchmarking.** "Does OPC boot in <Xs?" is a
   different test class (criterion-style microbench) and belongs in
@@ -550,7 +550,7 @@ designed, not friction.
   they un-skip `fixtures/183/ac8-precondition-loss.e2e.ts` (signed-in
   cockpit, sidecar kill, `<BootGate>` reasserts), so AC-8 now runs in the
   nightly rather than as a `describe.skip`. OPC never verifies the session
-  JWT's signature (`stagecraft_client.rs::decode_jwt_claims`) and the mock
+  JWT's signature (`statecraft_client.rs::decode_jwt_claims`) and the mock
   duplex accepts any bearer, so a seeded fake token is a complete signed-in
   state. The nightly runs the e2e step inside a D-Bus session with an
   unlocked gnome-keyring so the `keyring` crate's Secret Service backend is
@@ -576,7 +576,7 @@ designed, not friction.
 - **Spec 073** — axiomregent unification; the sidecar the harness
   spawns and kills in FR-T3-class assertions.
 - **Spec 087** — unified workspace architecture; defines the duplex
-  envelope grammar the mock-stagecraft server (FR-T2) must emulate.
+  envelope grammar the mock-statecraft server (FR-T2) must emulate.
 - **Spec 134** — fast-local-ci-mode; sets the per-PR runtime
   budget the harness must not erode (rationale for FR-T5 nightly
   posture).

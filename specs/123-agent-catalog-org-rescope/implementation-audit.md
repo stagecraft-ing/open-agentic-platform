@@ -42,7 +42,7 @@
 ## Migration trail (spec 139 cutover)
 
 ```
-platform/services/stagecraft/api/db/migrations/
+platform/services/statecraft/api/db/migrations/
   32_factory_artifact_substrate.up.sql        — creates substrate + bindings (Phase 1)
   33_migrate_agent_catalog.up.sql             — mirror project_agent_bindings → factory_bindings (Phase 2)
   34_drop_legacy_factory_tables.up.sql        — drops spec 108 trio (Phase 4 narrow)

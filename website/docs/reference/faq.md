@@ -13,7 +13,7 @@ Human-authored truth is Markdown only (Constitution Principle I). The JSON files
 ## What is the difference between the GitHub App and the GitHub OAuth App?
 
 OAP uses two distinct GitHub registrations for different purposes (Spec 106):
-1. **GitHub App**: An organization-level, server-to-server integration used by the `stagecraft` service for handling webhooks, PR previews, and reading membership data.
+1. **GitHub App**: An organization-level, server-to-server integration used by the `statecraft` service for handling webhooks, PR previews, and reading membership data.
 2. **GitHub OAuth App**: Registered against Rauthy's callback URL, this acts as an upstream Identity Provider (IdP). A developer's GitHub login is federated through Rauthy to issue OIDC tokens.
 
 ## How do I resolve a Spec/Code Coupling Gate failure?

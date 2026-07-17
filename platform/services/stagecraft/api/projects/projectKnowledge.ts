@@ -174,7 +174,7 @@ export const advanceKnowledgeToExtracted = api(
 
     let workDir: string | null = null;
     try {
-      workDir = await mkdtemp(join(tmpdir(), "stagecraft-extract-"));
+      workDir = await mkdtemp(join(tmpdir(), "statecraft-extract-"));
       const rawDir = join(workDir, "raw");
       const outDir = join(workDir, "extracted");
       await mkdir(rawDir, { recursive: true });

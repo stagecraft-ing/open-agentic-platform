@@ -71,7 +71,7 @@ pub struct KernelOrigin {
     /// callers verifying FR-009 must compare `source_hash` instead.
     pub emitted_at: DateTime<Utc>,
     /// The exact-pinned `spec-spine` npm devDependency version the project
-    /// was born under (spec 209 FR-004: npm-pin verification). The stagecraft
+    /// was born under (spec 209 FR-004: npm-pin verification). The statecraft
     /// Create flow's `.kernel-version` stamp (kernelVersionStamp.ts) writes
     /// this under the npm distribution shape. Optional in serde so pre-spec-209
     /// `.kernel-version` fixtures and the non-npm engine fallback (which has no
@@ -203,7 +203,7 @@ mod tests {
 
     #[test]
     fn ts_stamp_shape_does_not_yet_round_trip_through_rust() {
-        // Spec 209 finding: the stagecraft TS `.kernel-version` stamp
+        // Spec 209 finding: the statecraft TS `.kernel-version` stamp
         // (kernelVersionStamp.ts) writes a reduced `kernel` shape
         // (source_commit, spec_spine_version, emitted_at) and omits the
         // `source_hash` + `factory_engine_version` this struct requires.

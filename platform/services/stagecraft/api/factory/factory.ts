@@ -202,7 +202,7 @@ async function appendAudit(
 // FR-001: Factory Project Initialization
 // ---------------------------------------------------------------------------
 
-type PipelineSource = "opc-direct" | "stagecraft";
+type PipelineSource = "opc-direct" | "statecraft";
 
 type InitRequest = {
   id: string; // project ID (path param)
@@ -212,10 +212,10 @@ type InitRequest = {
   policy_overrides?: PolicyOverrides;
   /**
    * Trigger path for this pipeline (spec 110 §8 Rollout Phase 6 — default
-   * flipped to `"stagecraft"`; OPC-direct remains available for offline
+   * flipped to `"statecraft"`; OPC-direct remains available for offline
    * workflows and for the desktop's dual-write path).
    *
-   *   - "stagecraft" (default): stagecraft dispatches a `factory.run.request`
+   *   - "statecraft" (default): statecraft dispatches a `factory.run.request`
    *     through the duplex channel so a connected OPC executes the run.
    *     Used by the web Initialize button and `oap-ctl run factory`.
    *   - "opc-direct": the caller is already running the engine locally; no
@@ -266,7 +266,7 @@ export const initPipeline = api(
     // Merge explicit business_docs with resolved knowledge objects
     const allDocs = [...(req.business_docs ?? []), ...knowledgeDocs];
 
-    const source: PipelineSource = req.source ?? "stagecraft";
+    const source: PipelineSource = req.source ?? "statecraft";
 
     // All inserts in a single transaction to prevent orphaned rows
     const result = await db.transaction(async (tx) => {
@@ -357,9 +357,9 @@ export const initPipeline = api(
     });
 
     // Spec 110 §8 Rollout Phase 3: dispatch the duplex `factory.run.request`
-    // only when the trigger path was `stagecraft`. OPC-direct runs still
+    // only when the trigger path was `statecraft`. OPC-direct runs still
     // execute the legacy local path; their envelope dispatch is a no-op.
-    if (source === "stagecraft") {
+    if (source === "statecraft") {
       await publishFactoryRunRequest({
         orgId: req.orgId,
         projectId: req.id,

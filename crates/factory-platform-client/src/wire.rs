@@ -4,8 +4,8 @@
 
 //! Wire shapes for `/api/factory/*` responses.
 //!
-//! Mirrors the camelCase JSON the stagecraft endpoints emit (see
-//! `platform/services/stagecraft/api/factory/browse.ts` for adapters /
+//! Mirrors the camelCase JSON the statecraft endpoints emit (see
+//! `platform/services/statecraft/api/factory/browse.ts` for adapters /
 //! contracts / processes and `runs.ts` for the reservation/list/detail
 //! surface). Field shapes are derived from those response types, not
 //! invented here — so a drift between the platform and the client surfaces

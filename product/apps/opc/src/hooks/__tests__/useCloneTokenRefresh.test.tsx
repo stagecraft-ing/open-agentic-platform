@@ -5,7 +5,7 @@
 //   2. Refresh fires *before* expiry (5-min default window).
 //   3. invalidate() against a project_github_pat that re-resolves to
 //      itself surfaces `pat_invalid` so the UI can guide the user to
-//      Stagecraft instead of looping.
+//      Statecraft instead of looping.
 //
 // `refreshDelayMs` is also covered as a pure helper for boundary
 // conditions.
@@ -73,8 +73,8 @@ describe('refreshDelayMs', () => {
 
 describe('patSettingsUrl', () => {
   it('joins base URL and project path with proper escaping', () => {
-    expect(patSettingsUrl('https://stagecraft.example.com/', 'p:1')).toBe(
-      'https://stagecraft.example.com/app/project/p%3A1/settings/github-pat'
+    expect(patSettingsUrl('https://statecraft.example.com/', 'p:1')).toBe(
+      'https://statecraft.example.com/app/project/p%3A1/settings/github-pat'
     );
   });
 
@@ -213,10 +213,10 @@ describe('useCloneTokenRefresh', () => {
     expect(result.current.status).toBe('fresh');
   });
 
-  it('refresh propagates Stagecraft 503 / network errors as status=error', async () => {
+  it('refresh propagates Statecraft 503 / network errors as status=error', async () => {
     refreshCloneTokenMock.mockResolvedValue({
       ok: false,
-      error: 'stagecraft 503: clone token resolution failed',
+      error: 'statecraft 503: clone token resolution failed',
     });
 
     const { result } = renderHook(() =>

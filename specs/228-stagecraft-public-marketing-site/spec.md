@@ -1,7 +1,7 @@
 ---
-id: "228-stagecraft-public-marketing-site"
-title: "Stagecraft public marketing site: governed teal/mono port of the ecosystem + whitepaper"
-feature_branch: "feat/stagecraft-marketing-site"
+id: "228-statecraft-public-marketing-site"
+title: "Statecraft public marketing site: governed teal/mono port of the ecosystem + whitepaper"
+feature_branch: "feat/statecraft-marketing-site"
 status: approved
 implementation: complete
 kind: platform
@@ -10,7 +10,7 @@ created: "2026-07-07"
 authors: ["open-agentic-platform"]
 language: en
 summary: >
-  Replaces the thin bounce-to-signin marketing surface of the stagecraft web
+  Replaces the thin bounce-to-signin marketing surface of the statecraft web
   app with a five-section public site, natively ported into the React Router 8
   SSR app from two standalone Vite sites (oap-ecosystem and oap-whitepaper).
   The nav is Overview (product landing) + Products (architecture and repo
@@ -28,66 +28,66 @@ summary: >
   with a no-flash init) applied without any shadcn dependency. All Sign in
   affordances route straight to the Rauthy flow; all Get started affordances
   route to the self-host guide.
-code_aliases: ["STAGECRAFT_MARKETING_SITE", "SPEC_REGISTRY_PROJECTION"]
+code_aliases: ["STATECRAFT_MARKETING_SITE", "SPEC_REGISTRY_PROJECTION"]
 depends_on:
-  - "160-factory-adapter-stagecraft-relocation"  # broadly establishes the stagecraft directory this surface extends
-  - "163-stagecraft-requirements-view"  # establishes the web app/routes surface + the authenticated spec-registry API; this spec adds the public marketing routes alongside it
+  - "160-factory-adapter-statecraft-relocation"  # broadly establishes the statecraft directory this surface extends
+  - "163-statecraft-requirements-view"  # establishes the web app/routes surface + the authenticated spec-registry API; this spec adds the public marketing routes alongside it
   - "103-init-protocol-governed-reads"  # the governed-reads contract the registry projection honors (reads through the spec-spine consumer binary, never raw .derived shards)
   - "217-spec-spine-engine-swap-collapse"  # the published spec-spine CLI whose `registry list --json` consumer the projection generator shells
 establishes:
   # New marketing chrome + client-only islands.
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/components/marketing-chrome.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/components/theme-toggle.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/components/sign-in-link.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/components/client-only.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/components/paper-reader.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/components/architecture-explorer.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/components/marketing-chrome.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/components/theme-toggle.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/components/sign-in-link.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/components/client-only.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/components/paper-reader.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/components/architecture-explorer.tsx }
   # Paper content + registry projection data access.
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/papers.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/whitepaper-content.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/ecosystem-papers.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/explorer-diagrams.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-registry.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-details.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/domain-colors.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-registry.generated.json }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-details.generated.json }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/papers.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/whitepaper-content.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/ecosystem-papers.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/explorer-diagrams.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/spec-registry.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/spec-details.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/domain-colors.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/spec-registry.generated.json }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/spec-details.generated.json }
   # Public marketing routes.
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/marketing.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/products.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/papers.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/papers.$slug.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/registry.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/registry._index.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/registry.graph.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/registry.dashboard.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/registry.$specId.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/get-started.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/marketing.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/products.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/papers.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/papers.$slug.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/registry.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/registry._index.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/registry.graph.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/registry.dashboard.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/registry.$specId.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/get-started.tsx }
   # Governed registry-projection generator.
-  - unit: { kind: file, path: platform/services/stagecraft/web/scripts/gen-spec-registry.mjs }
+  - unit: { kind: file, path: platform/services/statecraft/web/scripts/gen-spec-registry.mjs }
 extends:
   # The public routes register in the shared route config alongside spec 163's
   # authenticated routes; the marketing surface additively extends the web
   # shell (routing, landing page, global CSS tokens, root document) that spec
-  # 160 broadly established over the stagecraft tree.
-  - spec: "163-stagecraft-requirements-view"
+  # 160 broadly established over the statecraft tree.
+  - spec: "163-statecraft-requirements-view"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes.ts }
-  - spec: "160-factory-adapter-stagecraft-relocation"
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes.ts }
+  - spec: "160-factory-adapter-statecraft-relocation"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/_index.tsx }
-  - spec: "160-factory-adapter-stagecraft-relocation"
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/_index.tsx }
+  - spec: "160-factory-adapter-statecraft-relocation"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/app.css }
-  - spec: "160-factory-adapter-stagecraft-relocation"
+    unit: { kind: file, path: platform/services/statecraft/web/app/app.css }
+  - spec: "160-factory-adapter-statecraft-relocation"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/root.tsx }
-  - spec: "160-factory-adapter-stagecraft-relocation"
+    unit: { kind: file, path: platform/services/statecraft/web/app/root.tsx }
+  - spec: "160-factory-adapter-statecraft-relocation"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/package.json }
-  - spec: "160-factory-adapter-stagecraft-relocation"
+    unit: { kind: file, path: platform/services/statecraft/package.json }
+  - spec: "160-factory-adapter-statecraft-relocation"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/package-lock.json }
+    unit: { kind: file, path: platform/services/statecraft/package-lock.json }
   # A new spec adds a node to the featuregraph golden (same precedent as specs
   # 214, 222, 223, 224, 225, 226, 227): claimed additively against spec 034.
   - spec: "034-featuregraph-registry-scanner-fix"
@@ -95,11 +95,11 @@ extends:
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 ---
 
-# 228. Stagecraft public marketing site
+# 228. Statecraft public marketing site
 
 ## 1. Problem
 
-The stagecraft web app (`platform/services/stagecraft/web`, React Router 8,
+The statecraft web app (`platform/services/statecraft/web`, React Router 8,
 SSR) shipped a thin marketing surface: a single `_index.tsx` landing page whose
 "Get started" and "Sign in" both bounced into the authenticated app. There was
 no public place to explain what OAP is, browse the ecosystem, read the
@@ -143,7 +143,7 @@ palette are intentionally not ported (see Out of Scope).
 ## 3. Governed spec-registry projection
 
 The Registry pages are wired to the live registry, not a hand-frozen snapshot.
-Because stagecraft deploys separately from this repo, the projection runs at
+Because statecraft deploys separately from this repo, the projection runs at
 build time: `scripts/gen-spec-registry.mjs` shells the `spec-spine registry
 list --json` consumer binary (never the raw `.derived` shards, per spec 103)
 and emits two committed snapshots, refreshed per deploy so they never silently
@@ -184,11 +184,11 @@ gates are unchanged.
 
 ## 6. Relationships
 
-- **extends 163** (`stagecraft-requirements-view`) on `app/routes.ts`: the
+- **extends 163** (`statecraft-requirements-view`) on `app/routes.ts`: the
   public routes register alongside the authenticated route groups.
-- **extends 160** (`factory-adapter-stagecraft-relocation`) on the shared web
+- **extends 160** (`factory-adapter-statecraft-relocation`) on the shared web
   shell files (`_index.tsx`, `app.css`, `root.tsx`, `package.json`,
-  `package-lock.json`) that 160 broadly established over the stagecraft tree.
+  `package-lock.json`) that 160 broadly established over the statecraft tree.
 - **extends 034** on the featuregraph golden node, the standard new-spec
   precedent.
 - **depends_on 103** for the governed-reads contract and **217** for the

@@ -44,7 +44,7 @@ references:
   - role: knowledge-substrate
     unit: { kind: file, path: specs/120-factory-extraction-stage/spec.md }
   - role: target-renderer
-    unit: { kind: file, path: specs/163-stagecraft-requirements-view/spec.md }
+    unit: { kind: file, path: specs/163-statecraft-requirements-view/spec.md }
 summary: >
   Spec 156 established the `references:` edge sibling
   `provenance:` field with two typed kinds (`knowledge`,
@@ -52,8 +52,8 @@ summary: >
   consumers don't. This spec specifies (a) the *emission
   contract* the OPC decomposition pipeline (spec 165)
   must follow when it lands a draft spec derived from a
-  stagecraft knowledge item or an xray code fingerprint,
-  and (b) the *rendering contract* the stagecraft
+  statecraft knowledge item or an xray code fingerprint,
+  and (b) the *rendering contract* the statecraft
   Requirements view (spec 163) must follow when it
   displays such a spec to a developer reviewing the
   lineage. The two contracts are paired: an emitted
@@ -66,7 +66,7 @@ summary: >
   `requirements.md` and the link between them is
   operational convention. In OAP, the link is a typed
   relationship-graph edge with two evidentiary anchors
-  — `stagecraft://project/<uuid>/knowledge/<uuid>` or a
+  — `statecraft://project/<uuid>/knowledge/<uuid>` or a
   content-addressed xray fingerprint — and both the
   authoring tool and the review surface honour the same
   typed shape.
@@ -79,8 +79,8 @@ summary: >
 Spec 156 added a typed `provenance:` sibling on `references:` entries
 with two initial kinds:
 
-- `kind: knowledge` — a stagecraft knowledge object identified by a
-  `stagecraft://project/<uuid>/knowledge/<uuid>` URI.
+- `kind: knowledge` — a statecraft knowledge object identified by a
+  `statecraft://project/<uuid>/knowledge/<uuid>` URI.
 - `kind: code-fingerprint` — a content-addressed xray fingerprint of
   the code state at a particular instant.
 
@@ -91,7 +91,7 @@ spec 156 §3). What spec 156 deliberately *does not* commit to is:
 1. **Who emits a provenance entry, and when.** The intent doc §6.2
    names the OPC decomposition pipeline as the producer of draft
    specs from knowledge + xray data, and §3.4 names the resulting
-   provenance edge as load-bearing for the stagecraft Requirements
+   provenance edge as load-bearing for the statecraft Requirements
    view. Neither side has an emission contract yet.
 2. **How a renderer treats provenance entries.** The intent doc
    §3.4 says *"The Requirements view renders this provenance as a
@@ -128,7 +128,7 @@ references:
   - role: decomposition-origin
     provenance:
       kind: knowledge
-      source: "stagecraft://project/<uuid>/knowledge/<uuid>"
+      source: "statecraft://project/<uuid>/knowledge/<uuid>"
       derived_at: "<ISO-8601>"
   - role: decomposition-origin
     provenance:
@@ -144,9 +144,9 @@ pipeline-emitted entries; renderers can filter on it to find
 `role: implementation-witness`, etc., per spec 157's pattern)
 continue to mean what they mean today.
 
-### 2.2 Rendering contract (consumer: stagecraft Requirements view)
+### 2.2 Rendering contract (consumer: statecraft Requirements view)
 
-When the stagecraft Requirements view (spec 163) renders a spec, any
+When the statecraft Requirements view (spec 163) renders a spec, any
 `references:` entry whose `provenance.kind` is `knowledge` or
 `code-fingerprint` **MUST** be rendered as a typed lineage badge
 adjacent to the spec card, distinct from in-tree
@@ -183,21 +183,21 @@ of a `provenance:` is a spec-lint failure — the role is reserved.
   and a populated `provenance:` field on every draft spec it
   produces.
 - **FR-002** The emitted entry uses `provenance.kind: knowledge`
-  with a `stagecraft://project/<uuid>/knowledge/<uuid>` URI when
-  the derivation source was a stagecraft knowledge object, and
+  with a `statecraft://project/<uuid>/knowledge/<uuid>` URI when
+  the derivation source was a statecraft knowledge object, and
   `provenance.kind: code-fingerprint` with a content-hash when the
   derivation source was an xray fingerprint of project code.
 - **FR-003** Where a draft spec was derived from multiple sources
   (e.g., one knowledge item plus one code fingerprint), the
   pipeline emits multiple `references:` entries, each with its
   own `provenance:`.
-- **FR-004** The stagecraft Requirements view (spec 163) renders
+- **FR-004** The statecraft Requirements view (spec 163) renders
   each `role: decomposition-origin` entry as a typed badge on the
   spec card. The badge text identifies the kind
   (`knowledge` / `code-fingerprint`) and the badge link target is
-  the stagecraft route for the source item.
+  the statecraft route for the source item.
 - **FR-005** When a knowledge source is no longer resolvable (the
-  knowledge object was deleted, or stagecraft cannot find it), the
+  knowledge object was deleted, or statecraft cannot find it), the
   badge renders with a degraded-state tooltip; the spec card
   itself continues to render normally and the spec remains valid.
 - **FR-006** A new spec-lint rule (issued as part of this spec's
@@ -219,7 +219,7 @@ of a `provenance:` is a spec-lint failure — the role is reserved.
   decomposition-origin` and populated `provenance:` for every
   source it was derived from, with zero entries missing the
   required fields.
-- **SC-002** The stagecraft Requirements view renders the lineage
+- **SC-002** The statecraft Requirements view renders the lineage
   badge as described in §2.2 for any project containing such
   specs; badges are clickable and link to the source item.
 - **SC-003** A spec authored by hand (no pipeline involvement) is
@@ -236,7 +236,7 @@ of a `provenance:` is a spec-lint failure — the role is reserved.
 ### In scope
 
 - The emission contract for the OPC decomposition pipeline.
-- The rendering contract for the stagecraft Requirements view.
+- The rendering contract for the statecraft Requirements view.
 - The role reservation (`role: decomposition-origin`) and its
   associated spec-lint rule.
 - The `derived_at` timestamp field requirement.
@@ -251,10 +251,10 @@ of a `provenance:` is a spec-lint failure — the role is reserved.
   source direction. The reverse (source → list of specs derived
   from it) is enabled by spec 156's *structural reverse lookup*
   property (`git grep` over `specs/`) and does not require
-  additional grammar; surfacing it as a stagecraft UI panel is a
+  additional grammar; surfacing it as a statecraft UI panel is a
   separate spec.
 - **xray fingerprint UI.** The badge for
-  `kind: code-fingerprint` links to a stagecraft route that may
+  `kind: code-fingerprint` links to a statecraft route that may
   not exist yet; spec 161 accepts the placeholder contract and
   refines once the xray UI lands.
 
@@ -265,7 +265,7 @@ of a `provenance:` is a spec-lint failure — the role is reserved.
   → ExtractionOutput substrate from which knowledge URIs derive.
 - **Spec 154** — logical-unit grammar; the broader edge structure
   the `provenance:` sibling extends.
-- **Spec 163** — stagecraft Requirements view; the rendering
+- **Spec 163** — statecraft Requirements view; the rendering
   surface this spec specifies for.
 - **Spec 165** — OPC decomposition pipeline; the producer this
   spec specifies for.

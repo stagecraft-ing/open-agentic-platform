@@ -112,7 +112,7 @@ describe("spec 201 — /api/factory/artifacts/:id/approval-summary (encore test)
         org_id, source_id, role, repo_url, ref, subpath, created_at, updated_at
       ) VALUES (
         ${ORG_ID}::uuid, ${ORIGIN}, 'orchestration',
-        'Stagecraft-ing/factory', 'main', NULL, now(), now()
+        'statecrafting/factory', 'main', NULL, now(), now()
       )
       ON CONFLICT (org_id, source_id) DO NOTHING
     `);

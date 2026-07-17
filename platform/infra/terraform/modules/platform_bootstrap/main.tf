@@ -1,5 +1,5 @@
-resource "kubernetes_namespace" "stagecraft" {
-  metadata { name = var.stagecraft_namespace }
+resource "kubernetes_namespace" "statecraft" {
+  metadata { name = var.statecraft_namespace }
 }
 
 resource "kubernetes_namespace" "deployd" {
@@ -40,20 +40,20 @@ locals {
   }
 }
 
-resource "helm_release" "stagecraft" {
-  name             = "stagecraft"
-  chart            = abspath("${var.charts_root}/stagecraft")
-  namespace        = var.stagecraft_namespace
+resource "helm_release" "statecraft" {
+  name             = "statecraft"
+  chart            = abspath("${var.charts_root}/statecraft")
+  namespace        = var.statecraft_namespace
   create_namespace = false
 
   values = [yamlencode({
     image = {
-      repository = var.registry_url != "" ? "${var.registry_url}/stagecraft" : "ghcr.io/open-agentic-platform/stagecraft"
+      repository = var.registry_url != "" ? "${var.registry_url}/statecraft" : "ghcr.io/open-agentic-platform/statecraft"
       tag        = "dev"
     }
-    ingress = { host = var.stagecraft_host }
+    ingress = { host = var.statecraft_host }
     serviceAccount = {
-      name        = var.stagecraft_sa_name
+      name        = var.statecraft_sa_name
       annotations = lookup(local.sa_annotations, var.cloud_provider, {})
     }
     podLabels = lookup(local.pod_labels, var.cloud_provider, {})
@@ -66,7 +66,7 @@ resource "helm_release" "stagecraft" {
         kind = "ClusterSecretStore"
       }
       keys = [
-        { key = "STAGECRAFT_DB_URL", remoteKey = "stagecraft-db-url" },
+        { key = "STATECRAFT_DB_URL", remoteKey = "statecraft-db-url" },
         { key = "OIDC_M2M_CLIENT_ID", remoteKey = "oidc-m2m-client-id" },
         { key = "OIDC_M2M_CLIENT_SECRET", remoteKey = "oidc-m2m-client-secret" }
       ]

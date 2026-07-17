@@ -176,12 +176,12 @@ export const Agents: React.FC<AgentsProps> = ({ projectPath: _projectPath }) => 
     }
     try {
       const result = await api.publishAgentToWorkspace(agent.id);
-      const baseUrl = (await api.getStagecraftBaseUrl()).replace(/\/$/, '');
+      const baseUrl = (await api.getStatecraftBaseUrl()).replace(/\/$/, '');
       if (baseUrl) {
         try {
           await openExternal(`${baseUrl}${result.web_path}`);
         } catch (openErr) {
-          console.warn('Failed to open stagecraft draft in browser:', openErr);
+          console.warn('Failed to open statecraft draft in browser:', openErr);
         }
       }
       setToast({

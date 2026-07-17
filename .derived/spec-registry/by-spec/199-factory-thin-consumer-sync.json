@@ -24,7 +24,7 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/adapterView.ts"
+        "path": "platform/services/statecraft/api/factory/adapterView.ts"
       }
     ],
     "extends": [
@@ -64,21 +64,21 @@
         "role": "context",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/opcBundle.ts"
+          "path": "platform/services/statecraft/api/projects/opcBundle.ts"
         }
       },
       {
         "role": "context",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/scheduler.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/scheduler.ts"
         }
       },
       {
         "role": "historical",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/projection.ts"
+          "path": "platform/services/statecraft/api/factory/projection.ts"
         }
       }
     ],
@@ -87,42 +87,42 @@
         "aspect": "thin-consumer-substrate-reads",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/browse.ts"
+          "path": "platform/services/statecraft/api/factory/browse.ts"
         }
       },
       {
         "aspect": "thin-consumer-substrate-reads",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/substrateBrowser.ts"
+          "path": "platform/services/statecraft/api/factory/substrateBrowser.ts"
         }
       },
       {
         "aspect": "owned-source-classification",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/translator.ts"
+          "path": "platform/services/statecraft/api/factory/translator.ts"
         }
       },
       {
         "aspect": "binary-ingest-guard",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/translator.test.ts"
+          "path": "platform/services/statecraft/api/factory/translator.test.ts"
         }
       },
       {
         "aspect": "binary-ingest-guard",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/syncPipeline.ts"
+          "path": "platform/services/statecraft/api/factory/syncPipeline.ts"
         }
       },
       {
         "aspect": "binary-ingest-guard",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/syncWorker.ts"
+          "path": "platform/services/statecraft/api/factory/syncWorker.ts"
         }
       }
     ],
@@ -132,7 +132,7 @@
       "P-1 (refined): conform-by-standard; enforce, don't compensate",
       "Problem statement (current state)",
       "Requirements",
-      "FR-001 — Stagecraft is a thin consumer of owned factory content (normative)",
+      "FR-001 — Statecraft is a thin consumer of owned factory content (normative)",
       "FR-002 — Adapter identity from the manifest (retire the synthetic `acme-vue-node`)",
       "FR-003 — Substrate origin derives from the configured source",
       "FR-004 — Retire `buildProcess`; serve process content opaque by kind",
@@ -149,7 +149,7 @@
     ],
     "specPath": "specs/199-factory-thin-consumer-sync/spec.md",
     "status": "approved",
-    "summary": "Move the stagecraft factory sync off the retired legacy-factory layout and make it a thin CONSUMER of the owned factory/template sources. Stagecraft stores upstream content verbatim in the substrate and serves it by kind and by the adapter's own (schema-validated) manifest — it stops TRANSLATING content OAP authors and controls. Adapter identity comes from the manifest (acme-vue-encore self-declares), substrate origin derives from the configured source, and the categorical \"7-stage-build\" projection — a stagecraft invention with no contract backing, coupled to the dead `Factory Agent/` directory shape — is retired. Process content is served opaque by kind; the run's governance lives in the admission envelope (spec 198), which this spec consumes. No backward compatibility is preserved; factory/template are the baseline.\n",
+    "summary": "Move the statecraft factory sync off the retired legacy-factory layout and make it a thin CONSUMER of the owned factory/template sources. Statecraft stores upstream content verbatim in the substrate and serves it by kind and by the adapter's own (schema-validated) manifest — it stops TRANSLATING content OAP authors and controls. Adapter identity comes from the manifest (acme-vue-encore self-declares), substrate origin derives from the configured source, and the categorical \"7-stage-build\" projection — a statecraft invention with no contract backing, coupled to the dead `Factory Agent/` directory shape — is retired. Process content is served opaque by kind; the run's governance lives in the admission envelope (spec 198), which this spec consumes. No backward compatibility is preserved; factory/template are the baseline.\n",
     "supersedes": [
       {
         "note": "Retires the categorical factory_{adapters,contracts,processes} projection wire shape and its translation layer (projection.ts buildProcess / buildAdapter). Storage was already retired by spec 139; this retires the read-time translation that 139 kept for compat.\n",

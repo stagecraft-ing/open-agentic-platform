@@ -73,13 +73,13 @@
     "scopes"
   ],
   "sample": {
-    "id": "stagecraft-server",
-    "name": "StageCraft Server",
+    "id": "statecraft-server",
+    "name": "StateCraft Server",
     "enabled": true,
     "confidential": true,
     "redirect_uris": [
-      "https://stagecraft.ing/auth/oidc/callback",
-      "https://stagecraft.ing/auth/rauthy/callback"
+      "https://statecraft.ing/auth/oidc/callback",
+      "https://statecraft.ing/auth/rauthy/callback"
     ],
     "flows_enabled": [
       "authorization_code",
@@ -209,13 +209,13 @@
         "scopes"
       ],
       "sample": {
-        "id": "stagecraft-server",
-        "name": "StageCraft Server",
+        "id": "statecraft-server",
+        "name": "StateCraft Server",
         "enabled": true,
         "confidential": true,
         "redirect_uris": [
-          "https://stagecraft.ing/auth/oidc/callback",
-          "https://stagecraft.ing/auth/rauthy/callback"
+          "https://statecraft.ing/auth/oidc/callback",
+          "https://statecraft.ing/auth/rauthy/callback"
         ],
         "flows_enabled": [
           "authorization_code",

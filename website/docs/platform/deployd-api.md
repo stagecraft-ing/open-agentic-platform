@@ -18,7 +18,7 @@ When a deployment request is received, the API inspects the Rauthy-issued JWT. I
 
 `deployd-api` does not hardcode deployment logic. Instead, it relies on a Chart Selector wire contract. 
 
-When a deployment is triggered, the API selects the appropriate Helm chart based on the project's environment configuration and adapter type. It then orchestrates the Helm deployment, monitoring the rollout status and reporting back to the `stagecraft` service.
+When a deployment is triggered, the API selects the appropriate Helm chart based on the project's environment configuration and adapter type. It then orchestrates the Helm deployment, monitoring the rollout status and reporting back to the `statecraft` service.
 
 ## Running Locally
 

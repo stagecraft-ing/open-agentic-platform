@@ -2,11 +2,11 @@
   "mapping": {
     "implementingPaths": [
       {
-        "path": "platform/services/stagecraft/api/auth",
+        "path": "platform/services/statecraft/api/auth",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/github",
+        "path": "platform/services/statecraft/api/github",
         "source": "spec-edge"
       }
     ],
@@ -14,27 +14,27 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/auth"
+            "file": "platform/services/statecraft/api/auth"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "directory",
-          "path": "platform/services/stagecraft/api/auth"
+          "path": "platform/services/statecraft/api/auth"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/github"
+            "file": "platform/services/statecraft/api/github"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "directory",
-          "path": "platform/services/stagecraft/api/github"
+          "path": "platform/services/statecraft/api/github"
         }
       }
     ],

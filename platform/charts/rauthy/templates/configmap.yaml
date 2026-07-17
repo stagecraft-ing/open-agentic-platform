@@ -12,7 +12,7 @@ data:
     # Upstream auth providers are NOT configured here. Rauthy 0.35 stores
     # providers in its hiqlite DB and exposes them via the admin API only
     # (there is no `[[upstream_auth_provider]]` TOML section in
-    # RauthyConfig.Vars — unknown keys are silently ignored). The stagecraft
+    # RauthyConfig.Vars — unknown keys are silently ignored). The statecraft
     # Rauthy seeder (spec 106 FR-002) creates and maintains providers via
     # POST /auth/v1/providers/create and PUT /auth/v1/providers/{id}.
 

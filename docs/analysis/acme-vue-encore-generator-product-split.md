@@ -7,8 +7,8 @@
 > which established the current-state mechanics this record acts on.
 >
 > Status: **agreed direction.** Execution is handed to the working
-> sessions in `stagecraft-ing/factory-encore` and
-> `stagecraft-ing/template-encore`; the per-repo handoffs are derived
+> sessions in `statecrafting/factory-encore` and
+> `statecrafting/template-encore`; the per-repo handoffs are derived
 > from this record.
 
 ---
@@ -35,7 +35,7 @@ seam.
 2. **Product identity is `acme-vue-encore`.** Folder names are not the
    naming convention; the `-encore` suffix is just the stack. The factory
    adapter manifest's `adapter.name` moves from `encore-vue` to
-   `acme-vue-encore`, matching the OAP corpus and stagecraft's lookup key.
+   `acme-vue-encore`, matching the OAP corpus and statecraft's lookup key.
 3. **The generator (`scripts/` + `modules/`) moves from `template-encore`
    to `factory-encore`** (into the adapter). The produced app never
    re-scaffolds itself, so the generator does not belong in the product.

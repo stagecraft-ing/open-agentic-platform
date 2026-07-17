@@ -4,13 +4,13 @@
     "warnings": [
       {
         "code": "W-002",
-        "message": "spec '140-acme-vue-node-scaffold-source-id-cutover' file unit 'platform/services/stagecraft/api/factory/oapNativeAdapters.ts' does not exist",
-        "path": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts"
+        "message": "spec '140-acme-vue-node-scaffold-source-id-cutover' file unit 'platform/services/statecraft/api/factory/oapNativeAdapters.ts' does not exist",
+        "path": "platform/services/statecraft/api/factory/oapNativeAdapters.ts"
       },
       {
         "code": "W-002",
-        "message": "spec '140-acme-vue-node-scaffold-source-id-cutover' file unit 'platform/services/stagecraft/api/factory/projection.ts' does not exist",
-        "path": "platform/services/stagecraft/api/factory/projection.ts"
+        "message": "spec '140-acme-vue-node-scaffold-source-id-cutover' file unit 'platform/services/statecraft/api/factory/projection.ts' does not exist",
+        "path": "platform/services/statecraft/api/factory/projection.ts"
       }
     ]
   },
@@ -20,56 +20,56 @@
     ],
     "dependsOn": [
       "112-factory-project-lifecycle",
-      "138-stagecraft-create-realised-scaffold",
+      "138-statecraft-create-realised-scaffold",
       "139-factory-artifact-substrate"
     ],
     "implementingPaths": [
       {
-        "path": "platform/services/stagecraft/CLAUDE.md",
+        "path": "platform/services/statecraft/CLAUDE.md",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/substrateBrowser.ts",
+        "path": "platform/services/statecraft/api/factory/substrateBrowser.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/syncWorker.ts",
+        "path": "platform/services/statecraft/api/factory/syncWorker.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/translator.ts",
+        "path": "platform/services/statecraft/api/factory/translator.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/create.ts",
+        "path": "platform/services/statecraft/api/projects/create.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/scheduler.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/scheduler.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/templateCache.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/types.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/types.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffoldReadiness.ts",
+        "path": "platform/services/statecraft/api/projects/scaffoldReadiness.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffoldReadinessBlocker.ts",
+        "path": "platform/services/statecraft/api/projects/scaffoldReadinessBlocker.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
+        "path": "platform/services/statecraft/web/app/lib/projects-api.server.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app.projects.new.tsx",
         "source": "spec-edge"
       }
     ],
@@ -77,157 +77,157 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/types.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/types.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/types.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/types.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffoldReadinessBlocker.ts"
+            "file": "platform/services/statecraft/api/projects/scaffoldReadinessBlocker.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffoldReadinessBlocker.ts"
+          "path": "platform/services/statecraft/api/projects/scaffoldReadinessBlocker.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/CLAUDE.md"
+            "file": "platform/services/statecraft/CLAUDE.md"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/CLAUDE.md"
+          "path": "platform/services/statecraft/CLAUDE.md"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/substrateBrowser.ts"
+            "file": "platform/services/statecraft/api/factory/substrateBrowser.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/substrateBrowser.ts"
+          "path": "platform/services/statecraft/api/factory/substrateBrowser.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/syncWorker.ts"
+            "file": "platform/services/statecraft/api/factory/syncWorker.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/syncWorker.ts"
+          "path": "platform/services/statecraft/api/factory/syncWorker.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/translator.ts"
+            "file": "platform/services/statecraft/api/factory/translator.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/translator.ts"
+          "path": "platform/services/statecraft/api/factory/translator.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/create.ts"
+            "file": "platform/services/statecraft/api/projects/create.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/create.ts"
+          "path": "platform/services/statecraft/api/projects/create.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/scheduler.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/scheduler.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/scheduler.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/scheduler.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/templateCache.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/templateCache.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffoldReadiness.ts"
+            "file": "platform/services/statecraft/api/projects/scaffoldReadiness.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffoldReadiness.ts"
+          "path": "platform/services/statecraft/api/projects/scaffoldReadiness.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+            "file": "platform/services/statecraft/web/app/lib/projects-api.server.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+          "path": "platform/services/statecraft/web/app/lib/projects-api.server.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app.projects.new.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.projects.new.tsx"
         }
       },
       {
@@ -236,7 +236,7 @@
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts"
+          "path": "platform/services/statecraft/api/factory/oapNativeAdapters.ts"
         }
       },
       {
@@ -245,7 +245,7 @@
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/projection.ts"
+          "path": "platform/services/statecraft/api/factory/projection.ts"
         }
       }
     ],

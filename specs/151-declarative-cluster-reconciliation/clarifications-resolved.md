@@ -34,16 +34,16 @@ and plan.md + tasks.md follow in a sibling PR.
 **Decision:** Flux v2 for declarative cluster reconciliation. Quoted
 verbatim from spec.md §Clarification 1: "Recommend **Flux v2** for one
 constitutional reason and a small set of tiebreakers. *Constitutional
-reason:* Spec 087 establishes stagecraft as the platform's operator
+reason:* Spec 087 establishes statecraft as the platform's operator
 surface. Argo CD ships a first-class operator dashboard that would
 create a competing operator surface for cluster state — operators
-would face two surfaces (stagecraft for tenant + governance, Argo for
+would face two surfaces (statecraft for tenant + governance, Argo for
 cluster) instead of one. Flux v2 has no operator UI; its interface is
 controller-set + cluster events + Prometheus metrics, leaving
-stagecraft as the single operator surface per spec 087."
+statecraft as the single operator surface per spec 087."
 
 **Alternatives considered:**
-- Argo CD — creates a competing operator surface to stagecraft (spec
+- Argo CD — creates a competing operator surface to statecraft (spec
   087); heavier runtime; multi-tenant features unused at our scale.
 - Rancher Fleet — insufficient CNCF momentum / adoption to bet on for
   a long-lived control plane.
@@ -54,11 +54,11 @@ stagecraft as the single operator surface per spec 087."
 
 **Rationale:** Constitutional alignment with spec 087's
 single-operator-surface principle; Flux v2's interface (controllers +
-cluster events + Prometheus metrics) leaves stagecraft as the only
+cluster events + Prometheus metrics) leaves statecraft as the only
 operator UI, while Argo CD's dashboard would compete with it.
 
 **Consequences:** If flipped to Argo CD post-implementation, spec 087
-amends to acknowledge dual operator surfaces; stagecraft's roadmap
+amends to acknowledge dual operator surfaces; statecraft's roadmap
 re-scopes around cluster-state-non-ownership; the Argo dashboard
 itself becomes a governance surface that needs Rauthy OIDC
 integration; the migration ordering (§Decision 8) reopens because
@@ -276,30 +276,30 @@ tree was kept kustomize-compatible per FR-010.
 
 ### §Decision 7 — drift-surfacing
 
-**Decision:** Cluster events + Prometheus metrics for v1. Stagecraft
+**Decision:** Cluster events + Prometheus metrics for v1. Statecraft
 UI surfacing and Slack/PagerDuty hooks are follow-ups, not gates on
 this spec's closure. Quoted verbatim from spec.md §Clarification 7:
 "Recommend **cluster events + Prometheus for v1**. These are the Flux
-defaults and require no additional integration. Stagecraft UI
+defaults and require no additional integration. Statecraft UI
 surfacing is a follow-up that uses the same Prometheus metrics;
 Slack/PagerDuty hooks into the existing notification stack are also a
 follow-up. Don't gate this spec on observability ergonomics."
 
 **Alternatives considered:**
-- Stagecraft UI surfacing now — adds work not gated on Phase 0;
+- Statecraft UI surfacing now — adds work not gated on Phase 0;
   deferred to a follow-up that uses the same Prometheus metrics.
 - Slack / PagerDuty hooks now — adds notification stack integration
   work; deferred to a follow-up.
 - All-of-the-above before spec closure — gates this spec on
   observability ergonomics, which it should not be.
 
-**Rationale:** Flux defaults work; downstream surfacings (stagecraft
+**Rationale:** Flux defaults work; downstream surfacings (statecraft
 UI, Slack) all build on the same Prometheus signals; no reason to gate
 v1 on layered observability that adds no new evidence beyond what
 Prometheus already exposes.
 
 **Consequences:** If cluster events prove insufficient operationally,
-follow-up specs light up the same Prometheus signals on stagecraft UI
+follow-up specs light up the same Prometheus signals on statecraft UI
 or Slack with no architectural rework. If Prometheus is replaced by
 another metrics backend, the cluster-events fallback still surfaces
 reconciliation outcomes.
@@ -314,7 +314,7 @@ reconciliation outcomes.
 
 **Decision:** Reverse-risk ordering. Lowest-stakes first (reflector,
 new and standalone), then operational helpers (cert-manager,
-ingress-nginx), then identity (rauthy), then app-charts (stagecraft,
+ingress-nginx), then identity (rauthy), then app-charts (statecraft,
 deployd-api, tenant-hello), then per-purpose Secrets (highest stakes,
 gated on SOPS path being solid). Each migration is one PR; setup.sh
 shrinks monotonically. Quoted verbatim from spec.md §Clarification 8.

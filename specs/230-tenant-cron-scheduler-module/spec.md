@@ -23,9 +23,9 @@ references:
   # Non-authoritative pointers to the OAP-side create-project surfaces a
   # follow-on spec-227 stage will wire. Claimed additively then, not here.
   - role: planned
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.projects.new.tsx }
   - role: planned
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/moduleCatalog.ts }
 summary: >
   Tenant apps deploy self-hosted via OAP deployd, where Encore's `CronJob`
   primitive is a no-op (there is no Encore Cloud scheduler). This spec gives
@@ -38,7 +38,7 @@ summary: >
   deployments. Cron therefore always requires data-postgres and optionally
   peers with data-redis. Implemented as a new factory-encore adapter `cron`
   module and surfaced as the create-project Infra-axis cron option. This is
-  distinct from spec 224 (stagecraft's OWN control-plane sweepers, which stay
+  distinct from spec 224 (statecraft's OWN control-plane sweepers, which stay
   on per-sweeper K8s CronJobs).
 ---
 
@@ -54,9 +54,9 @@ self-hosted through deployd, so every tenant `CronJob` is a silent no-op
 today.
 
 This is the **tenant** analogue of a gap OAP already solved for **itself**.
-Spec 224 handles stagecraft's OWN control-plane sweepers with a per-sweeper
+Spec 224 handles statecraft's OWN control-plane sweepers with a per-sweeper
 Kubernetes CronJob that curls an M2M endpoint. That model is correct for
-stagecraft (it IS the control plane on OAP's K8s) but is wrong to impose on
+statecraft (it IS the control plane on OAP's K8s) but is wrong to impose on
 tenants: you cannot require every tenant app to provision K8s CronJobs, a
 Rauthy client, and an external-secret per job, and it would break the
 self-contained-app property. Tenant cron must therefore run IN-APP.
@@ -192,7 +192,7 @@ hardcodes `http://127.0.0.1:4000` as the fire target. The tenant module MUST:
   provisioning and transitive module selection. A follow-on 227 stage wires
   the form.
 - **Spec 224** (self-hosted sweeper cron revival): DISTINCT. 224 is
-  stagecraft's own control-plane sweepers on K8s CronJobs and is unchanged.
+  statecraft's own control-plane sweepers on K8s CronJobs and is unchanged.
   This spec is tenant-app cron. The two share only the underlying observation
   that Encore `CronJob` is a self-hosted no-op.
 - **factory-encore adapter modules** (`data-postgres`, `data-redis`, ...): the
@@ -221,7 +221,7 @@ hardcodes `http://127.0.0.1:4000` as the fire target. The tenant module MUST:
 - **AC-002:** Small and large scale tiers are both first-class tenant choices;
   small requires no Redis. No per-tenant Kubernetes CronJob is introduced.
 - **AC-003:** Spec 224's control-plane sweeper model is untouched; this spec
-  claims no stagecraft sweeper path.
+  claims no statecraft sweeper path.
 - **AC-004:** No OAP code-path relationship changes in this PR; the only in-PR
   code delta is the featuregraph golden node (extends 034). Follow-on PRs
   (factory-encore module, spec-227 stage) promote the referenced paths.

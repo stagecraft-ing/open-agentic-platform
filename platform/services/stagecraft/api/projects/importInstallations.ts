@@ -1,4 +1,4 @@
-// Spec 112 §6.1 — App-installation picker support for the Stagecraft Import UI.
+// Spec 112 §6.1 — App-installation picker support for the Statecraft Import UI.
 //
 // Lists every active OAP App installation registered for the caller's
 // org and, for each, queries GitHub for the repos that installation

@@ -6,7 +6,7 @@
 //! - Windows: Credential Manager
 //! - Linux: Secret Service (GNOME Keyring, KWallet)
 //!
-//! Slot conventions under service name "dev.opc.stagecraft":
+//! Slot conventions under service name "dev.opc.statecraft":
 //! - "session"                      — Rauthy JWT
 //! - "github-clone-token:<project>" — JSON-encoded `StoredCloneToken`
 //!   (value, source, expires_at) for spec 112 §6.4.4 refresh.
@@ -14,7 +14,7 @@
 use super::result::AppResult;
 use serde::{Deserialize, Serialize};
 
-const SERVICE_NAME: &str = "dev.opc.stagecraft";
+const SERVICE_NAME: &str = "dev.opc.statecraft";
 const DEFAULT_USER: &str = "session";
 const CLONE_TOKEN_PREFIX: &str = "github-clone-token:";
 
@@ -65,7 +65,7 @@ pub fn keychain_clear(user: Option<String>) -> AppResult<()> {
 
 /// Persisted shape of a clone token. Mirrors `OpcBundleCloneToken` on
 /// the wire side; `expires_at` is a string so we don't drag a date type
-/// into the keychain layer (the value is whatever Stagecraft returned).
+/// into the keychain layer (the value is whatever Statecraft returned).
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct StoredCloneToken {
     pub value: String,

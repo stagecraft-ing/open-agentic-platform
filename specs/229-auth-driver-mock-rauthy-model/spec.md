@@ -3,7 +3,7 @@ id: "229-auth-driver-mock-rauthy-model"
 title: "Auth-driver model correction: mock|rauthy app axis, upstream IdPs federate inside Rauthy"
 feature_branch: "229-auth-driver-mock-rauthy-model"
 status: approved
-implementation: pending  # Amendment spec. No code lands in this PR beyond the featuregraph golden node (extends 034), matching the 214/222/223/224/225/226 new-spec precedent. The amendment edits to 148/149/150 spec.md land in this PR; the mechanical schema/Rust/stagecraft doc touch-ups defer to their owning-spec PRs (198, 227) and to factory-encore 008 to avoid coupling-gate co-amendment. Flips to complete on merge.
+implementation: pending  # Amendment spec. No code lands in this PR beyond the featuregraph golden node (extends 034), matching the 214/222/223/224/225/226 new-spec precedent. The amendment edits to 148/149/150 spec.md land in this PR; the mechanical schema/Rust/statecraft doc touch-ups defer to their owning-spec PRs (198, 227) and to factory-encore 008 to avoid coupling-gate co-amendment. Flips to complete on merge.
 kind: amendment
 domain: platform
 created: "2026-07-08"
@@ -141,7 +141,7 @@ avoid coupling-gate co-amendment here:
   `crates/factory-contracts/src/adapter_manifest.rs`
   (`VariantEndpoint.auth_driver` doc)**: authority is **spec 198**; ride
   with a 198-scoped touch.
-- **stagecraft `api/projects/scaffold/moduleCatalog.ts` display comment, and
+- **statecraft `api/projects/scaffold/moduleCatalog.ts` display comment, and
   the create form's `{public, private, both} x {mock, rauthy}` unbundling**
   via an `AUTH_DRIVER` patch into the scaffold's `apps/api/.env.example`
   (reusing the Stage 2 `envExample.ts` mechanism, one toggle applied

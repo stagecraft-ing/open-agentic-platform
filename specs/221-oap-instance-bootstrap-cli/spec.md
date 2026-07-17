@@ -57,11 +57,11 @@ references:
   # review can see drift between this tree and the external bootstrapper. setup.sh
   # is deliberately NOT here: it is claimed above via co_authority (FR-040).
   - role: context
-    unit: { kind: file, path: platform/services/stagecraft/api/github/webhook.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/github/webhook.ts }
   - role: context
-    unit: { kind: file, path: platform/services/stagecraft/scripts/seed-rauthy.mjs }
+    unit: { kind: file, path: platform/services/statecraft/scripts/seed-rauthy.mjs }
   - role: context
-    unit: { kind: file, path: platform/charts/stagecraft/values-hetzner.yaml }
+    unit: { kind: file, path: platform/charts/statecraft/values-hetzner.yaml }
   - role: context
     unit: { kind: file, path: platform/charts/deployd-api/values-hetzner.yaml }
   - role: context
@@ -96,10 +96,10 @@ This OAP-side entry is intentionally thin. It exists for two reasons:
 
 ### FR-040: a fork needs zero source edits (fork-parameterization)
 
-A bootstrapper that forks `stagecraft-ing/open-agentic-platform` into, say,
+A bootstrapper that forks `statecrafting/open-agentic-platform` into, say,
 `acme-inc/open-agentic-platform` must be able to run the existing Hetzner
 deployment under the new owner without editing tracked source. Auditing the
-hardcoded `stagecraft-ing/open-agentic-platform` references showed that almost
+hardcoded `statecrafting/open-agentic-platform` references showed that almost
 all of them are ALREADY fork-safe by existing design, and exactly one is not:
 
 - **`platform/infra/hetzner/setup.sh`, `bootstrap` section (REQUIRES this spec).**
@@ -121,7 +121,7 @@ all of them are ALREADY fork-safe by existing design, and exactly one is not:
   Declared with `?=`, so a fork sets `HETZNER_REGISTRY` in the environment. Only
   the local `make deploy-hetzner` path consults it; the automated path does not.
 
-- **`platform/charts/{stagecraft,deployd-api}/values-hetzner.yaml` image refs
+- **`platform/charts/{statecraft,deployd-api}/values-hetzner.yaml` image refs
   (CD-overridden, NO change).** The CD workflows pass
   `--set image.repository=ghcr.io/${{ github.repository }}`, so a fork's pipeline
   targets the fork's own registry. The hardcoded value is the non-CD fallback.

@@ -47,7 +47,7 @@ platform/gitops/clusters/hetzner-prod/
                                         FR-005 end-to-end)
 ```
 
-The `flux-system/` directory is intentionally absent from the initial scaffold. `flux bootstrap github --owner=stagecraft-ing --repository=open-agentic-platform --path=platform/gitops/clusters/hetzner-prod` populates it itself on first bootstrap; pre-creating it would conflict with the bootstrap-generated kustomization.
+The `flux-system/` directory is intentionally absent from the initial scaffold. `flux bootstrap github --owner=statecrafting --repository=open-agentic-platform --path=platform/gitops/clusters/hetzner-prod` populates it itself on first bootstrap; pre-creating it would conflict with the bootstrap-generated kustomization.
 
 ### Reconciliation topology
 
@@ -82,7 +82,7 @@ Per spec 151 §Clarification 6, the v1 layout is **flat single-cluster**, not th
 | 4 | T-019…T-021 | `infrastructure/rauthy.yaml` |
 | 5 | T-022…T-026 | drift-detection + DR-runbook evidence (no manifests; the cluster is already declarative) |
 
-Application HelmReleases (stagecraft, deployd-api) land in spec 152 under a sibling `apps/` subtree to be created in 152's first PR. SOPS-encrypted application Secrets land in spec 153.
+Application HelmReleases (statecraft, deployd-api) land in spec 152 under a sibling `apps/` subtree to be created in 152's first PR. SOPS-encrypted application Secrets land in spec 153.
 
 ## Adding a new manifest
 

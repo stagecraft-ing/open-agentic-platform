@@ -25,7 +25,7 @@ no dependency). Phases A–C = PR-A (`feat/198-seal-grants`); D–F = PR-B
 > - **Scope addition**: the desktop run path previously emitted NO
 >   governance certificate (only the headless `factory-run` binary did);
 >   it now emits + seals one per run (`generate_certificate_bound`).
-> - **Tooling fix**: stagecraft `vite.config.ts` DB-bound test exclusions
+> - **Tooling fix**: statecraft `vite.config.ts` DB-bound test exclusions
 >   were unconditional, making those suites unrunnable even under
 >   `encore test`; now conditional on `ENCORE_RUNTIME_LIB` (CI unchanged).
 > - **Renewal Build-Spec presentation**: the gate reads the live
@@ -77,7 +77,7 @@ no dependency). Phases A–C = PR-A (`feat/198-seal-grants`); D–F = PR-B
       monotonically; refusals persisted with `refused_reason`; handler tests
       (`runDuplexHandlers.test.ts` pattern) covering all refusal reasons.
 - [x] T009 OPC/engine side: `sync_client.rs` outbound frames + `SERVER_KINDS`
-      + send helpers; `stagecraft_client.rs` grant request/renew methods;
+      + send helpers; `statecraft_client.rs` grant request/renew methods;
       engine run loop acquires a grant before s0 and renews at every stage
       boundary; refusal or unrenewable grant ⇒ pause run + surface reason
       (fail-closed, never proceed unsigned).
@@ -96,7 +96,7 @@ no dependency). Phases A–C = PR-A (`feat/198-seal-grants`); D–F = PR-B
       issued grant chain (rows match count + hashes), countersigns, persists
       `{certificate_hash, countersigned_at}` on `factory_runs`, sends
       `factory.run.certificate_countersign`; tests incl. chain-mismatch
-      refusal (no countersign on a chain stagecraft didn't issue).
+      refusal (no countersign on a chain statecraft didn't issue).
 - [x] T013 OPC receipt: dispatch countersign to the engine; patch the
       persisted `governance-certificate.json` in place (seal write must not
       alter the self-hash inputs); Rust test: emit → seal → verify.
@@ -144,7 +144,7 @@ no dependency). Phases A–C = PR-A (`feat/198-seal-grants`); D–F = PR-B
 >   `consumedOverrides` (inside hash + signature), CERTIFICATE_VERSION
 >   1.4.0 → **1.5.0**, empty list skipped in serialization so
 >   override-free certs stay byte-identical to 1.4.0 payloads. Wire leg:
->   `OpcBundleAdmission.consumedOverrides` (stagecraft + desktop twin),
+>   `OpcBundleAdmission.consumedOverrides` (statecraft + desktop twin),
 >   threaded `run_governance.rs::establish` → `CapsuleBinding` →
 >   `generate_certificate_bound`.
 > - **Row-shape ripple**: migration 45's columns are a substrate
@@ -212,10 +212,10 @@ no dependency). Phases A–C = PR-A (`feat/198-seal-grants`); D–F = PR-B
 - ASI06 scanner implementation (spec 200 stub only — FR-013 d).
 - ASI09 UI implementation (spec 201 stub only).
 - `implementation: complete` flip for 198 — gated on runtime AC verification
-  after the Stagecraft-side envelope merge + org re-sync (first real ADMIT).
+  after the Statecraft-side envelope merge + org re-sync (first real ADMIT).
   **DONE 2026-06-12**: gate discharged by the first sealed admission
   `7cf82fae…` (2026-06-11, 0 violations, JWS verified against the
-  published JWKS) following the Stagecraft-side envelope merge; flip
+  published JWKS) following the Statecraft-side envelope merge; flip
   executed — see the spec's implementation log entry of 2026-06-12 for
   the recorded AC-5 (bundle-boundary posture per T010) and AC-4
   (live-run evidence is follow-on) caveats.

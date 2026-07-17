@@ -49,7 +49,7 @@ interface FactoryPipelineContextType {
     projectPath: string,
     adapterName: string,
     businessDocPaths: string[],
-    stagecraftProjectId?: string,
+    statecraftProjectId?: string,
     /** Platform process name from the project bundle. Omitted → the
      *  backend resolves the org's current process from the platform, so
      *  a platform-side rename needs no client change. */
@@ -64,7 +64,7 @@ interface FactoryPipelineContextType {
   cancelPipeline: (reason: string) => Promise<void>;
   resumePipeline: (args: {
     adapterName?: string;
-    stagecraftProjectId?: string;
+    statecraftProjectId?: string;
   }) => Promise<void>;
   selectStep: (stepId: string | null) => void;
   loadPipelineStatus: (runId: string, projectPath?: string) => Promise<void>;
@@ -553,7 +553,7 @@ export const FactoryPipelineProvider: React.FC<{
       projectPath: string,
       adapterName: string,
       businessDocPaths: string[],
-      stagecraftProjectId?: string,
+      statecraftProjectId?: string,
       processName?: string,
       stages?: { id: string; name: string }[],
     ): Promise<string> => {
@@ -561,7 +561,7 @@ export const FactoryPipelineProvider: React.FC<{
         projectPath,
         adapterName,
         businessDocPaths,
-        stagecraftProjectId,
+        statecraftProjectId,
         processName,
       });
       const runId = resp.run_id;
@@ -738,7 +738,7 @@ export const FactoryPipelineProvider: React.FC<{
   const resumePipeline = useCallback(
     async (args: {
       adapterName?: string;
-      stagecraftProjectId?: string;
+      statecraftProjectId?: string;
     }): Promise<void> => {
       const runId = state.runId;
       const projectPath = state.projectPath;
@@ -752,7 +752,7 @@ export const FactoryPipelineProvider: React.FC<{
         runId,
         projectPath,
         adapterName,
-        stagecraftProjectId: args.stagecraftProjectId ?? null,
+        statecraftProjectId: args.statecraftProjectId ?? null,
       });
       // Flip immediately so the UI stops showing Resume while the dispatch
       // task spins up. The first `factory:step_started` event will refine

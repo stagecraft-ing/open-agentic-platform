@@ -653,7 +653,7 @@ export const transitionState = api(
     // default builds. Operators flip the env to "true" during incident
     // response only; every successful legacy call is tagged with
     // `legacy_path = true` in the audit row so usage shows up in reports.
-    if (process.env.STAGECRAFT_EXTRACT_LEGACY_TRANSITION !== "true") {
+    if (process.env.statecraft_EXTRACT_LEGACY_TRANSITION !== "true") {
       throw APIError.failedPrecondition(
         "legacy_transition_disabled: use POST /api/projects/:projectId/knowledge/objects/:id/retry-extraction or rely on the automatic pipeline",
       );

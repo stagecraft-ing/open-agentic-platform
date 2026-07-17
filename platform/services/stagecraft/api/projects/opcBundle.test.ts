@@ -18,7 +18,7 @@ const baseProject = {
 };
 
 const baseRepo = {
-  githubOrg: "Stagecraft-ing",
+  githubOrg: "Statecraft-ing",
   repoName: "acme-example-portal",
   defaultBranch: "main",
 };
@@ -78,7 +78,7 @@ describe("buildOpcBundle", () => {
     });
     expect(bundle.repo).toEqual({
       cloneUrl:
-        "https://github.com/Stagecraft-ing/acme-example-portal.git",
+        "https://github.com/statecrafting/acme-example-portal.git",
       githubOrg: baseRepo.githubOrg,
       repoName: baseRepo.repoName,
       defaultBranch: "main",

@@ -1,6 +1,6 @@
 // Spec 167 §2.3 — born-with spec-spine kernel stamp (npm distribution shape).
 //
-// Stagecraft's Create flow writes `.kernel-version` into commit #1 of every
+// Statecraft's Create flow writes `.kernel-version` into commit #1 of every
 // produced project (sibling to the `.factory/pipeline-state.json` L0 seed).
 // It records WHICH spec-spine toolchain a project was born under, so kernel
 // propagation/audit (spec 209) can reason about update eligibility.

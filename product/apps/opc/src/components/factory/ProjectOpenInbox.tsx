@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Spec 112 §6.3 — Open-in-OPC inbox banner.
 //
-// Renders a dismissible banner when stagecraft hands off a project to OPC
+// Renders a dismissible banner when statecraft hands off a project to OPC
 // via an opc:// deep link. "Resolve" calls the bundle endpoint and shows
 // what OPC received: project, adapter, contract / process / agent counts.
 // The local clone + cockpit activation are separate next-step concerns.
@@ -39,7 +39,7 @@ function joinPath(parts: string[]): string {
 export interface ProjectOpenInboxProps {
   /**
    * Called after a successful clone with the local working-tree path
-   * and the resolved stagecraft bundle (adapter + contracts + processes
+   * and the resolved statecraft bundle (adapter + contracts + processes
    * + agents). App.tsx threads both into `createFactoryTab` so the
    * cockpit can surface the bundle alongside the working tree. Bundle
    * may be null if the user reaches this point without a successful
@@ -81,14 +81,14 @@ export const ProjectOpenInbox: React.FC<ProjectOpenInboxProps> = ({
       .catch(() => setHomeDir(null));
   }, []);
 
-  // Stagecraft base URL is needed only when we need to deep-link the
+  // Statecraft base URL is needed only when we need to deep-link the
   // user at the PAT settings page. Lazily fetched once.
-  const [stagecraftBaseUrl, setStagecraftBaseUrl] = useState<string>('');
+  const [statecraftBaseUrl, setStatecraftBaseUrl] = useState<string>('');
   useEffect(() => {
     void api
-      .getStagecraftBaseUrl()
-      .then((url) => setStagecraftBaseUrl(url ?? ''))
-      .catch(() => setStagecraftBaseUrl(''));
+      .getStatecraftBaseUrl()
+      .then((url) => setStatecraftBaseUrl(url ?? ''))
+      .catch(() => setStatecraftBaseUrl(''));
   }, []);
 
   if (!pending) return null;
@@ -103,7 +103,7 @@ export const ProjectOpenInbox: React.FC<ProjectOpenInboxProps> = ({
         <Inbox className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" aria-hidden="true" />
         <div className="flex-1 min-w-0 space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium">Project handoff from stagecraft</span>
+            <span className="text-sm font-medium">Project handoff from statecraft</span>
             {pending.level && (
               <Badge variant="outline" className="text-xs">
                 {pending.level.replace(/_/g, ' ')}
@@ -159,15 +159,15 @@ export const ProjectOpenInbox: React.FC<ProjectOpenInboxProps> = ({
                 {tokenState.error ?? 'GitHub rejected the project PAT during refresh.'}
               </div>
               <div className="flex items-center gap-2 pt-1">
-                {stagecraftBaseUrl && (
+                {statecraftBaseUrl && (
                   <a
-                    href={patSettingsUrl(stagecraftBaseUrl, bundle.project.id)}
+                    href={patSettingsUrl(statecraftBaseUrl, bundle.project.id)}
                     target="_blank"
                     rel="noreferrer noopener"
                     className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 hover:underline"
                   >
                     <ExternalLink className="h-3 w-3" />
-                    Manage PAT in Stagecraft
+                    Manage PAT in Statecraft
                   </a>
                 )}
                 <Button

@@ -456,7 +456,7 @@ expectations and intended audience, mirroring spec 134 §SC-04.
 Spec 104 — whose parity contract this spec implements as the default `make
 ci` — self-amended its `PRODUCERS` rule for `adapter-scopes-compiler`: the
 artifact repoints from the retired `build/adapter-scopes.json` to the
-committed stagecraft snapshot, following the spec-198 FR-012 derivation
+committed statecraft snapshot, following the spec-198 FR-012 derivation
 cutover. No fast-ci lane, recipe, or parity verdict changes; recorded here
 because this spec is 104's current implements-owner.
 

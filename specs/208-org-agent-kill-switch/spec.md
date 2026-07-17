@@ -37,8 +37,8 @@ establishes:
   # Phase 1 (FR-001): the org_halts quarantine-record migration, the
   # admin-gated kill-switch verb, and its DB-bound enforcement test are
   # brought into existence by this spec.
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/orgHalt.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/orgHalt.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/orgHalt.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/orgHalt.test.ts }
   # Phase 5 (FR-005): the e2e kill-switch pull-and-lift drill fixture is brought
   # into existence by this spec, inside the spec-187 harness fixtures/ tree.
   - unit: { kind: file, path: product/apps/opc/tests-e2e/fixtures/208/org-halt-drill.e2e.ts }
@@ -49,7 +49,7 @@ extends:
   # human-actor gate (additive, no behaviour change).
   - spec: "198-factory-governance-envelope"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/revocations.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/revocations.ts }
   # Phase 3 (FR-001/AC-3): the agent-profile seam. The grant-renewal path is
   # taught to resolve the profile about to execute a stage (from the
   # reservation-time stage-agent map) and present it on factory.run.grant_renew,
@@ -65,16 +65,16 @@ extends:
   - spec: "198-factory-governance-envelope"
     nature: additive
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/factory_platform.rs }
-  # Phase 5 (FR-005): the drill additively extends the spec-187 mock-stagecraft
+  # Phase 5 (FR-005): the drill additively extends the spec-187 mock-statecraft
   # harness so the duplex stays bidirectional after the hello (push a
   # server->client org.halt.* frame, collect the client's org.halt.ack). The
   # spec-187 handshake modes are untouched; this is a pure surface addition.
   - spec: "187-opc-e2e-test-harness"
     nature: additive
-    unit: { kind: file, path: product/apps/opc/tests-e2e/harness/mock_stagecraft.ts }
+    unit: { kind: file, path: product/apps/opc/tests-e2e/harness/mock_statecraft.ts }
   - spec: "187-opc-e2e-test-harness"
     nature: additive
-    unit: { kind: file, path: product/apps/opc/tests-e2e/harness/mock_stagecraft.test.ts }
+    unit: { kind: file, path: product/apps/opc/tests-e2e/harness/mock_statecraft.test.ts }
   # Same precedent as specs 196, 194, 193, 187, 183: a new spec adds a row
   # to the featuregraph golden.
   - spec: "034-featuregraph-registry-scanner-fix"
@@ -86,24 +86,24 @@ refines:
   # (grant issuance/renewal, new-session registration, serve/bind) the switch
   # reuses rather than adding a parallel mechanism.
   - aspect: "org-halt-storage"
-    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/db/schema.ts }
   - aspect: "org-halt-audit-actions"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/auditActions.ts }
   - aspect: "org-halt-refusal-reason"
-    unit: { kind: file, path: platform/services/stagecraft/api/sync/types.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/sync/types.ts }
   - aspect: "org-halt-grant-refusal"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/grantDuplexHandlers.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/grantDuplexHandlers.ts }
   - aspect: "org-halt-session-refusal"
-    unit: { kind: file, path: platform/services/stagecraft/api/sync/duplex.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/sync/duplex.ts }
   - aspect: "org-halt-serve-bind-refusal"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/admission.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/admission.ts }
   - aspect: "org-halt-test-lane"
-    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+    unit: { kind: file, path: platform/services/statecraft/vite.config.ts }
   # Phase 2 (FR-001/FR-003): the org-halt broadcast over the duplex channel and
   # the engine-side pause-at-next-boundary + checkpoint. Declared for the
   # staged plan; the files are edited in PR-2 (feat/208-propagate).
   - aspect: "org-halt-propagation"
-    unit: { kind: file, path: platform/services/stagecraft/api/sync/service.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/sync/service.ts }
   - aspect: "halt-aware-session-termination"
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/live_sessions.rs }
   # Phase 2 (FR-003): the engine-side org.halt.* wire twin and the org.halt.ack
@@ -311,7 +311,7 @@ staged reintegration (FR-004). This is ASI01 m8's "verify rollback works"
 applied to containment: a kill switch that has never been pulled is
 decoration. The drill runs in the existing nightly e2e lane
 (`.github/workflows/opc-e2e-nightly.yml`) against the harness's
-`mock_stagecraft` seam, not as a later promise.
+`mock_statecraft` seam, not as a later promise.
 
 ## Acceptance criteria
 

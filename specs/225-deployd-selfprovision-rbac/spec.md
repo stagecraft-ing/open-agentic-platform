@@ -314,7 +314,7 @@ gap (FR-007). The recommended cutover, ordered:
 
 1. Merge and let CD deploy the flip.
 2. Immediately redeploy each currently-live tenant once (there is exactly one
-   on Hetzner today: `oap-stagecraft-ing-single-simple-dev`). Each redeploy
+   on Hetzner today: `oap-statecrafting-single-simple-dev`). Each redeploy
    runs `ensure_workload_rbac`, provisioning that namespace's RoleBinding, so
    both future deploys AND deletes have workload rights there.
 3. FR-007 has landed, so a delete now self-provisions the workloads RoleBinding
@@ -371,7 +371,7 @@ tracked here so they are not lost:
   subject, not arbitrary escalation. Hardening follow-up: assert the pod's
   own downward-API namespace is authoritative rather than trusting a literal
   env override.
-- **No stagecraft `audit_log` row for self-provisioned RoleBindings.** They
+- **No statecraft `audit_log` row for self-provisioned RoleBindings.** They
   appear only in the Kubernetes audit log. If the OAP audit trail is treated
   as the authority for privilege grants, this is a completeness gap. Candidate
   follow-on FR: emit a `deployd.rbac.self_provisioned` audit row.

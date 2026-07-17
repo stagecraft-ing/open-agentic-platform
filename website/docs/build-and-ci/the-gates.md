@@ -14,7 +14,7 @@ The staleness gate runs the compiler and indexer and checks if the output differ
 
 ## 3. Schema Parity Walker (Spec 125)
 
-OAP spans multiple languages, notably Rust (backend) and TypeScript (frontend/stagecraft). The Schema Parity Walker ensures that the data contracts between these languages remain in lockstep. If a Rust struct changes without a corresponding update to the TypeScript interface, CI fails.
+OAP spans multiple languages, notably Rust (backend) and TypeScript (frontend/statecraft). The Schema Parity Walker ensures that the data contracts between these languages remain in lockstep. If a Rust struct changes without a corresponding update to the TypeScript interface, CI fails.
 
 ## 4. Supply Chain Policy (Spec 116)
 

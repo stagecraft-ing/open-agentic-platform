@@ -1,7 +1,7 @@
 ---
 id: "111-org-agent-catalog-sync"
 slug: org-agent-catalog-sync
-title: Org-managed Agent Catalog Synced from Stagecraft to OPC
+title: Org-managed Agent Catalog Synced from Statecraft to OPC
 status: approved
 implementation: complete
 owner: bart
@@ -11,7 +11,7 @@ amendment_record: "139-factory-artifact-substrate"
 kind: platform
 domain: platform
 summary: >
-  Treats agents as organisational assets stored in stagecraft and pushed to
+  Treats agents as organisational assets stored in statecraft and pushed to
   OPC via the duplex channel (spec 087 §5.3). Workspaces author, version,
   and govern agent definitions in the web UI; connected OPC instances
   receive them as a workspace-scoped catalog that local SQLite caches.
@@ -24,25 +24,25 @@ depends_on:
   - "068-permission-runtime"  # permission-runtime (how policies attach)
   - "087-unified-workspace-architecture"  # unified-workspace-architecture (duplex channel + authority)
   - "090-governance-non-optionality"  # governance-non-optionality (no bypass of policy bundle)
-  - "110-stagecraft-to-opc-factory-trigger"  # stagecraft-to-opc-factory-trigger (establishes the dispatcher pattern)
+  - "110-statecraft-to-opc-factory-trigger"  # statecraft-to-opc-factory-trigger (establishes the dispatcher pattern)
 establishes:
-  - unit: { kind: directory, path: platform/services/stagecraft/api/agents }
-  - unit: { kind: file, path: platform/services/stagecraft/api/agents/catalog.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/agents/relay.ts }
-  - unit: { kind: directory, path: platform/services/stagecraft/api/agents/frontmatter }
-  - unit: { kind: file, path: platform/services/stagecraft/api/sync/types.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/sync/service.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/sync/duplex.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/sync/relay.ts }
+  - unit: { kind: directory, path: platform/services/statecraft/api/agents }
+  - unit: { kind: file, path: platform/services/statecraft/api/agents/catalog.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/agents/relay.ts }
+  - unit: { kind: directory, path: platform/services/statecraft/api/agents/frontmatter }
+  - unit: { kind: file, path: platform/services/statecraft/api/sync/types.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/sync/service.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/sync/duplex.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/sync/relay.ts }
   - unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/agents.rs }
   - unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/agent_catalog_sync.rs }
-  - unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/stagecraft_client.rs }
+  - unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/statecraft_client.rs }
 references:
   - role: historical
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.workspace.agents.tsx }
 ---
 
-# 111 — Org-managed Agent Catalog Synced from Stagecraft to OPC
+# 111 — Org-managed Agent Catalog Synced from Statecraft to OPC
 
 > **Amended 2026-05-05 by spec [139](../139-factory-artifact-substrate/spec.md).**
 > The `agent_catalog` table generalises into the
@@ -72,7 +72,7 @@ Consequences:
    bundle.
 3. Factory pipelines that want to run with a specific stage-0 agent
    cannot reference it by ID — only by shipping the file via the repo.
-4. The broader thesis "stagecraft orchestrates, OPC executes" (087 §3.1,
+4. The broader thesis "statecraft orchestrates, OPC executes" (087 §3.1,
    108 §7) is undermined: agent *definition* is execution-adjacent
    configuration and belongs on the platform side.
 
@@ -83,7 +83,7 @@ travel web → desktop but did not extend the pattern to agents.
 
 ## 2. Decision
 
-Make the **authoritative agent catalog** a stagecraft workspace entity.
+Make the **authoritative agent catalog** a statecraft workspace entity.
 Desktops receive a workspace-scoped snapshot via the duplex channel and
 cache it locally. Personal/offline agents (in `.claude/agents/*.md` or
 locally-created via the desktop UI) continue to work, but are marked
@@ -91,7 +91,7 @@ locally-created via the desktop UI) continue to work, but are marked
 
 ### 2.1 Data model
 
-New tables in stagecraft (migration 21 — slot 20 was consumed by spec 110
+New tables in statecraft (migration 21 — slot 20 was consumed by spec 110
 Phase 3 `factory_pipelines.source`; slot 21 is the first free index after
 the 2026-04-21 merge order):
 
@@ -128,11 +128,11 @@ CREATE TABLE agent_catalog_audit (
 ```
 
 The `frontmatter` JSONB is a serialised `UnifiedFrontmatter` (crate
-`agent-frontmatter`, spec 054). No schema drift — stagecraft imports the
+`agent-frontmatter`, spec 054). No schema drift — statecraft imports the
 same type through a small shared TS mirror (auto-generated from the Rust
 types, pattern already used elsewhere).
 
-### 2.2 New API endpoints (stagecraft)
+### 2.2 New API endpoints (statecraft)
 
 All under `api/agents/`:
 
@@ -272,17 +272,17 @@ a retire-storm on every policy update.
 ## 3. Model API keys stay on OPC (design decision)
 
 The 2026-04-21 architectural review considered proxying inference through
-stagecraft so that model API keys could be centrally managed. **Decided:
+statecraft so that model API keys could be centrally managed. **Decided:
 keys stay on OPC.** Rationale:
 
 - Inference round-trips through a platform-hosted proxy add latency that
   user-facing agent streams cannot tolerate.
 - Billing exposure, key rotation, and per-tenant metering become
-  stagecraft concerns that scope-creep the platform.
+  statecraft concerns that scope-creep the platform.
 - Spec 087 NF-004 mandates OPC functions fully offline. A proxy path is
   incompatible with this guarantee without a parallel "direct mode" that
   undermines the centralisation.
-- Prompt content privacy: routing all inference through stagecraft
+- Prompt content privacy: routing all inference through statecraft
   creates a single-point log of every prompt/response. Desktop-local
   inference keeps conversations between the user and the model vendor.
 
@@ -293,7 +293,7 @@ produce stay local. Secrets for provider access remain in the OS keychain
 
 ## 4. Non-goals
 
-- **Agent *execution* pushed from stagecraft.** This spec ships
+- **Agent *execution* pushed from statecraft.** This spec ships
   definitions; execution triggers are a separate concern. For factory,
   see spec 110. For general agent invocation, a future spec may define
   `ServerEnvelope::agent.invoke.request` using the same authority model.
@@ -314,7 +314,7 @@ produce stay local. Secrets for provider access remain in the OS keychain
    in a given tab? Proposal: each tab is workspace-bound (spec 110 §2.4);
    the agent resolution is scoped to the tab's workspace. Cross-workspace
    visibility is an explicit user action (workspace switcher).
-2. **Conflict resolution for concurrent edits.** Stagecraft is single-
+2. **Conflict resolution for concurrent edits.** Statecraft is single-
    writer-per-session (optimistic lock via `content_hash`); drafts can't
    collide. Open: do we want collaborative real-time editing on the
    draft markdown? Lean no — publication is the collaboration point.
@@ -340,21 +340,21 @@ produce stay local. Secrets for provider access remain in the OS keychain
 2. Extend `agent-frontmatter` types for the JSONB round-trip (shared
    type generator). **Shipped 2026-04-22.** See §7.2 for the contract.
 3. Add `agent.catalog.snapshot` and `agent.catalog.updated` envelopes
-   (desktop-side behind a feature flag in the stagecraft client).
+   (desktop-side behind a feature flag in the statecraft client).
    **Shipped 2026-04-22.** See §7.3 for the contract.
 4. Ship the web UI. **Shipped 2026-04-22.** See §7.4 for the contract.
 5. Flip the desktop flag; remote agents become visible.
    **Shipped 2026-04-22.** See §7.5 for the contract.
 6. Write migration notes for users with existing local agents (they
    remain local; publishing them to remote is a one-click action in the
-   desktop UI — generates a draft in stagecraft). **Shipped 2026-04-22.**
+   desktop UI — generates a draft in statecraft). **Shipped 2026-04-22.**
    See §7.7 for the contract.
 
 ### 7.2 Phase 2 — shared type generator contract
 
 `crates/agent-frontmatter/src/types.rs` owns the authoritative
 `UnifiedFrontmatter` shape. The TypeScript mirror lives under
-`platform/services/stagecraft/api/agents/frontmatter/`:
+`platform/services/statecraft/api/agents/frontmatter/`:
 
 ```
 frontmatter/
@@ -381,8 +381,8 @@ location pinned by `TS_RS_EXPORT_DIR` in repo-root `.cargo/config.toml`.
 **CI drift gate:** `make ci-agent-frontmatter-ts` regenerates the
 mirror and fails if `git diff --exit-code` or an untracked-file scan
 shows a drift. Wired into `.github/workflows/ci-crates.yml` on the
-`agent-frontmatter` matrix slot, and into `make ci-stagecraft` locally
-(so `make ci` catches drift even during a stagecraft-only edit session).
+`agent-frontmatter` matrix slot, and into `make ci-statecraft` locally
+(so `make ci` catches drift even during a statecraft-only edit session).
 
 **Why `CatalogFrontmatter = UnifiedFrontmatter & { [key: string]: unknown }`:**
 the Rust type preserves unknown keys via `#[serde(flatten)] extra`
@@ -409,7 +409,7 @@ or rewriting any field — the exact path taken on store and replay.
 Landed 2026-04-22. Wires the catalog to the duplex channel established in
 spec 087 §5.3 and exercised for factory in spec 110.
 
-**Outbound (stagecraft → OPC):**
+**Outbound (statecraft → OPC):**
 
 - `agent.catalog.updated` is broadcast on every publish and retire (including
   the auto-retired prior row when a new version publishes). Also used as
@@ -420,7 +420,7 @@ spec 087 §5.3 and exercised for factory in spec 110.
   local cache and pull only the deltas. Retired agents are absent — the
   desktop infers removal from absence (§2.4).
 
-**Inbound (OPC → stagecraft):**
+**Inbound (OPC → statecraft):**
 
 - `agent.catalog.fetch_request` carries `(workspaceId, agentId, reason)`
   where reason ∈ {`cache_miss`, `hash_mismatch`, `manual_refresh`}. The
@@ -438,7 +438,7 @@ serialises the outbound `agent.catalog.fetch_request` frame, and has a typed
 helper `send_agent_catalog_fetch_request` on `SyncClientInner`. No handler
 is registered in the dispatch table during Phase 3 — cache integration and
 the UI-facing events land in Phase 5 behind the feature flag. The decode
-path must be live in Phase 3 so stagecraft can start emitting without the
+path must be live in Phase 3 so statecraft can start emitting without the
 guard in `is_server_envelope` dropping the kinds.
 
 **Why broadcast retired rows too.** Absence-means-removed semantics (§2.4)
@@ -450,7 +450,7 @@ and the next snapshot confirms by omission.
 
 ### 7.4 Phase 4 — web UI contract
 
-Landed 2026-04-22. Adds the stagecraft-side authoring surface so workspace
+Landed 2026-04-22. Adds the statecraft-side authoring surface so workspace
 admins can create, edit, publish, retire, and audit agent definitions
 without touching the database or API by hand.
 
@@ -498,7 +498,7 @@ and Factory; the existing org-switcher and workspace pill are unchanged.
 ### 7.5 Phase 5 — desktop cache + dispatch contract
 
 Landed 2026-04-22. Flips the OPC side from Phase 3's decode-only posture to
-a fully wired cache so stagecraft publish/retire events reach a connected
+a fully wired cache so statecraft publish/retire events reach a connected
 desktop in near-real time. Gated by the `OPC_REMOTE_AGENT_CATALOG` env var
 so the default posture remains Phase 3 until operators explicitly opt in —
 the feature flag exists because the desktop UI for surfacing remote vs.
@@ -586,7 +586,7 @@ Unit coverage in `agent_catalog_sync::tests` (13 cases):
 ### 7.7 Phase 6 — local→remote publish contract
 
 Landed 2026-04-22. Closes the migration path for users whose agents
-predate the workspace catalog: a local SQLite row can seed a stagecraft
+predate the workspace catalog: a local SQLite row can seed a statecraft
 draft with one click, without retyping the prompt into the web UI.
 
 **Authority posture unchanged.** Phase 6 does not grant the desktop the
@@ -602,19 +602,19 @@ out to other desktops via the Phase 3 envelopes.
 #[tauri::command]
 pub async fn publish_local_agent_to_workspace(
     db: State<AgentDb>,
-    stagecraft: State<StagecraftState>,
+    statecraft: State<StatecraftState>,
     agent_id: i64,
 ) -> Result<PublishLocalAgentResult, String>;
 ```
 
 Lives in `product/apps/opc/src-tauri/src/commands/agent_catalog_publish.rs`.
 Returns a `web_path` (`/app/workspace/agents/<remote_id>`) so the
-frontend can open the stagecraft detail page directly — the user lands
+frontend can open the statecraft detail page directly — the user lands
 on the draft ready to publish.
 
 **Preconditions enforced by the command:**
 
-1. `StagecraftState` holds a configured client (base URL set).
+1. `StatecraftState` holds a configured client (base URL set).
 2. The client carries a Rauthy JWT (spec 087 Phase 5) — workspaceId is
    read server-side from the `oap_workspace_id` claim, so the desktop
    does not need to pass it in the body.
@@ -642,7 +642,7 @@ carry only coarse boolean flags; the user must review and pin a tier in
 the web UI before the admin publishes. This avoids laundering a Tier1
 default onto a prompt that should have been Tier2.
 
-**Slug normalisation.** Stagecraft's `/api/agents` enforces
+**Slug normalisation.** Statecraft's `/api/agents` enforces
 `^[a-z][a-z0-9]*(-[a-z0-9]+)*$`. The desktop's free-form names flow
 through `slugify_agent_name`:
 
@@ -659,7 +659,7 @@ fabricating a slug.
 row's `source` column. The workflow is:
 
 1. User clicks "Publish to workspace" on a local agent.
-2. Desktop creates the draft in stagecraft.
+2. Desktop creates the draft in statecraft.
 3. User (or a workspace admin) reviews + publishes via the web UI.
 4. Published row fans back in via `agent.catalog.updated`.
 5. Phase 5 cache ingestion inserts it as a `source='remote'` row.
@@ -680,7 +680,7 @@ the original definition.
   them into the desktop catalog via the existing "Import Agent" flow,
   then running Publish to Workspace on the imported row.
 - Agents that collide by slug with an already-published workspace
-  agent will create a parallel draft (stagecraft's
+  agent will create a parallel draft (statecraft's
   `(workspace_id, name, version)` uniqueness permits multiple versions
   per name; `nextVersion` picks `max+1`). The workspace admin decides
   whether to publish the new version or retire it as a duplicate.

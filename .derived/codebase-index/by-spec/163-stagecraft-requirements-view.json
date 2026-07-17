@@ -4,12 +4,12 @@
     "warnings": [
       {
         "code": "W-002",
-        "message": "spec '163-stagecraft-requirements-view' file unit 'docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md' does not exist",
+        "message": "spec '163-statecraft-requirements-view' file unit 'docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md' does not exist",
         "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
       },
       {
         "code": "W-002",
-        "message": "spec '163-stagecraft-requirements-view' file unit 'docs/owasp/factory/AIDE-VELOCITY-blueprint-spec.md' does not exist",
+        "message": "spec '163-statecraft-requirements-view' file unit 'docs/owasp/factory/AIDE-VELOCITY-blueprint-spec.md' does not exist",
         "path": "docs/owasp/factory/AIDE-VELOCITY-blueprint-spec.md"
       }
     ]
@@ -27,39 +27,39 @@
     ],
     "implementingPaths": [
       {
-        "path": "platform/services/stagecraft/api/db/schema.ts",
+        "path": "platform/services/statecraft/api/db/schema.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/specRegistry",
+        "path": "platform/services/statecraft/api/specRegistry",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/lib/spec-registry-api.server.ts",
+        "path": "platform/services/statecraft/web/app/lib/spec-registry-api.server.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.test.ts",
+        "path": "platform/services/statecraft/web/app/lib/spec-registry-grouping.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.ts",
+        "path": "platform/services/statecraft/web/app/lib/spec-registry-grouping.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes",
+        "path": "platform/services/statecraft/web/app/routes",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes.ts",
+        "path": "platform/services/statecraft/web/app/routes.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.$specId.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.requirements.$specId.tsx",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.requirements.tsx",
         "source": "spec-edge"
       },
       {
@@ -67,7 +67,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "specs/164-stagecraft-development-lifecycle-board/spec.md",
+        "path": "specs/164-statecraft-development-lifecycle-board/spec.md",
         "source": "spec-edge"
       }
     ],
@@ -75,118 +75,118 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/specRegistry"
+            "file": "platform/services/statecraft/api/specRegistry"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "directory",
-          "path": "platform/services/stagecraft/api/specRegistry"
+          "path": "platform/services/statecraft/api/specRegistry"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/lib/spec-registry-api.server.ts"
+            "file": "platform/services/statecraft/web/app/lib/spec-registry-api.server.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/spec-registry-api.server.ts"
+          "path": "platform/services/statecraft/web/app/lib/spec-registry-api.server.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.test.ts"
+            "file": "platform/services/statecraft/web/app/lib/spec-registry-grouping.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.test.ts"
+          "path": "platform/services/statecraft/web/app/lib/spec-registry-grouping.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.ts"
+            "file": "platform/services/statecraft/web/app/lib/spec-registry-grouping.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.ts"
+          "path": "platform/services/statecraft/web/app/lib/spec-registry-grouping.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.$specId.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app.project.$projectId.requirements.$specId.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.$specId.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.requirements.$specId.tsx"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app.project.$projectId.requirements.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.requirements.tsx"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes"
+            "file": "platform/services/statecraft/web/app/routes"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "directory",
-          "path": "platform/services/stagecraft/web/app/routes"
+          "path": "platform/services/statecraft/web/app/routes"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/db/schema.ts"
+            "file": "platform/services/statecraft/api/db/schema.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes.ts"
+            "file": "platform/services/statecraft/web/app/routes.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes.ts"
+          "path": "platform/services/statecraft/web/app/routes.ts"
         }
       },
       {
@@ -223,18 +223,18 @@
       {
         "locations": [
           {
-            "file": "specs/164-stagecraft-development-lifecycle-board/spec.md"
+            "file": "specs/164-statecraft-development-lifecycle-board/spec.md"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "specs/164-stagecraft-development-lifecycle-board/spec.md"
+          "path": "specs/164-statecraft-development-lifecycle-board/spec.md"
         }
       }
     ],
-    "specId": "163-stagecraft-requirements-view",
+    "specId": "163-statecraft-requirements-view",
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",

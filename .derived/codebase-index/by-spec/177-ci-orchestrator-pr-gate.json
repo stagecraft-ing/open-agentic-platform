@@ -69,7 +69,7 @@
         "source": "spec-edge"
       },
       {
-        "path": ".github/workflows/ci-stagecraft.yml",
+        "path": ".github/workflows/ci-statecraft.yml",
         "source": "spec-edge"
       },
       {
@@ -241,14 +241,14 @@
       {
         "locations": [
           {
-            "file": ".github/workflows/ci-stagecraft.yml"
+            "file": ".github/workflows/ci-statecraft.yml"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": ".github/workflows/ci-stagecraft.yml"
+          "path": ".github/workflows/ci-statecraft.yml"
         }
       },
       {

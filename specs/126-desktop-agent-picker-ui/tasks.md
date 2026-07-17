@@ -32,11 +32,11 @@ TypeScript surface mirroring spec 123's enums and row shapes.
 
 Presentational only; no real data. A fixture array drives the rendering until Phase 2.
 
-- [x] **T010** Create `product/apps/opc/src/components/AgentPicker.tsx`. Props per spec §3. Body is a modal + tabs + search + list. Empty state: "No bindings yet — open the project's Agents tab in stagecraft to bind one."
+- [x] **T010** Create `product/apps/opc/src/components/AgentPicker.tsx`. Props per spec §3. Body is a modal + tabs + search + list. Empty state: "No bindings yet — open the project's Agents tab in statecraft to bind one."
 - [x] **T011** Add tab switcher with active count badges. Tab state is local component state initialised from `defaultMode`.
 - [x] **T012** [P] Search input with debounce (existing helper if one is in the desktop codebase; otherwise inline 200ms debounce). Filter is client-side over the list.
 - [x] **T013** [P] Row layout per spec §4 ASCII mock: name @ vN, content_hash short, status pill, safety tier + model line.
-- [x] **T014** [P] Footer: `Cancel` + `Manage bindings →`. The latter uses `tauri-plugin-shell` opener with the constructed URL `https://<stagecraft-host>/app/project/{projectId}/agents`. Stagecraft host comes from existing desktop config.
+- [x] **T014** [P] Footer: `Cancel` + `Manage bindings →`. The latter uses `tauri-plugin-shell` opener with the constructed URL `https://<statecraft-host>/app/project/{projectId}/agents`. Statecraft host comes from existing desktop config.
 - [x] **T015** [P] Wire a fixture array of 5 mixed-status rows so the component renders standalone in dev for visual review.
 
 **Checkpoint:** Component renders against the fixture, tabs switch, search filters, deep-link button opens (in dev with a placeholder URL). Commit: `feat(desktop, spec-126): AgentPicker shell + tabs + search`.
@@ -57,7 +57,7 @@ Replace the fixture with real Tauri command calls.
 - [x] **T023** [P] Replace the Phase 1 fixture in `AgentPicker.tsx` with `useAgentPickerData`'s output.
 - [x] **T024** [P] Loading state: skeleton rows or spinner while `loading: true`. Error state: a small banner with retry.
 
-**Checkpoint:** Picker shows real data when running against a stagecraft + a desktop build with a populated catalog. Commit: `feat(desktop, spec-126): AgentPicker data hook + duplex auto-refresh`.
+**Checkpoint:** Picker shows real data when running against a statecraft + a desktop build with a populated catalog. Commit: `feat(desktop, spec-126): AgentPicker data hook + duplex auto-refresh`.
 
 ---
 

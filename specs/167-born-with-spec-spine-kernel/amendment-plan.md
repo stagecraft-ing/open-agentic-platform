@@ -26,7 +26,7 @@ make the npm distribution shape the canonical born-with emission, retires the
 vendored-binary design (collapsing FR-005's dual mode to a single
 `npm-devdependency` mode while preserving `.kernel-version`'s mode field for
 forward-compat), and — critically — **relocates the auto-fire from the dormant
-`factory-engine` Rust path to the live stagecraft Create flow** (`create.ts` →
+`factory-engine` Rust path to the live statecraft Create flow** (`create.ts` →
 `perRequestScaffold.ts`), because that is the path every produced project
 actually traverses; the Rust `emit_project_kernel` was never wired and is
 orthogonal to production. The amendment must be careful to stay inside its lane:
@@ -142,8 +142,8 @@ synthetic-draft generator is then dead code for the npm path.
 
 167 assumes the auto-fire lives in `factory-engine`'s Phase-2 transition
 ("before the first adapter write in Phase 2", spec.md:362–364). But the live
-production Create path is **stagecraft**, not the Rust engine: spec 112
-`platform/services/stagecraft/api/projects/create.ts:271–326` scaffolds by
+production Create path is **statecraft**, not the Rust engine: spec 112
+`platform/services/statecraft/api/projects/create.ts:271–326` scaffolds by
 copying a prebuilt template tree (`scaffoldFromPrebuilt`,
 `perRequestScaffold.ts:60–138`) and pushing commit #1. The Rust
 `FactoryEngine::emit_project_kernel` (`crates/factory-engine/src/engine.rs:347–394`)
@@ -216,7 +216,7 @@ states: the canonical born-with toolchain is the pinned `spec-spine` npm
 devDependency; vendored loose binaries are retired.
 
 **E2 consistency rule (Dev2):** option 1 binds the stamp's value — the
-stagecraft-written `.kernel-version` records `toolchain_mode: pinned-toolchain`
+statecraft-written `.kernel-version` records `toolchain_mode: pinned-toolchain`
 (the existing kebab-case serde value, `version.rs:85–92`), NOT a literal
 `npm-devdependency` string, which would fail `KernelVersion::from_yaml` the
 moment Rust propagation tooling reads it. Wanting `npm-devdependency` as the
@@ -278,7 +278,7 @@ receives is whatever the warmed prebuilt template declares. That means:
 
 ## Auto-fire placement
 
-The central correction (S7): **emission's home is the stagecraft Create flow,
+The central correction (S7): **emission's home is the statecraft Create flow,
 not a `factory-engine` Rust transition.**
 
 ### Why not the factory-engine transition
@@ -329,7 +329,7 @@ prebuilt dir into `destDir`). The required wiring is therefore:
    path. **Ownership (G4, Dev2):** the new helper is claimed by **167** via an
    `extends:` edge into the scaffold path (nature: additive, unit: the new
    helper file under
-   `platform/services/stagecraft/api/projects/scaffold/`) — `.kernel-version`
+   `platform/services/statecraft/api/projects/scaffold/`) — `.kernel-version`
    is 167's concept; 112 receives the appended self-amend narrative entry but
    does not claim the file. Decided so PR 2 lands no orphaned unit. (It is small enough that it could even be a static file committed into
    the template, but generating it at scaffold time is better because the
@@ -355,7 +355,7 @@ transitions, and verifying vended-tool integrity. **The 167 amendment must not
 implement 209's enforcement leg.** The clean division:
 
 - **167 amendment (WS5):** corrects the *distribution shape* (npm not vendored
-  binaries) and *names the correct emission layer* (stagecraft prebuilt path +
+  binaries) and *names the correct emission layer* (statecraft prebuilt path +
   `.kernel-version` stamp). It makes 167 describe reality.
 - **209 (separate):** activates *enforcement* (advisory→blocking CI, cert
   auto-emit, tool-integrity verify). 209 already lists
@@ -451,7 +451,7 @@ Per the task constraint and the live frontmatter:
   change, so the coupling gate sees spec-only churn — clean.
 - **Implementation PR(s)** touch `crates/factory-engine/templates/kernel/*`
   (retire/rewrite `tenant-ci.yml.tmpl`), `crates/factory-engine/src/kernel_emission/*`
-  (retire vendored-binary emission OR repoint to npm shape), and stagecraft
+  (retire vendored-binary emission OR repoint to npm shape), and statecraft
   `create.ts`/`perRequestScaffold.ts` (add `.kernel-version` stamp). These are
   167/112/168 territory. Per the memory note on graph-truthful resolution and
   the spec-code coupling gate: **the spec amendment and the code change that
@@ -518,10 +518,10 @@ Per the task constraint and the live frontmatter:
   regenerate the featuregraph golden (required by the G1 implementation flip;
   also if any relationship edge changed).
 
-**PR 2 — Implementation: stagecraft `.kernel-version` stamp + template
+**PR 2 — Implementation: statecraft `.kernel-version` stamp + template
 retirement.** Code, riding 112/167/168.
 - Add `buildKernelVersionStamp` (sibling of `seedPipelineState.ts`, actual
-  path `platform/services/stagecraft/api/projects/scaffold/`) and write
+  path `platform/services/statecraft/api/projects/scaffold/`) and write
   `.kernel-version` into the scaffold tree in `perRequestScaffold.ts` before
   push; thread adapter identity from `create.ts`. The stamp records
   `toolchain_mode: pinned-toolchain` (E2). **167 claims the new helper** via
@@ -535,7 +535,7 @@ retirement.** Code, riding 112/167/168.
   repointed) — coupling-gate coupled.
 - Append the dated self-amend entry to 112 (Create flow now writes
   `.kernel-version`) and to 168 if its templates moved.
-- `make ci-strict` before merge (touches Rust + stagecraft + specs).
+- `make ci-strict` before merge (touches Rust + statecraft + specs).
 
 **PR 3 (optional, hand to 209 owner) — enforcement activation.** *Not WS5.*
 209 makes the seeded CI blocking and auto-emits certificates; flagged here only

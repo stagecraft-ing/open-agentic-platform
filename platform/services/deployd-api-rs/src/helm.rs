@@ -140,10 +140,10 @@ impl HelmRunner {
     pub fn from_env() -> Self {
         let bin = std::env::var_os("DEPLOYD_HELM_BIN").unwrap_or_else(|| OsString::from("helm"));
         // `create_deployment` shells helm synchronously and only responds to
-        // stagecraft once `helm upgrade --install --wait` returns. stagecraft's
+        // statecraft once `helm upgrade --install --wait` returns. statecraft's
         // fetch inherits undici's 300s headers timeout, so a `--wait` that runs
         // to ~300s (the old "5m" default) races that timeout: when undici loses
-        // the coin-flip, stagecraft records an opaque REQUEST_FAILED "fetch
+        // the coin-flip, statecraft records an opaque REQUEST_FAILED "fetch
         // failed" instead of deployd's real FAILED + helm stderr (e.g. an
         // ImagePullBackOff that will never become Ready). Default the wait below
         // 300s so deployd always wins the race and the actionable helm error
@@ -365,7 +365,7 @@ pub struct DeployExtras<'a> {
     /// FR-004: `config_refs` entries rendered as plain container env vars via
     /// the chart's `extraEnv`. A `BTreeMap` so the rendered order is stable
     /// (key-sorted) across dispatches. Reserved-prefix rejection
-    /// (`ENCORE_` / `KUBERNETES_`) happens at the stagecraft proxy, not here.
+    /// (`ENCORE_` / `KUBERNETES_`) happens at the statecraft proxy, not here.
     pub config_refs: Option<&'a std::collections::BTreeMap<String, String>>,
     /// FR-005: name of the dockerconfigjson pull secret reflected into the
     /// namespace (default `ghcr-pull`). Rendered as
@@ -378,7 +378,7 @@ pub struct DeployExtras<'a> {
     /// FR-006: when true, render the chart's opt-in preview-grade Postgres
     /// (`previewDatabase.enabled: true`) so an Encore tenant with a
     /// `SQLDatabase` boots against an in-namespace database instead of
-    /// crashing on an unresolved connection. Stagecraft sets this for
+    /// crashing on an unresolved connection. Statecraft sets this for
     /// development/preview environments; production tenants supply an
     /// external DSN instead (not auto-provisioned here).
     pub preview_database: bool,
@@ -487,8 +487,8 @@ pub fn build_values(
 // ---------------------------------------------------------------------------
 
 /// Per-environment access-gate descriptor. Spec 137 §"Access-gate contract".
-/// Threaded through `DeploymentRequest.access_gate` from stagecraft;
-/// stagecraft owns Rauthy client provisioning (Phase 3) and supplies the
+/// Threaded through `DeploymentRequest.access_gate` from statecraft;
+/// statecraft owns Rauthy client provisioning (Phase 3) and supplies the
 /// `rauthy_*` material plus the cookie secret in the request body.
 ///
 /// `enabled = false` flows through as if no descriptor was supplied — the
@@ -500,10 +500,10 @@ pub fn build_values(
 pub struct AccessGateDescriptor {
     pub enabled: bool,
     /// Issuer URL of the Rauthy instance. Required when `enabled`. Example:
-    /// `https://auth.stagecraft.ing`.
+    /// `https://auth.statecraft.ing`.
     #[serde(default)]
     pub rauthy_issuer_url: String,
-    /// Rauthy client_id allocated by `provisionTenantGateClient` in stagecraft.
+    /// Rauthy client_id allocated by `provisionTenantGateClient` in statecraft.
     /// Required when `enabled`.
     #[serde(default)]
     pub rauthy_client_id: String,
@@ -513,7 +513,7 @@ pub struct AccessGateDescriptor {
     #[serde(default)]
     pub rauthy_client_secret: String,
     /// Random cookie secret (32 bytes base64). Required when `enabled`.
-    /// Generated and persisted by stagecraft per spec 137 T043; deployd-api
+    /// Generated and persisted by statecraft per spec 137 T043; deployd-api
     /// does NOT generate this.
     #[serde(default)]
     pub cookie_secret: String,
@@ -857,7 +857,7 @@ mod tests {
     fn sample_descriptor(enabled: bool) -> AccessGateDescriptor {
         AccessGateDescriptor {
             enabled,
-            rauthy_issuer_url: "https://auth.stagecraft.ing".into(),
+            rauthy_issuer_url: "https://auth.statecraft.ing".into(),
             rauthy_client_id: "tenant-gate-env-abc".into(),
             rauthy_client_secret: "rauthy-secret-xyz".into(),
             cookie_secret: "0123456789abcdef0123456789abcdef".into(),
@@ -917,7 +917,7 @@ mod tests {
         assert_eq!(v["fullnameOverride"], "myapp-prod-gate");
         assert_eq!(v["tenant"]["host"], "acme.tenants.test");
         assert_eq!(v["tenant"]["tlsSecretName"], "acme-wildcard-tls");
-        assert_eq!(v["rauthy"]["issuerUrl"], "https://auth.stagecraft.ing");
+        assert_eq!(v["rauthy"]["issuerUrl"], "https://auth.statecraft.ing");
         assert_eq!(v["rauthy"]["clientId"], "tenant-gate-env-abc");
         assert_eq!(v["rauthy"]["clientSecret"], "rauthy-secret-xyz");
         assert_eq!(v["rauthy"]["cookieSecret"], "0123456789abcdef0123456789abcdef");
@@ -951,10 +951,10 @@ mod tests {
     }
 
     #[test]
-    fn descriptor_deserialises_from_stagecraft_wire_shape() {
+    fn descriptor_deserialises_from_statecraft_wire_shape() {
         let raw = r#"{
             "enabled": true,
-            "rauthy_issuer_url": "https://auth.stagecraft.ing",
+            "rauthy_issuer_url": "https://auth.statecraft.ing",
             "rauthy_client_id": "tenant-gate-env-1",
             "rauthy_client_secret": "s",
             "cookie_secret": "c",
@@ -1003,7 +1003,7 @@ mod tests {
             "spec 137 provenance label"
         );
         assert!(
-            rendered.contains("--oidc-issuer-url=https://auth.stagecraft.ing"),
+            rendered.contains("--oidc-issuer-url=https://auth.statecraft.ing"),
             "Rauthy issuer URL flows into oauth2-proxy args"
         );
         assert!(
@@ -1066,7 +1066,7 @@ mod tests {
 
     #[test]
     fn from_env_default_helm_timeout_is_under_undici_300s() {
-        // Guard against regressing the deploy timeout race: stagecraft's fetch
+        // Guard against regressing the deploy timeout race: statecraft's fetch
         // to deployd inherits undici's 300s headers timeout, so the default
         // `helm --wait` timeout must stay safely under 300s for deployd's
         // FAILED + helm stderr to win the race. Only assert the default when

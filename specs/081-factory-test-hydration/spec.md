@@ -17,7 +17,7 @@ summary: >
   a runnable application with meaningful data.
 code_aliases: ["FACTORY_HYDRATION", "TEST_SEED"]
 # implements: cleared by spec 108 §8. The seed-pattern work landed inside the
-# upstream factory repo (`Stagecraft-ing/legacy-factory`); the
+# upstream factory repo (`statecrafting/legacy-factory`); the
 # in-tree `factory/adapters/*` directories no longer exist after spec 108
 # moved factory state into `factory_adapters` / `factory_contracts` /
 # `factory_processes` and removed the in-tree mirror.
@@ -368,7 +368,7 @@ directory_conventions:
 | 074-factory-ingestion | Provides the contract schemas this spec extends |
 | 075-factory-workflow-engine | Provides the pipeline execution model this spec adds a sub-step to |
 | 076-factory-desktop-panel | Must display seed/fixture generation progress in scaffold monitor |
-| 077-stagecraft-factory-api | Audit trail must log seed generation events |
+| 077-statecraft-factory-api | Audit trail must log seed generation events |
 
 
 ## Risks

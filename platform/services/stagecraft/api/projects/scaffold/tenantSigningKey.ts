@@ -14,7 +14,7 @@
  * padding) in `factory-engine/src/governance_certificate.rs`. The key never
  * leaves this process except as a GitHub-encrypted secret: it is minted,
  * sealed to the repo's public key (libsodium `crypto_box_seal`), and PUT to
- * the Actions secrets API. Stagecraft does not persist the private seed; the
+ * the Actions secrets API. Statecraft does not persist the private seed; the
  * derived public key is returned for attribution (audit metadata) and for
  * the deferred platform-countersign / uplink (spec 220 Out of scope).
  */

@@ -35,7 +35,7 @@ Per the runbook §Step (c). The operator runs:
 
 ```bash
 flux bootstrap github \
-  --owner=stagecraft-ing \
+  --owner=statecrafting \
   --repository=open-agentic-platform \
   --branch=main \
   --path=platform/gitops/clusters/hetzner-dr-stage2 \

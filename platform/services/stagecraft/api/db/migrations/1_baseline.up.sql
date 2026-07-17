@@ -591,7 +591,7 @@ CREATE TABLE public.factory_pipelines (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     previous_pipeline_id uuid,
     source text DEFAULT 'opc-direct'::text NOT NULL,
-    CONSTRAINT factory_pipelines_source_check CHECK ((source = ANY (ARRAY['opc-direct'::text, 'stagecraft'::text])))
+    CONSTRAINT factory_pipelines_source_check CHECK ((source = ANY (ARRAY['opc-direct'::text, 'statecraft'::text])))
 );
 
 

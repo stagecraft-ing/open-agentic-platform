@@ -1,4 +1,4 @@
-//! Duplex sync consumer for the stagecraft control plane (spec 110 Phase 2).
+//! Duplex sync consumer for the statecraft control plane (spec 110 Phase 2).
 //!
 //! Opens the authenticated `/api/sync/duplex` WebSocket, performs the
 //! handshake via query parameters (the Encore stream convention), and runs
@@ -16,7 +16,7 @@
 //! Authority invariant (087 §5.3): the desktop MUST NOT forge
 //! `ServerEnvelope` frames. This module is read/ack/dispatch only. Outbound
 //! traffic is limited to `sync.heartbeat`, `sync.ack`, and `sync.resync_request`;
-//! progress envelopes like `execution.status` live on the StagecraftClient
+//! progress envelopes like `execution.status` live on the StatecraftClient
 //! HTTP path today and will migrate to this stream in a later phase.
 
 use futures_util::{SinkExt, StreamExt};
@@ -34,10 +34,10 @@ use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::protocol::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
-use super::stagecraft_client::StagecraftClient;
+use super::statecraft_client::StatecraftClient;
 
 /// The duplex protocol version this client speaks. Must match
-/// `ENVELOPE_SCHEMA_VERSION` in `platform/services/stagecraft/api/sync/types.ts`,
+/// `ENVELOPE_SCHEMA_VERSION` in `platform/services/statecraft/api/sync/types.ts`,
 /// which spec 119 bumped to **v2** when it collapsed the duplex session key
 /// from `workspaceId` to `orgId`. The desktop already carries the v2 *struct*
 /// shapes (`ServerMeta.org_cursor` / `org_id`), but this constant lagged at 1,
@@ -48,7 +48,7 @@ use super::stagecraft_client::StagecraftClient;
 pub const ENVELOPE_SCHEMA_VERSION: u8 = 2;
 
 /// Spec 123 §7 — per-event-kind contract version constants. Mirror the TS
-/// counterparts in `platform/services/stagecraft/api/sync/types.ts`. Kept as
+/// counterparts in `platform/services/statecraft/api/sync/types.ts`. Kept as
 /// `pub const` so a desktop / platform skew on the catalog or binding
 /// payload contract surfaces as a build-time mismatch (Rust-side tests
 /// reference these constants directly; TS-side handlers reference the TS
@@ -59,7 +59,7 @@ pub const PROJECT_AGENT_BINDING_ENVELOPE_VERSION: u8 = 1;
 /// Spec 124 §6.1 — per-event-kind contract version for the `factory.run.*`
 /// lifecycle envelope family (stage_started, stage_completed, completed,
 /// failed, cancelled). Mirrors the TS constant `FACTORY_RUN_ENVELOPE_VERSION`
-/// in `platform/services/stagecraft/api/sync/types.ts`. A desktop / platform
+/// in `platform/services/statecraft/api/sync/types.ts`. A desktop / platform
 /// skew on this constant surfaces as a Rust build error before any wire
 /// drift is possible.
 pub const FACTORY_RUN_ENVELOPE_VERSION: u8 = 1;
@@ -67,7 +67,7 @@ pub const FACTORY_RUN_ENVELOPE_VERSION: u8 = 1;
 /// Spec 198 FR-005 / FR-014 — per-event-kind contract version for the
 /// `factory.run.grant` and `factory.run.certificate_countersign` envelope
 /// family. Mirrors `FACTORY_RUN_GRANT_ENVELOPE_VERSION` in
-/// `platform/services/stagecraft/api/sync/types.ts`. A desktop / platform
+/// `platform/services/statecraft/api/sync/types.ts`. A desktop / platform
 /// skew on this constant surfaces as a Rust build error.
 /// v2 (spec 208 FR-001): `factory.run.grant_renew` gains optional
 /// `agent_profile` for agent-profile-scoped org-halt renewal refusal (AC-3).
@@ -76,7 +76,7 @@ pub const FACTORY_RUN_GRANT_ENVELOPE_VERSION: u8 = 2;
 /// Spec 208 FR-001/FR-003: per-event-kind contract version for the org-halt
 /// envelope family (`org.halt.activated`, `org.halt.lifted`, `org.halt.ack`).
 /// Mirrors `ORG_HALT_ENVELOPE_VERSION` in
-/// `platform/services/stagecraft/api/sync/types.ts`. A desktop / platform skew
+/// `platform/services/statecraft/api/sync/types.ts`. A desktop / platform skew
 /// on this constant surfaces as a Rust build error (the
 /// `org_halt_envelope_version_matches_documented_constant` lock test) before
 /// any wire drift is possible (spec 189 parity discipline).
@@ -118,7 +118,7 @@ pub struct ServerMeta {
 }
 
 /// Flat counterpart of `ServerEnvelopeWire` in
-/// `platform/services/stagecraft/api/sync/types.ts`.
+/// `platform/services/statecraft/api/sync/types.ts`.
 ///
 /// All payload fields are optional because a single concrete frame only
 /// populates the subset relevant to its `kind`. Callers narrow by reading
@@ -275,7 +275,7 @@ pub struct ServerEnvelopeWire {
     pub scope_key: Option<String>,
 }
 
-/// Mirror of {@link ProjectAgentBindingSnapshotEntry} from stagecraft's
+/// Mirror of {@link ProjectAgentBindingSnapshotEntry} from statecraft's
 /// `api/sync/types.ts` (spec 123 §7.2). Carries the hashes-only directory
 /// of per-project agent bindings so the desktop can diff its local cache
 /// without refetching full catalog rows.
@@ -290,7 +290,7 @@ pub struct ProjectAgentBindingSnapshotEntry {
 }
 
 /// Mirror of the {@link ServerProjectCatalogUpsert} `repo` sub-object
-/// from stagecraft's `api/sync/types.ts` (spec 112 §7).
+/// from statecraft's `api/sync/types.ts` (spec 112 §7).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectCatalogRepo {
@@ -301,7 +301,7 @@ pub struct ProjectCatalogRepo {
     pub html_url: String,
 }
 
-/// Mirror of {@link AgentCatalogSnapshotEntry} from stagecraft's
+/// Mirror of {@link AgentCatalogSnapshotEntry} from statecraft's
 /// `api/sync/types.ts`. The snapshot is a directory (hashes only) so the
 /// desktop can diff its local cache and pull bodies lazily via
 /// `agent.catalog.fetch_request` (spec 111 §2.3).
@@ -334,7 +334,7 @@ pub struct EnvelopeBusinessDoc {
 
 /// Spec 124 §3 — projection of spec-123 `ResolvedAgent` carried inline on
 /// `factory.run.stage_started` envelopes. Mirrors the TS `FactoryAgentRef`
-/// type in `platform/services/stagecraft/api/sync/types.ts`. Field names
+/// type in `platform/services/statecraft/api/sync/types.ts`. Field names
 /// MUST stay aligned with `factory_engine::agent_resolver::ResolvedAgent` —
 /// the spec 124 A-9 grep gate (T088) and the spec 122 Stage CD comparator
 /// both depend on this triple.
@@ -410,7 +410,7 @@ const SERVER_KINDS: &[&str] = &[
     "org.halt.lifted",
 ];
 
-/// Mirrors `isClientEnvelope` on the stagecraft side — enforces schema
+/// Mirrors `isClientEnvelope` on the statecraft side — enforces schema
 /// version and a known kind. Returns `true` when the frame is safe to
 /// dispatch.
 pub fn is_server_envelope(raw: &ServerEnvelopeWire) -> bool {
@@ -445,7 +445,7 @@ pub enum OutboundFrame {
     },
     /// Spec 110 §2.2 — desktop observation that a `factory.run.request` was
     /// received. Carries the minted tab `session_id` and the OPC instance id
-    /// so stagecraft can distinguish multiple desktops competing for the same
+    /// so statecraft can distinguish multiple desktops competing for the same
     /// run (the first ack wins; others will receive `sync.nack`).
     #[serde(rename = "factory.run.ack")]
     FactoryRunAck {
@@ -463,7 +463,7 @@ pub enum OutboundFrame {
         observed_at: String,
     },
     /// Spec 111 §2.3 — desktop requests the full body of an agent whose hash
-    /// from the snapshot does not match its local cache. The stagecraft side
+    /// from the snapshot does not match its local cache. The statecraft side
     /// replies with a targeted `agent.catalog.updated`. Reason is a small
     /// closed set so the server can log/aggregate cache-miss patterns.
     #[serde(rename = "agent.catalog.fetch_request")]
@@ -611,7 +611,7 @@ pub enum OutboundFrame {
     },
     /// Spec 207 AC-4 - the desktop submits a closed (rotated) audit segment
     /// HEAD for platform countersign. The local side is keyless (spec 198
-    /// FR-014): it sends the head hash plus metadata, stagecraft signs and
+    /// FR-014): it sends the head hash plus metadata, statecraft signs and
     /// persists a seal row, and replies with `audit.segment.countersign`
     /// correlated via `meta.correlationId`. Offline-first: heads accumulate
     /// while disconnected and are swept at reconnect (idempotent on the seal's
@@ -636,9 +636,9 @@ pub enum OutboundFrame {
     },
     /// Spec 208 FR-003 - the engine acknowledges an `org.halt.activated` /
     /// `org.halt.lifted` broadcast once it has reached its pause-and-checkpoint
-    /// (halt) or re-admission (lift) boundary, so stagecraft records this
+    /// (halt) or re-admission (lift) boundary, so statecraft records this
     /// engine's per-broadcast propagation bound on the quarantine record. The
-    /// `clientId` is NOT on the wire: stagecraft stamps it from the
+    /// `clientId` is NOT on the wire: statecraft stamps it from the
     /// authenticated duplex session (the audit.candidate trust posture).
     #[serde(rename = "org.halt.ack")]
     OrgHaltAck {
@@ -653,7 +653,7 @@ pub enum OutboundFrame {
 }
 
 /// Reason enum for {@link OutboundFrame::AgentCatalogFetchRequest}. Mirrors
-/// the closed set in stagecraft's `ClientAgentCatalogFetchRequest.reason`.
+/// the closed set in statecraft's `ClientAgentCatalogFetchRequest.reason`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AgentCatalogFetchReason {
@@ -664,7 +664,7 @@ pub enum AgentCatalogFetchReason {
 
 /// Spec 208 FR-003 - which org-halt broadcast an `org.halt.ack` answers.
 /// Serialises to `"halt"` / `"lift"`, matching the `haltKind` field on the
-/// stagecraft `ClientOrgHaltAck` wire shape and the `org_halts.acks[].kind`
+/// statecraft `ClientOrgHaltAck` wire shape and the `org_halts.acks[].kind`
 /// column.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -738,7 +738,7 @@ impl DispatchTable {
 /// Configuration for the duplex consumer.
 #[derive(Debug, Clone)]
 pub struct SyncClientConfig {
-    /// Stagecraft HTTP base URL (e.g. `https://stagecraft.ing`). Converted
+    /// Statecraft HTTP base URL (e.g. `https://statecraft.ing`). Converted
     /// to ws:// or wss:// internally.
     pub base_url: String,
     /// Stable client identifier for this OPC process. Persisted across
@@ -750,9 +750,9 @@ pub struct SyncClientConfig {
 
 /// Stable per-process OPC instance identity, exposed as Tauri managed state so
 /// the duplex `client_id` survives a settings-driven re-spawn (spec 183
-/// FR-T2(a): `commands::settings::set_stagecraft_base_url` re-spawns the
+/// FR-T2(a): `commands::settings::set_statecraft_base_url` re-spawns the
 /// consumer on a base-URL change). Mirrors the id used for `factory.run.ack`
-/// correlation (spec 110 §2.2), so desktop logs and the envelopes stagecraft
+/// correlation (spec 110 §2.2), so desktop logs and the envelopes statecraft
 /// receives stay aligned across a URL switch.
 pub struct OpcInstanceId(pub String);
 
@@ -768,7 +768,7 @@ pub struct SyncClientInner {
     /// socket is disconnected; external callers treat a `None` as "best-effort
     /// drop" rather than blocking.
     outbound: RwLock<Option<mpsc::Sender<OutboundFrame>>>,
-    /// Spec 183 FR-T2(b) — flipped to `true` when stagecraft sends `sync.hello`
+    /// Spec 183 FR-T2(b) — flipped to `true` when statecraft sends `sync.hello`
     /// over the duplex stream, which is the server's acknowledgment that the
     /// handshake was accepted for the claimed `(clientId, orgId)` pair. The
     /// boot-gate consumer reads this via `sync_hello_received()`. Stays `true`
@@ -825,7 +825,7 @@ impl SyncClientInner {
     }
 
     /// Spec 183 FR-T2(b) — `sync.hello` observability. Returns `true` once
-    /// stagecraft has acknowledged the handshake for this consumer.
+    /// statecraft has acknowledged the handshake for this consumer.
     pub fn sync_hello_received(&self) -> bool {
         self.sync_hello_received
             .load(std::sync::atomic::Ordering::Acquire)
@@ -1115,7 +1115,7 @@ impl SyncClientInner {
     /// countersign and await the correlated reply (the proven
     /// `send_and_await_reply` correlation, like the grant + cert paths). The
     /// local side holds no signing keys; it attests the head hash and metadata
-    /// and stagecraft returns a short-lived JWS. Errors propagate so the sweep
+    /// and statecraft returns a short-lived JWS. Errors propagate so the sweep
     /// can stop and retry on the next reconnect.
     pub(crate) async fn submit_audit_segment_countersign(
         &self,
@@ -1184,7 +1184,7 @@ impl SyncClientState {
     }
 
     /// Spec 183 FR-T2(b) — boot-gate observer surface. Returns `true` once
-    /// stagecraft has emitted `sync.hello` on the active duplex stream.
+    /// statecraft has emitted `sync.hello` on the active duplex stream.
     pub fn sync_hello_received(&self) -> bool {
         self.inner.sync_hello_received()
     }
@@ -1204,15 +1204,15 @@ impl SyncClientState {
     /// then the new loop is launched. The
     /// AppHandle is threaded through so the reconnect loop can emit the
     /// FR-T5(b) precondition-loss event when it crosses the give-up
-    /// threshold (spec 183 stage C). `auth` is the Stagecraft client handle
+    /// threshold (spec 183 stage C). `auth` is the Statecraft client handle
     /// the loop uses to resolve and refresh the bearer JWT at connect time
     /// (spec 110 / 183) rather than from a launch-time snapshot.
     ///
     /// Spawn-time binding (spec 183 FR-T2(a)): `auth` is an
-    /// `Arc<StagecraftClient>` captured *now*. The Arc-sharing invariant — that
-    /// a write through any `StagecraftState::current()` handle is visible to
+    /// `Arc<StatecraftClient>` captured *now*. The Arc-sharing invariant — that
+    /// a write through any `StatecraftState::current()` handle is visible to
     /// this loop — holds for that client's lifetime. A base-URL change
-    /// (`commands::settings::set_stagecraft_base_url` → `StagecraftState::replace`)
+    /// (`commands::settings::set_statecraft_base_url` → `StatecraftState::replace`)
     /// installs a *new* client and **re-spawns this consumer** against it (the
     /// re-`spawn` aborts and awaits the prior task first), so the loop follows the URL
     /// change rather than keeping the old handle. Between spawns the running
@@ -1220,7 +1220,7 @@ impl SyncClientState {
     pub async fn spawn(
         &self,
         config: SyncClientConfig,
-        auth: Arc<StagecraftClient>,
+        auth: Arc<StatecraftClient>,
         app: tauri::AppHandle,
     ) {
         // Spec 207 AC-4: recompute the producer's audit chain dir off the same
@@ -1298,7 +1298,7 @@ const DUPLEX_GIVE_UP_FAILURES: u32 = 5;
 /// expires repeatedly over its lifetime is not penalised.
 const MAX_REFRESHES_PER_OUTAGE: u32 = 3;
 
-/// Poll interval while the consumer is running but no Stagecraft JWT exists
+/// Poll interval while the consumer is running but no Statecraft JWT exists
 /// yet (e.g. launched before the user signed in). Kept short and *separate*
 /// from the connect-failure backoff so a sign-in is picked up within a few
 /// seconds — without hammering the keychain or attempting unauthenticated
@@ -1324,19 +1324,19 @@ impl std::fmt::Display for ConnectError {
 /// Resolve the bearer token at connect time: prefer the in-memory value, then
 /// fall back to a keychain reload. The reload covers a consumer that started
 /// before the user signed in — OAuth sign-in persists the session to the OS
-/// keychain (the shared source of truth across `StagecraftClient` clones), so
+/// keychain (the shared source of truth across `StatecraftClient` clones), so
 /// reloading here lets the loop pick it up without a re-spawn. Returns `None`
 /// when no session exists yet.
 ///
 /// The keychain read is blocking OS I/O (on macOS, `SecKeychainFind…`), so it
 /// runs under `spawn_blocking` to avoid stalling the tokio worker that drives
 /// this loop; the cheap in-memory apply (`adopt_token`) stays on this task.
-async fn resolve_token(auth: &StagecraftClient) -> Option<String> {
+async fn resolve_token(auth: &StatecraftClient) -> Option<String> {
     if let Some(token) = auth.auth_token() {
         return Some(token);
     }
     let from_keychain = tokio::task::spawn_blocking(
-        crate::commands::stagecraft_client::read_session_token_from_keychain,
+        crate::commands::statecraft_client::read_session_token_from_keychain,
     )
     .await
     .ok()
@@ -1353,9 +1353,9 @@ async fn resolve_token(auth: &StagecraftClient) -> Option<String> {
 /// sign-in may have written out from under the loop. Best-effort: a missing
 /// session leaves the in-memory token untouched and the next `resolve_token`
 /// drops to the idle wait.
-async fn reload_session_token(auth: &StagecraftClient) {
+async fn reload_session_token(auth: &StatecraftClient) {
     if let Some(token) = tokio::task::spawn_blocking(
-        crate::commands::stagecraft_client::read_session_token_from_keychain,
+        crate::commands::statecraft_client::read_session_token_from_keychain,
     )
     .await
     .ok()
@@ -1367,7 +1367,7 @@ async fn reload_session_token(auth: &StagecraftClient) {
 
 async fn run_forever(
     config: SyncClientConfig,
-    auth: Arc<StagecraftClient>,
+    auth: Arc<StatecraftClient>,
     inner: Arc<SyncClientInner>,
     app: tauri::AppHandle,
 ) {
@@ -1398,7 +1398,7 @@ async fn run_forever(
             None => {
                 if !announced_waiting {
                     log::info!(
-                        "sync_client: duplex consumer idle — no Stagecraft JWT yet, waiting for sign-in"
+                        "sync_client: duplex consumer idle — no Statecraft JWT yet, waiting for sign-in"
                     );
                     announced_waiting = true;
                 }
@@ -1444,7 +1444,7 @@ async fn run_forever(
                         match auth.refresh_jwt().await {
                             Ok(()) => {
                                 log::info!(
-                                    "sync_client: Stagecraft JWT refreshed — retrying duplex promptly with new bearer"
+                                    "sync_client: Statecraft JWT refreshed — retrying duplex promptly with new bearer"
                                 );
                                 // Surface the silent recovery to the frontend so
                                 // AuthContext re-checks status instead of leaving
@@ -1528,7 +1528,7 @@ async fn run_forever(
     }
 }
 
-/// Convert a stagecraft HTTP base URL to the ws:// or wss:// duplex URL
+/// Convert a statecraft HTTP base URL to the ws:// or wss:// duplex URL
 /// with the handshake query parameters appended.
 fn build_duplex_url(base_url: &str, client_id: &str, cursor: Option<&str>) -> String {
     let trimmed = base_url.trim_end_matches('/');
@@ -1772,7 +1772,7 @@ async fn handle_text_frame(
                 envelope.cursor_gap
             );
             // Spec 183 FR-T2(b): the boot-gate's org-session readiness flag
-            // flips on this envelope's receipt, which proves stagecraft accepted
+            // flips on this envelope's receipt, which proves statecraft accepted
             // the handshake for the claimed (clientId, orgId).
             inner.mark_sync_hello_received();
             // Spec 207 AC-4: at (re)connect, submit any closed-but-unanchored
@@ -1848,13 +1848,13 @@ pub(crate) fn new_meta() -> EnvelopeMeta {
 // `policy_kernel::audit`). This module reads those closed segment heads off the
 // shared disk and submits each for platform countersign, completing AC-4
 // end-to-end. The local side holds no signing keys (spec 198 FR-014): it only
-// attests the head hash + metadata; stagecraft signs and persists the seal.
+// attests the head hash + metadata; statecraft signs and persists the seal.
 
 /// Open-segment file name written by the producer (`policy_kernel::audit`).
 const AUDIT_SEGMENT_FILE: &str = "permissions.jsonl";
 /// Closed-segment rotations the producer retains (`permissions.jsonl.1..=N`).
 const MAX_AUDIT_ROTATIONS: usize = 5;
-/// Local record of which closed segments stagecraft has already countersigned,
+/// Local record of which closed segments statecraft has already countersigned,
 /// so the sweep does not resubmit on every reconnect. Lives in the chain dir
 /// (the producer only ever writes `permissions.jsonl*`, never this file).
 const SEAL_STORE_FILE: &str = "countersigns.json";
@@ -2247,7 +2247,7 @@ mod tests {
 
     #[test]
     fn project_catalog_upsert_deserializes_from_wire_json() {
-        // Mirrors the shape stagecraft emits per spec 112 §7 — repo block
+        // Mirrors the shape statecraft emits per spec 112 §7 — repo block
         // with camelCase fields and optional detectionLevel.
         let raw = r#"{
           "kind": "project.catalog.upsert",
@@ -2314,7 +2314,7 @@ mod tests {
 
     #[test]
     fn factory_run_request_deserializes_from_wire_json() {
-        // Sample mirrors what stagecraft sends — camelCase field names, with
+        // Sample mirrors what statecraft sends — camelCase field names, with
         // knowledge and businessDocs arrays.
         let raw = r#"{
           "kind": "factory.run.request",
@@ -2406,8 +2406,8 @@ mod tests {
     #[test]
     fn build_duplex_url_handles_https_http_and_cursor() {
         assert_eq!(
-            build_duplex_url("https://stagecraft.ing/", "cid-1", None),
-            "wss://stagecraft.ing/api/sync/duplex?clientId=cid-1&clientKind=desktop-opc"
+            build_duplex_url("https://statecraft.ing/", "cid-1", None),
+            "wss://statecraft.ing/api/sync/duplex?clientId=cid-1&clientKind=desktop-opc"
         );
         assert_eq!(
             build_duplex_url("http://localhost:4000", "cid-1", Some("cur/42")),
@@ -2430,7 +2430,7 @@ mod tests {
 
     #[test]
     fn factory_run_ack_serializes_to_camelcase_wire_shape() {
-        // Spec 110 §2.2: the wire shape must match stagecraft's
+        // Spec 110 §2.2: the wire shape must match statecraft's
         // ClientFactoryRunAck exactly — camelCase keys, the right `kind`,
         // and optional fields omitted when unset.
         let frame = OutboundFrame::FactoryRunAck {
@@ -2718,7 +2718,7 @@ mod tests {
     #[test]
     fn factory_run_envelope_version_matches_documented_constant() {
         // Phase 0 lock — bumping FACTORY_RUN_ENVELOPE_VERSION must happen
-        // here AND in `platform/services/stagecraft/api/sync/types.ts` in
+        // here AND in `platform/services/statecraft/api/sync/types.ts` in
         // lock-step. The compile-time mismatch would surface in T036's
         // platform-side handler tests, but the Rust-side assertion is
         // simpler to read in review.
@@ -2828,7 +2828,7 @@ mod tests {
         assert_eq!(json["tokenSpend"]["output"], 250);
         assert_eq!(json["tokenSpend"]["total"], 350);
         // Spec 198 FR-014 — optional cert fields must be absent from the wire
-        // when None to keep backward compat with stagecraft pre-198 handlers.
+        // when None to keep backward compat with statecraft pre-198 handlers.
         assert!(json.get("certificateSha256").is_none());
         assert!(json.get("seq").is_none());
     }
@@ -2939,7 +2939,7 @@ mod tests {
 
     // ── Spec 183 FR-T2(b) — sync.hello observer ──────────────────────────
     //
-    // AC-6 binds: stagecraft emits `sync.hello` on accepted handshake; the
+    // AC-6 binds: statecraft emits `sync.hello` on accepted handshake; the
     // desktop's observer in `sync_client.rs` MUST flip the org-session
     // readiness flag exactly when that envelope arrives. The
     // primitive-level test pins the inner flag state machine; the
@@ -2973,7 +2973,7 @@ mod tests {
             "pre-dispatch: org-session gate is closed",
         );
 
-        // Mirror the wire shape stagecraft emits on an accepted handshake
+        // Mirror the wire shape statecraft emits on an accepted handshake
         // (`api/sync/duplex.ts` line 121, kind `sync.hello`). The schema
         // version is v=2 per the envelope-version guard (spec 119).
         let hello = r#"{
@@ -3009,7 +3009,7 @@ mod tests {
     #[test]
     fn factory_run_grant_envelope_version_matches_documented_constant() {
         // Phase 0 lock — bumping FACTORY_RUN_GRANT_ENVELOPE_VERSION must happen
-        // here AND in `platform/services/stagecraft/api/sync/types.ts` in
+        // here AND in `platform/services/statecraft/api/sync/types.ts` in
         // lock-step.
         assert_eq!(FACTORY_RUN_GRANT_ENVELOPE_VERSION, 2);
     }
@@ -3019,7 +3019,7 @@ mod tests {
     #[test]
     fn org_halt_envelope_version_matches_documented_constant() {
         // Lock: bumping ORG_HALT_ENVELOPE_VERSION must happen here AND in
-        // `platform/services/stagecraft/api/sync/types.ts` in lock-step (spec
+        // `platform/services/statecraft/api/sync/types.ts` in lock-step (spec
         // 189 parity discipline).
         assert_eq!(ORG_HALT_ENVELOPE_VERSION, 1);
     }
@@ -3173,7 +3173,7 @@ mod tests {
     #[test]
     fn audit_segment_countersign_request_serializes_to_camelcase_wire_shape() {
         // Must match `ClientAuditSegmentCountersignRequest` in
-        // `platform/services/stagecraft/api/sync/types.ts` exactly.
+        // `platform/services/statecraft/api/sync/types.ts` exactly.
         let frame = OutboundFrame::AuditSegmentCountersignRequest {
             meta: EnvelopeMeta {
                 v: ENVELOPE_SCHEMA_VERSION,

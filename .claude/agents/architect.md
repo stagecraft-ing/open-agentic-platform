@@ -35,7 +35,7 @@ This is a governed monorepo with three layers:
 | Rust Tools | `tools/` | spec-spine CLI (published), spec-lint, policy-compiler, oap-registry-enrich |
 | Desktop App (OPC) | `apps/opc/` | Tauri v2 + React + TypeScript |
 | Factory | `factory/` | Process stages, contract schemas, adapters (acme-vue-node, next-prisma, encore-react, rust-axum) |
-| Platform | `platform/` | Encore.ts (stagecraft), Rust (deployd-api-rs), Terraform, Helm |
+| Platform | `platform/` | Encore.ts (statecraft), Rust (deployd-api-rs), Terraform, Helm |
 
 Orchestrator rules are in `.claude/rules/orchestrator-rules.md`. Specs are the source of truth — every feature starts as a spec.
 

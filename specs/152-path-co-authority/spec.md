@@ -78,7 +78,7 @@ syntax depends on file type. Each per-file-type rule is normative:
 |---|---|---|
 | Markdown (`*.md`) | A heading slug (kebab-case derived from heading text) | `co_authority: { paths: [README.md], section: cli-reference }` |
 | Makefile | A target name or target-group label declared by `## tag: <name>` comment | `co_authority: { paths: [Makefile], section: supply-chain }` |
-| GitHub workflow (`*.yml` under `.github/workflows/`) | A `jobs.<name>` job id | `co_authority: { paths: [.github/workflows/ci-stagecraft.yml], section: encore-build }` |
+| GitHub workflow (`*.yml` under `.github/workflows/`) | A `jobs.<name>` job id | `co_authority: { paths: [.github/workflows/ci-statecraft.yml], section: encore-build }` |
 | Rust source | A `// region: <name>` / `// endregion` block | `co_authority: { paths: [tools/spec-spine/spec-code-coupling-check/src/lib.rs], section: section-matching }` |
 | TypeScript source | A `// region: <name>` / `// endregion` block | (same syntax as Rust) |
 | Other source files | Same `// region:` / `// endregion` convention | (per-language comment syntax) |

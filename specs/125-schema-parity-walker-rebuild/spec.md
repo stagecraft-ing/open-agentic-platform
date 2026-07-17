@@ -30,7 +30,7 @@ refines:
   - aspect: "schema-parity-walker"
     unit: { kind: file, path: tools/oap/schema-parity-check/index.mjs }
   - aspect: "schema-parity-walker"
-    unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionOutput.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/knowledge/extractionOutput.ts }
 ---
 
 # 125 — Schema-Parity Walker — Rebuild for Hand-Rolled Validators
@@ -41,11 +41,11 @@ refines:
 `main` HEAD as of 2026-05-01 with:
 
 ```
-schema-parity-check: platform/services/stagecraft/api/knowledge/extractionOutput.ts is missing exports
+schema-parity-check: platform/services/statecraft/api/knowledge/extractionOutput.ts is missing exports
   Required: extractionOutputSchema, KNOWLEDGE_SCHEMA_VERSION
 ```
 
-Origin: commit `b6859d3 fix(stagecraft): hand-roll API validators, drop zod
+Origin: commit `b6859d3 fix(statecraft): hand-roll API validators, drop zod
 from Encore parse path` (2026-05-01) replaced the zod schema in
 `extractionOutput.ts` with TypeScript interfaces + a `Validator` class.
 The architectural fix was correct: Encore.ts's TS parser crashed walking
@@ -90,7 +90,7 @@ than at the parity gate.
 
 ### 3.1 Schema descriptor
 
-In `platform/services/stagecraft/api/knowledge/extractionOutput.ts`:
+In `platform/services/statecraft/api/knowledge/extractionOutput.ts`:
 
 ```ts
 export const KNOWLEDGE_SCHEMA_VERSION = "1.0.0" as const;
@@ -218,7 +218,7 @@ six phases of `tasks.md` completed in order:
 
 - **Phase 0 — Foundations** (`c3eb1d3`). `SchemaNode` discriminated
   union added to
-  `platform/services/stagecraft/api/knowledge/extractionOutput.ts`.
+  `platform/services/statecraft/api/knowledge/extractionOutput.ts`.
   Mirrors the kinds the Rust fingerprint emitter in
   `crates/factory-contracts/src/knowledge.rs` produces (`string | int |
   number | boolean | unknown | enum | array | tuple | map | object |
@@ -271,10 +271,10 @@ six phases of `tasks.md` completed in order:
   `provenanceClaimDescriptor` / `stakeholderDocDescriptor`. The
   Makefile's `[ -d node_modules/zod ] || npm ci` install guard was
   also removed — `extractionOutput.ts` has no imports, so bun's TS
-  loader needs nothing from stagecraft's `node_modules` to walk it.
+  loader needs nothing from statecraft's `node_modules` to walk it.
 
 The Encore.ts TS parser invariant from b6859d3 holds: zero zod imports
 in `extractionOutput.ts`, verified by
-`! rg "from \"zod" platform/services/stagecraft/api/knowledge/extractionOutput.ts`.
+`! rg "from \"zod" platform/services/statecraft/api/knowledge/extractionOutput.ts`.
 After Phase 6 the parity tool itself imports zero zod symbols too —
 the descriptor pattern is the only walker shape carried forward.

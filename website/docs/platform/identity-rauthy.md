@@ -12,11 +12,11 @@ By acting as the sole OIDC session signer, Rauthy centralizes authentication and
 
 A core requirement for OAP is integrating with a developer's existing GitHub identity. 
 
-In OAP, GitHub is configured as an **upstream Identity Provider (IdP)** for Rauthy, rather than acting as a direct OAuth client for the `stagecraft` service. A developer's GitHub login is federated *through* Rauthy.
+In OAP, GitHub is configured as an **upstream Identity Provider (IdP)** for Rauthy, rather than acting as a direct OAuth client for the `statecraft` service. A developer's GitHub login is federated *through* Rauthy.
 
 This requires a specific GitHub registration: a **GitHub OAuth App** registered against Rauthy's callback URL. 
 
-*(Note: This is distinct from the GitHub App used by `stagecraft` for webhooks and server-to-server API access).*
+*(Note: This is distinct from the GitHub App used by `statecraft` for webhooks and server-to-server API access).*
 
 ## Scope Issuance
 
@@ -24,5 +24,5 @@ When a user authenticates, Rauthy issues a JWT containing specific scopes based 
 
 These scopes are the foundation of the Trust Fabric. They are consumed by:
 - `deployd-api` to authorize Kubernetes deployments.
-- `stagecraft` to authorize API access.
+- `statecraft` to authorize API access.
 - `axiomregent` to validate the user's session before requesting project grants.

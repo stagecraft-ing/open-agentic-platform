@@ -6,7 +6,7 @@
 # Schema-parity gate — enforcing workflow.
 #
 # Mirrors `make ci-schema-parity`: emit the Rust structural fingerprints
-# from crates/factory-contracts via `cargo test`, then walk the stagecraft
+# from crates/factory-contracts via `cargo test`, then walk the statecraft
 # TS descriptors and compare (`bun run tools/oap/schema-parity-check/index.mjs`).
 # The walker also checks protocol-wide envelope-version parity (spec 189):
 # desktop `ENVELOPE_SCHEMA_VERSION` (sync_client.rs) vs server (sync/types.ts).

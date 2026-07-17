@@ -1,5 +1,5 @@
 image:
-  repository: stagecraftdevacr.azurecr.io/stagecraft
+  repository: statecraftdevacr.azurecr.io/statecraft
 
 serviceAccount:
   annotations:

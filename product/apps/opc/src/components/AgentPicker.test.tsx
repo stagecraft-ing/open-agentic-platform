@@ -274,11 +274,11 @@ describe("AgentPickerView (T040, A-2..A-8)", () => {
     } satisfies AgentReference);
   });
 
-  it("opens the stagecraft web UI deep-link via tauri-plugin-shell (A-6)", async () => {
+  it("opens the statecraft web UI deep-link via tauri-plugin-shell (A-6)", async () => {
     const { open: openShell } = await import("@tauri-apps/plugin-shell");
     const { api } = await import("@/lib/api");
-    vi.spyOn(api, "getStagecraftBaseUrl").mockResolvedValue(
-      "https://stagecraft.example.test/",
+    vi.spyOn(api, "getStatecraftBaseUrl").mockResolvedValue(
+      "https://statecraft.example.test/",
     );
     render(
       <AgentPickerView
@@ -298,7 +298,7 @@ describe("AgentPickerView (T040, A-2..A-8)", () => {
     fireEvent.click(manageBtn);
     await waitFor(() => {
       expect(openShell).toHaveBeenCalledWith(
-        "https://stagecraft.example.test/app/project/proj-001/agents",
+        "https://statecraft.example.test/app/project/proj-001/agents",
       );
     });
   });

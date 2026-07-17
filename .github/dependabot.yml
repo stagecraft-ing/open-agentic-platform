@@ -91,7 +91,7 @@ updates:
         update-types: [minor, patch]
     labels: [dependencies, rust, tools]
 
-  # NPM: pnpm workspace root + standalone npm package (stagecraft).
+  # NPM: pnpm workspace root + standalone npm package (statecraft).
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -103,11 +103,11 @@ updates:
     labels: [dependencies, javascript]
 
   - package-ecosystem: npm
-    directory: /platform/services/stagecraft
+    directory: /platform/services/statecraft
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
       npm-minor-patch:
         update-types: [minor, patch]
-    labels: [dependencies, javascript, stagecraft]
+    labels: [dependencies, javascript, statecraft]

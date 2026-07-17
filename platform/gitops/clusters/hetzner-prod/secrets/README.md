@@ -12,7 +12,7 @@ This directory is the per-purpose-Secret surface that **spec 153** will fill in.
 Per [spec 151 plan.md](../../../../../specs/151-declarative-cluster-reconciliation/plan.md) §"Sequencing and gates", spec 153 cannot start until:
 
 1. **Spec 151 is operational** — Flux reconciling ≥1 HelmRelease in production with `flux-system/sops-age` Secret present.
-2. **Spec 152 has 14 days of clean operation** — CD git-write to gitops tree stable, no manual `helm upgrade --set` or `kubectl set image` against any of stagecraft / deployd-api.
+2. **Spec 152 has 14 days of clean operation** — CD git-write to gitops tree stable, no manual `helm upgrade --set` or `kubectl set image` against any of statecraft / deployd-api.
 
 Either gate failing pushes 153 out, not 153's contents.
 
@@ -24,9 +24,9 @@ Either gate failing pushes 153 out, not 153's contents.
 
 The full target list lives in [spec 151 plan.md §"Spec 153 (provisional) — Declarative cluster Secrets"](../../../../../specs/151-declarative-cluster-reconciliation/plan.md). Notable entries:
 
-- `stagecraft-knowledge-sweeper-credentials.yaml` (spec 143 FU-008)
+- `statecraft-knowledge-sweeper-credentials.yaml` (spec 143 FU-008)
 - `extraction-staleness-sweeper.yaml`, `connector-sync-scheduler.yaml`, `factory-runs-staleness-sweeper.yaml` (spec 143 FU-003 family)
-- `stagecraft-audit-sweeper-credentials.yaml`, `stagecraft-factory-sweeper-credentials.yaml`
+- `statecraft-audit-sweeper-credentials.yaml`, `statecraft-factory-sweeper-credentials.yaml`
 - `rauthy-secrets.yaml`, `deployd-api-secrets.yaml`, `ghcr-pull-secret.yaml`, `cloudflare-dns-secret.yaml`
 
 ## Encryption convention

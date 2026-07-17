@@ -34,7 +34,7 @@ err()   { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 #
 # Issuer selection policy (decided 2026-05-08, spec 143 step 7):
 #   - letsencrypt-prod (HTTP-01) is the DEFAULT for platform hosts
-#     (stagecraft.${DOMAIN}, auth.${DOMAIN}, deploy.${DOMAIN},
+#     (statecraft.${DOMAIN}, auth.${DOMAIN}, deploy.${DOMAIN},
 #     minio.${DOMAIN}).
 #   - letsencrypt-prod-dns01-cloudflare (DNS-01) serves the wildcard
 #     tenant cert per spec 137 Phase 4↔5.
@@ -42,7 +42,7 @@ err()   { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 # Hetzner DNS removed (spec 151 Phase 3 follow-up cleanup, 2026-05-18):
 # The `cert-manager-webhook-hetzner` chart + the dormant `letsencrypt-
 # dns01` ClusterIssuer that previously lived here have been removed.
-# They were never functional in this deployment — `stagecraft.ing`'s
+# They were never functional in this deployment — `statecraft.ing`'s
 # authoritative nameservers are at Cloudflare (`leo.ns.cloudflare.com`
 # / `rosalie.ns.cloudflare.com`), Hetzner DNS holds no zone for the
 # domain, and the DNS-01 validation chain would always fail at the
@@ -51,7 +51,7 @@ err()   { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 # elsewhere). The "future fallback" framing dressed up structural
 # lock-in to Cloudflare-as-authoritative-DNS as optional flexibility
 # it wasn't. Resurrection path: revert this PR's strikes AND migrate
-# `stagecraft.ing` authoritative DNS from Cloudflare to Hetzner DNS
+# `statecraft.ing` authoritative DNS from Cloudflare to Hetzner DNS
 # (out of scope for any current plan; would lose Cloudflare proxy /
 # WAF / Email Routing).
 #
@@ -63,7 +63,7 @@ err()   { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 
 # --- Namespaces ---
 info "Creating namespaces..."
-for ns in stagecraft-system deployd-system rauthy-system; do
+for ns in statecraft-system deployd-system rauthy-system; do
   kubectl create namespace "$ns" --dry-run=client -o yaml | kubectl apply -f -
 done
 
@@ -71,8 +71,8 @@ done
 #
 # Default-deny NetworkPolicies (plus the allow rules each namespace needs
 # for ingress-nginx/DNS/cross-namespace traffic) are no longer skipped
-# for stagecraft-system/deployd-system/rauthy-system: they are Flux-
-# managed declaratively via platform/k8s/policies/{stagecraft,deployd,
+# for statecraft-system/deployd-system/rauthy-system: they are Flux-
+# managed declaratively via platform/k8s/policies/{statecraft,deployd,
 # rauthy}/networkpolicy-*.yaml, wired into the `policies` Flux
 # Kustomization through the explicit list in
 # platform/k8s/policies/kustomization.yaml (same pattern already proven
@@ -85,33 +85,33 @@ done
 # its allows must land together, which the single Flux Kustomization
 # apply guarantees and a second imperative code path here would not.
 info "Applying resource policies..."
-for ns in stagecraft-system deployd-system rauthy-system; do
+for ns in statecraft-system deployd-system rauthy-system; do
   kubectl apply -n "$ns" -f "$PLATFORM_ROOT/k8s/policies/namespace-baseline/resourcequota.yaml" 2>/dev/null || true
   kubectl apply -n "$ns" -f "$PLATFORM_ROOT/k8s/policies/namespace-baseline/limitrange.yaml" 2>/dev/null || true
 done
 
 # --- PostgreSQL ---
-if helm status postgresql -n stagecraft-system >/dev/null 2>&1; then
+if helm status postgresql -n statecraft-system >/dev/null 2>&1; then
   info "PostgreSQL already installed, skipping"
 
-  # Drift guard: the bitnami chart only initializes the stagecraft user
+  # Drift guard: the bitnami chart only initializes the statecraft user
   # password on first install (via initdb against an empty PVC). If .env's
   # POSTGRES_PASSWORD later diverges — e.g. `setup.sh --clean` ran without
   # destroying the cluster, or .env was hand-edited — Phase 2 would silently
-  # write a stagecraft-api-secrets that can't authenticate, and every DB
-  # query in stagecraft throws (OAuth callback surfaces as `account_error`).
+  # write a statecraft-api-secrets that can't authenticate, and every DB
+  # query in statecraft throws (OAuth callback surfaces as `account_error`).
   # Verify the current password actually works before continuing.
   info "Verifying POSTGRES_PASSWORD authenticates against live postgres..."
   POSTGRES_PASSWORD="${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}"
-  kubectl delete pod pg-auth-check -n stagecraft-system --ignore-not-found=true >/dev/null
+  kubectl delete pod pg-auth-check -n statecraft-system --ignore-not-found=true >/dev/null
   # --rm requires an attached stream on newer kubectl; -i + </dev/null gives
   # us attached stdin without a TTY (TTYs drop output on fast-exit pods).
   if ! kubectl run pg-auth-check --rm -i --restart=Never --quiet \
-       --namespace stagecraft-system \
+       --namespace statecraft-system \
        --image=bitnami/postgresql:latest \
        --env="PGPASSWORD=$POSTGRES_PASSWORD" \
-       --command -- psql -h postgresql.stagecraft-system.svc.cluster.local \
-       -U stagecraft -d stagecraft -tAc 'SELECT 1' </dev/null >/dev/null 2>&1; then
+       --command -- psql -h postgresql.statecraft-system.svc.cluster.local \
+       -U statecraft -d statecraft -tAc 'SELECT 1' </dev/null >/dev/null 2>&1; then
     cat >&2 <<'EOF'
 ERROR: POSTGRES_PASSWORD in .env does NOT authenticate against postgresql-0.
 The live postgres still has its old password (persisted on its PVC) while
@@ -124,15 +124,15 @@ The live postgres still has its old password (persisted on its PVC) while
      '$POSTGRES_PASSWORD' into a SQL literal breaks on $, `, \, or ':
 
        set -a; source .env; set +a
-       PG_SUPER=$(kubectl -n stagecraft-system get secret postgresql \
+       PG_SUPER=$(kubectl -n statecraft-system get secret postgresql \
          -o jsonpath='{.data.postgres-password}' | base64 -d)
-       printf "ALTER USER stagecraft WITH PASSWORD :'pass';\n" | \
-         kubectl -n stagecraft-system exec -i postgresql-0 -- \
+       printf "ALTER USER statecraft WITH PASSWORD :'pass';\n" | \
+         kubectl -n statecraft-system exec -i postgresql-0 -- \
            env PGPASSWORD="$PG_SUPER" psql -U postgres \
              -v ON_ERROR_STOP=1 -v pass="$POSTGRES_PASSWORD"
 
   b) Update .env POSTGRES_PASSWORD to what the DB actually has:
-       kubectl -n stagecraft-system get secret postgresql \
+       kubectl -n statecraft-system get secret postgresql \
          -o jsonpath='{.data.password}' | base64 -d
 EOF
     exit 1
@@ -142,10 +142,10 @@ else
   POSTGRES_PASSWORD="${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}"
 
   helm upgrade --install postgresql oci://registry-1.docker.io/bitnamicharts/postgresql \
-    --namespace stagecraft-system \
-    --set auth.username=stagecraft \
+    --namespace statecraft-system \
+    --set auth.username=statecraft \
     --set auth.password="$POSTGRES_PASSWORD" \
-    --set auth.database=stagecraft \
+    --set auth.database=statecraft \
     --set primary.persistence.size=10Gi \
     --wait --timeout 300s
 fi
@@ -160,18 +160,18 @@ kubectl apply -f "$SCRIPT_DIR/nsq.yaml"
 # images behind a paywall in mid-2025 — `docker.io/bitnami/minio:*` tags
 # 404 today, leaving pods in ImagePullBackOff.
 MINIO_CHART_INSTALLED=false
-if helm status minio -n stagecraft-system >/dev/null 2>&1; then
-  CURRENT_CHART=$(helm list -n stagecraft-system -o json \
+if helm status minio -n statecraft-system >/dev/null 2>&1; then
+  CURRENT_CHART=$(helm list -n statecraft-system -o json \
     | grep -o '"chart":"minio-[^"]*"' | head -1 || true)
   # The official chart's name is `minio-<ver>`; Bitnami's is the same prefix
   # but pulls from a doomed registry. Re-install if the running pods are in
   # ImagePullBackOff regardless of which chart is recorded.
-  if kubectl -n stagecraft-system get pods -l app=minio \
+  if kubectl -n statecraft-system get pods -l app=minio \
        -o jsonpath='{.items[*].status.containerStatuses[*].state.waiting.reason}' 2>/dev/null \
        | grep -q ImagePullBackOff; then
     info "MinIO release exists but pods are in ImagePullBackOff — reinstalling"
-    helm uninstall minio -n stagecraft-system >/dev/null 2>&1 || true
-    kubectl -n stagecraft-system delete pvc -l release=minio --ignore-not-found=true >/dev/null 2>&1 || true
+    helm uninstall minio -n statecraft-system >/dev/null 2>&1 || true
+    kubectl -n statecraft-system delete pvc -l release=minio --ignore-not-found=true >/dev/null 2>&1 || true
   else
     info "MinIO already installed (${CURRENT_CHART}), skipping"
     MINIO_CHART_INSTALLED=true
@@ -199,14 +199,14 @@ if [ "$MINIO_CHART_INSTALLED" = false ]; then
   # the browser. The browser couldn't reach the cluster-internal
   # MinIO, so uploads silently failed for months. Spec 143 closed the
   # gap on the option-A side: dual-endpoint storage client + public
-  # ingress here + CORS contract for the stagecraft origin.
+  # ingress here + CORS contract for the statecraft origin.
   #
   # Required envs (FR-006a):
   #   MINIO_SERVER_URL — must match the public ingress hostname so
   #     SigV4 canonicalisation produces the same signature browser-side
   #     and server-side. Without this MinIO recomputes against its
   #     in-cluster hostname and rejects with SignatureDoesNotMatch.
-  #   MINIO_API_CORS_ALLOW_ORIGIN — strict to the stagecraft origin;
+  #   MINIO_API_CORS_ALLOW_ORIGIN — strict to the statecraft origin;
   #     no wildcards.
   #
   # Recommended envs (defence-in-depth):
@@ -217,7 +217,7 @@ if [ "$MINIO_CHART_INSTALLED" = false ]; then
   #     a future operator flips the console back on.
   #
   # Body-size annotation: 1g matches KNOWLEDGE_UPLOAD_MAX_BYTES in
-  # platform/services/stagecraft/api/knowledge/uploadLimits.ts (spec
+  # platform/services/statecraft/api/knowledge/uploadLimits.ts (spec
   # 143 FR-011). When that constant changes, this value MUST change
   # to match — uploadLimits.ts has the propagation comment pointing
   # back here.
@@ -231,13 +231,13 @@ if [ "$MINIO_CHART_INSTALLED" = false ]; then
   # provider supports a cert-manager webhook AND wildcard/DNS-only
   # validation is needed; HTTP-01 acceptable for single-host
   # non-wildcard certs once the parent domain's ingress is routing."
-  # `stagecraft.ing` is fronted by Cloudflare; the wildcard tenant
+  # `statecraft.ing` is fronted by Cloudflare; the wildcard tenant
   # cert (spec 137 / spec 106) uses the Cloudflare DNS-01 issuer
   # (`letsencrypt-prod-dns01-cloudflare`); the Hetzner DNS path
   # was removed in the spec 151 Phase 3 follow-up cleanup as
   # never-functional given Cloudflare-authoritative DNS.
   helm upgrade --install minio minio/minio \
-    --namespace stagecraft-system \
+    --namespace statecraft-system \
     --set rootUser="$MINIO_ROOT_USER" \
     --set rootPassword="$MINIO_ROOT_PASSWORD" \
     --set mode=standalone \
@@ -265,9 +265,9 @@ fi
 #
 # Earlier revisions of post-create.sh imperatively created the
 # `knowledge-orphan-imported-sweeper` CronJob via heredoc-apply. That
-# bootstrap is now retired: the resource is owned by the stagecraft
+# bootstrap is now retired: the resource is owned by the statecraft
 # Helm chart at
-# `platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml`
+# `platform/charts/statecraft/templates/cronjob-orphan-sweeper.yaml`
 # (FU-001 beat 4). Two systems writing the same K8s object is the
 # §12 L-003 single-writer anti-pattern; Helm is the sole writer going
 # forward.
@@ -291,9 +291,9 @@ fi
 # clears it.
 #
 # Note: this delete is for the post-create.sh legacy bootstrap path.
-# The cd-stagecraft helm-deploy action carries its own one-time
+# The cd-statecraft helm-deploy action carries its own one-time
 # operator step (`kubectl delete cronjob knowledge-orphan-imported-sweeper
-# -n stagecraft-system --ignore-not-found=true`) before the next helm
+# -n statecraft-system --ignore-not-found=true`) before the next helm
 # upgrade lands the chart, because helm-deploy's ownership-transfer
 # logic only handles Deployments and a CronJob would otherwise fail
 # the upgrade on immutable-field collision.
@@ -305,11 +305,11 @@ fi
 
 info "Checking spec-143 orphan-imported-sweeper cronjob ownership (FU-009 label-gate)..."
 managed_by=$(kubectl get cronjob knowledge-orphan-imported-sweeper \
-  --namespace stagecraft-system \
+  --namespace statecraft-system \
   -o jsonpath='{.metadata.labels.app\.kubernetes\.io/managed-by}' 2>/dev/null || echo "")
 if [ -z "$managed_by" ] || [ "$managed_by" != "Helm" ]; then
   kubectl delete cronjob knowledge-orphan-imported-sweeper \
-    --namespace stagecraft-system \
+    --namespace statecraft-system \
     --ignore-not-found=true
   info "Legacy un-Helm-owned orphan sweeper cronjob cleared."
 else

@@ -243,14 +243,14 @@ critical path to the Phase 5 drill.
 ## Phase 5 (PR-5): Drill (FR-005, AC-5)
 
 - [x] T021 FR-005 drill: a `tests-e2e/fixtures/208/` seeded multi-session
-      run + a harness drill against the `mock_stagecraft` seam: pull the
+      run + a harness drill against the `mock_statecraft` seam: pull the
       halt during the seeded run, assert the propagation bound (FR-003,
       connected paused at next boundary / disconnected refused at reconnect
       handshake), lift, assert staged reintegration (FR-004). Wire into the
       nightly lane (`.github/workflows/opc-e2e-nightly.yml`) if the harness
       does not auto-discover the test (co_authority with spec 187).
       Landed `product/apps/opc/tests-e2e/fixtures/208/org-halt-drill.e2e.ts`
-      on the extended `mock_stagecraft` seam (`push`/`waitForFrame` added to
+      on the extended `mock_statecraft` seam (`push`/`waitForFrame` added to
       the spec-187 harness). Auto-discovered by the `fixtures/**/*.e2e.ts`
       glob, so no workflow edit was needed. Honest scope of the client drill:
       the **connected** leg is real (the seeded cockpit runs
@@ -263,7 +263,7 @@ critical path to the Phase 5 drill.
       spec-187 `handshake-rejects` mode (the OPC sync client has no local
       halt-awareness; refusal is the server's job) and asserts the boot gate
       stays sticky. The **idle "next action refused"** leg (AC-1) is
-      stagecraft-side grant/registration refusal, covered by `orgHalt.test.ts`,
+      statecraft-side grant/registration refusal, covered by `orgHalt.test.ts`,
       not re-faked in the client drill. AC-5 ("green on a release candidate")
       is proven by the first nightly run after merge, which the T022 lifecycle
       flip depends on.

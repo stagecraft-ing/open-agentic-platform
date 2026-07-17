@@ -30,7 +30,7 @@ export type LifecyclePanel =
 // Recent governance certificate (FR-004)
 //
 // Spec 168 emits `governance-certificate.json` per factory run to the
-// tenant's filesystem; there is no stagecraft-side store for cert hash
+// tenant's filesystem; there is no statecraft-side store for cert hash
 // or verifier exit code today. The dashboard surfaces what is derivable
 // from `factory_runs` (emission timestamp = `completedAt`, run id) and
 // leaves `hashPrefix` / `verifierExitCode` null until the future plumbing
@@ -133,7 +133,7 @@ export interface ProjectDashboardSnapshot {
 /**
  * Inputs to `assessRisk` — every signal as a count. Keeping the shape
  * count-only (rather than the underlying rows) makes the rule pure and
- * easy to property-test. Callers must reuse `STAGECRAFT_EXTRACT_STALE_AFTER_SEC`
+ * easy to property-test. Callers must reuse `STATECRAFT_EXTRACT_STALE_AFTER_SEC`
  * when building `staleExtractions`.
  */
 export interface RiskInputs {

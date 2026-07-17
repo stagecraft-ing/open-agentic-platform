@@ -104,7 +104,7 @@ pub fn run_preflight(
     // Two shapes per adapter_manifest::ScaffoldSource:
     //   • Local(path)      — vendored scaffold; verify the directory exists
     //                        under the adapter root.
-    //   • Upstream {…}     — pointer-not-repo; stagecraft fetches and seeds
+    //   • Upstream {…}     — pointer-not-repo; statecraft fetches and seeds
     //                        the project at create/import time. OPC never
     //                        resolves the pointer, so PF-004 is N/A.
     let scaffold = manifest.get("scaffold").and_then(|s| s.get("source"));
@@ -128,7 +128,7 @@ pub fn run_preflight(
         Some(serde_yaml::Value::Mapping(_)) => {
             results.push(CheckResult::pass(
                 "PF-004",
-                "Scaffold source is an upstream pointer; provisioning is stagecraft-owned"
+                "Scaffold source is an upstream pointer; provisioning is statecraft-owned"
                     .to_string(),
                 Severity::Error,
             ));

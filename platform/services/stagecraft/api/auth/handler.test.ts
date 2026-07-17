@@ -2,7 +2,7 @@
 // carries an Authorization header, including the platform's `auth: false` M2M
 // endpoints (audit, policy, grants, knowledge-sweep). A `client_credentials`
 // token fails the session audience check in `validateJwt` (its audience is the
-// caller's own client, not `stagecraft-server`), so the handler must return
+// caller's own client, not `statecraft-server`), so the handler must return
 // `null` (unauthenticated) rather than throw. Returning null lets Encore treat
 // the request as having no user session: `auth: true` endpoints reject it,
 // while `auth: false` M2M endpoints proceed to their own `validateM2mRequest`.

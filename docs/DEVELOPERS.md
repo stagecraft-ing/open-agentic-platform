@@ -9,7 +9,7 @@
 | pnpm | `brew install pnpm` | Root workspace only |
 | bun | `brew install bun` | |
 | Docker | [docker.com](https://docker.com) | Required for platform services |
-| Encore CLI | `brew install encoredev/tap/encore` | Only needed for stagecraft |
+| Encore CLI | `brew install encoredev/tap/encore` | Only needed for statecraft |
 
 Run `make check-deps` to verify the core tools are installed.
 
@@ -40,7 +40,7 @@ Bumping either side post-T-007: open a PR that updates both edits and re-runs th
 ```bash
 make setup          # one-time: install deps, build spec compiler, compile registry
 make dev            # desktop app only (Tauri + Vite, hot-reload)
-make dev-platform   # platform services (stagecraft + deployd-api, background)
+make dev-platform   # platform services (statecraft + deployd-api, background)
 make dev-all        # desktop + platform services
 make stop           # kill background platform services
 ```
@@ -54,7 +54,7 @@ make stop           # kill background platform services
 
 How to create your admin account:
 
-1. Start stagecraft: `make dev-stagecraft` (or `make dev-platform`)
+1. Start statecraft: `make dev-statecraft` (or `make dev-platform`)
    - The npm script already sets `BOOTSTRAP_ADMIN_EMAIL=admin@example.com`
 2. Open http://localhost:4000 and click **Sign Up**
 3. Enter `admin@example.com`, pick a name and password
@@ -67,18 +67,18 @@ To use a different admin email, override the env var:
 BOOTSTRAP_ADMIN_EMAIL=you@company.com npm run encore
 ```
 
-See [`platform/services/stagecraft/api/auth/auth.ts:120-122`](../platform/services/stagecraft/api/auth/auth.ts) for the bootstrap logic.
+See [`platform/services/statecraft/api/auth/auth.ts:120-122`](../platform/services/statecraft/api/auth/auth.ts) for the bootstrap logic.
 
 ## Platform Services
 
 | Service | Stack | Port | URL |
 |---------|-------|------|-----|
-| stagecraft | Encore.ts, Drizzle ORM | 4000 | http://localhost:4000 |
+| statecraft | Encore.ts, Drizzle ORM | 4000 | http://localhost:4000 |
 | deployd-api-rs | Rust (axum + hiqlite) | 8080 | http://localhost:8080 |
 
-> **Note:** GitHub webhook handling and token brokering were absorbed into stagecraft (in `api/github/`). The former standalone github-app (Probot) service no longer exists.
+> **Note:** GitHub webhook handling and token brokering were absorbed into statecraft (in `api/github/`). The former standalone github-app (Probot) service no longer exists.
 
-Stagecraft also exposes the Encore development dashboard at http://localhost:9400.
+Statecraft also exposes the Encore development dashboard at http://localhost:9400.
 
 ## Package Managers
 
@@ -91,5 +91,5 @@ Platform services are excluded from `pnpm-workspace.yaml`. Do not run `pnpm inst
 
 - [README.md](../README.md) — architecture overview and system vision
 - [platform/CLAUDE.md](../platform/CLAUDE.md) — platform layer technical reference
-- [platform/services/stagecraft/README.md](../platform/services/stagecraft/README.md) — full stagecraft service docs
+- [platform/services/statecraft/README.md](../platform/services/statecraft/README.md) — full statecraft service docs
 - [product/apps/opc/README.md](../product/apps/opc/README.md) — OPC desktop app

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// Stagecraft schema migration runner.
+// Statecraft schema migration runner.
 //
 // Applies SQL files from MIGRATIONS_DIR to the database referenced by
-// STAGECRAFT_DB_URL in filename order. Tracks applied versions in the
+// STATECRAFT_DB_URL in filename order. Tracks applied versions in the
 // schema_migrations table and skips versions that are already present.
 //
 // Intended to run as a pre-install/pre-upgrade Helm hook.
@@ -11,12 +11,12 @@ import fs from "node:fs";
 import path from "node:path";
 import pg from "pg";
 
-const DATABASE_URL = process.env.STAGECRAFT_DB_URL;
+const DATABASE_URL = process.env.statecraft_DB_URL;
 const MIGRATIONS_DIR =
   process.env.MIGRATIONS_DIR ?? path.resolve("./api/db/migrations");
 
 if (!DATABASE_URL) {
-  console.error("STAGECRAFT_DB_URL is required");
+  console.error("STATECRAFT_DB_URL is required");
   process.exit(1);
 }
 

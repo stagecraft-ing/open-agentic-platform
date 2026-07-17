@@ -175,7 +175,7 @@ export async function handleInbound(
     });
 
     if (evt.kind === "audit.candidate") {
-      // Stagecraft remains audit authority: we normalise and commit under the
+      // Statecraft remains audit authority: we normalise and commit under the
       // authenticated user. We deliberately DO NOT trust the desktop to pick
       // actor_user_id or the timestamp.
       await db.insert(auditLog).values({

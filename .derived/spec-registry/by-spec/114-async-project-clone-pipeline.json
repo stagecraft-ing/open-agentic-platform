@@ -7,54 +7,54 @@
     "dependsOn": [
       "109-factory-pat-and-pubsub-sync",
       "112-factory-project-lifecycle",
-      "113-stagecraft-projects-rename-and-clone"
+      "113-statecraft-projects-rename-and-clone"
     ],
     "domain": "platform",
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/db/schema.ts"
+        "path": "platform/services/statecraft/api/db/schema.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/projects/cloneCore.ts"
+        "path": "platform/services/statecraft/api/projects/cloneCore.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/projects/cloneEvents.ts"
+        "path": "platform/services/statecraft/api/projects/cloneEvents.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/projects/cloneWorker.ts"
+        "path": "platform/services/statecraft/api/projects/cloneWorker.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/projects/cloneRunStatus.ts"
+        "path": "platform/services/statecraft/api/projects/cloneRunStatus.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/web/app/routes/app.projects.$sourceProjectId.clone.tsx"
+        "path": "platform/services/statecraft/web/app/routes/app.projects.$sourceProjectId.clone.tsx"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/web/app/routes/app.projects.clone-runs.$cloneJobId.tsx"
+        "path": "platform/services/statecraft/web/app/routes/app.projects.clone-runs.$cloneJobId.tsx"
       }
     ],
     "extends": [
       {
         "nature": "wrapping",
-        "spec": "113-stagecraft-projects-rename-and-clone",
+        "spec": "113-statecraft-projects-rename-and-clone",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx"
+          "path": "platform/services/statecraft/web/app/components/CloneProjectDialog.tsx"
         }
       },
       {
         "nature": "wrapping",
-        "spec": "113-stagecraft-projects-rename-and-clone",
+        "spec": "113-statecraft-projects-rename-and-clone",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+          "path": "platform/services/statecraft/web/app/lib/projects-api.server.ts"
         }
       }
     ],
@@ -84,14 +84,14 @@
     ],
     "specPath": "specs/114-async-project-clone-pipeline/spec.md",
     "status": "approved",
-    "summary": "Spec 113's `POST /api/projects/:id/clone` does the full mirror-clone + mirror-push + raw-artifact hydration synchronously inside the HTTP request. For non-trivial source repos this exceeds the stagecraft ingress's default ~60s read timeout (no `proxy-read-timeout` annotation on the chart) and the SSR proxy translates the upstream cut-off into a 502 in the browser — the symptom users hit on 2026-04-27. This spec splits the endpoint into a thin synchronous queue step and a PubSub worker that owns the heavy work, mirroring the pattern spec 109 already uses for `factory_sync_runs`. The dialog learns to poll a new `GET /api/projects/clone/runs/:cloneJobId` until the run reaches a terminal state, then navigates with the worker-resolved final names.\n",
+    "summary": "Spec 113's `POST /api/projects/:id/clone` does the full mirror-clone + mirror-push + raw-artifact hydration synchronously inside the HTTP request. For non-trivial source repos this exceeds the statecraft ingress's default ~60s read timeout (no `proxy-read-timeout` annotation on the chart) and the SSR proxy translates the upstream cut-off into a 502 in the browser — the symptom users hit on 2026-04-27. This spec splits the endpoint into a thin synchronous queue step and a PubSub worker that owns the heavy work, mirroring the pattern spec 109 already uses for `factory_sync_runs`. The dialog learns to poll a new `GET /api/projects/clone/runs/:cloneJobId` until the run reaches a terminal state, then navigates with the worker-resolved final names.\n",
     "supersedes": [
       {
         "scope": "partial",
-        "spec": "113-stagecraft-projects-rename-and-clone",
+        "spec": "113-statecraft-projects-rename-and-clone",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/clone.ts"
+          "path": "platform/services/statecraft/api/projects/clone.ts"
         }
       }
     ],

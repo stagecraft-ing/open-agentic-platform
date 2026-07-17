@@ -15,39 +15,39 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/overrideScanCore.ts"
+        "path": "platform/services/statecraft/api/factory/overrideScanCore.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/overrideScanEvents.ts"
+        "path": "platform/services/statecraft/api/factory/overrideScanEvents.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/overrideScanWorker.ts"
+        "path": "platform/services/statecraft/api/factory/overrideScanWorker.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/overrideScanScheduler.ts"
+        "path": "platform/services/statecraft/api/factory/overrideScanScheduler.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/overrideScanPolicy.ts"
+        "path": "platform/services/statecraft/api/factory/overrideScanPolicy.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/overrideScanPrompts.ts"
+        "path": "platform/services/statecraft/api/factory/overrideScanPrompts.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/overrideScanRuns.test.ts"
+        "path": "platform/services/statecraft/api/factory/overrideScanRuns.test.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/overrideQuarantineEnforcement.test.ts"
+        "path": "platform/services/statecraft/api/factory/overrideQuarantineEnforcement.test.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/overrideScanStructure.test.ts"
+        "path": "platform/services/statecraft/api/factory/overrideScanStructure.test.ts"
       }
     ],
     "extends": [
@@ -72,7 +72,7 @@
         "role": "context",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/overrideGate.ts"
+          "path": "platform/services/statecraft/api/factory/overrideGate.ts"
         }
       },
       {
@@ -86,7 +86,7 @@
         "role": "analog",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractionCore.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractionCore.ts"
         }
       }
     ],
@@ -95,98 +95,98 @@
         "aspect": "override-write-async-scanning",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/artifacts.ts"
+          "path": "platform/services/statecraft/api/factory/artifacts.ts"
         }
       },
       {
         "aspect": "override-write-async-scanning",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/conflicts.ts"
+          "path": "platform/services/statecraft/api/factory/conflicts.ts"
         }
       },
       {
         "aspect": "override-write-async-scanning",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/agents/catalog.ts"
+          "path": "platform/services/statecraft/api/agents/catalog.ts"
         }
       },
       {
         "aspect": "verify-quarantine-interplay",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/artifacts.ts"
+          "path": "platform/services/statecraft/api/factory/artifacts.ts"
         }
       },
       {
         "aspect": "consumed-override-revocation-sweep",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/admission.ts"
+          "path": "platform/services/statecraft/api/factory/admission.ts"
         }
       },
       {
         "aspect": "consumed-override-revocation-sweep",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+          "path": "platform/services/statecraft/api/factory/grantDuplexHandlers.ts"
         }
       },
       {
         "aspect": "consumed-override-revocation-sweep",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+          "path": "platform/services/statecraft/api/factory/approvalSummary.ts"
         }
       },
       {
         "aspect": "content-hash-quarantine-lift-mode",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/revocations.ts"
+          "path": "platform/services/statecraft/api/factory/revocations.ts"
         }
       },
       {
         "aspect": "consumed-override-revocation-sweep",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/runAgentRefs.ts"
+          "path": "platform/services/statecraft/api/factory/runAgentRefs.ts"
         }
       },
       {
         "aspect": "consumed-override-revocation-sweep",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/runs.ts"
+          "path": "platform/services/statecraft/api/factory/runs.ts"
         }
       },
       {
         "aspect": "consumed-override-revocation-sweep",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/opcBundle.ts"
+          "path": "platform/services/statecraft/api/projects/opcBundle.ts"
         }
       },
       {
         "aspect": "scan-run-records",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       },
       {
         "aspect": "encore-test-lane-assignment",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       },
       {
         "aspect": "override-scan-topic-declaration",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/infra.config.json"
+          "path": "platform/services/statecraft/infra.config.json"
         }
       }
     ],

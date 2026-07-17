@@ -54,7 +54,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Platform (Control Plane)',
       items: [
-        'platform/stagecraft-service',
+        'platform/statecraft-service',
         'platform/deployd-api',
         'platform/identity-rauthy',
         'platform/factory-adapters',

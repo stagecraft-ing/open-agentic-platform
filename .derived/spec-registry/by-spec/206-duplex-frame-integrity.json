@@ -19,7 +19,7 @@
         "spec": "189-duplex-envelope-version-parity",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/types.ts"
+          "path": "platform/services/statecraft/api/sync/types.ts"
         }
       },
       {
@@ -51,7 +51,7 @@
         "role": "machinery",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/signing.ts"
+          "path": "platform/services/statecraft/api/factory/signing.ts"
         }
       },
       {
@@ -74,7 +74,7 @@
         "aspect": "frame-integrity",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/service.ts"
+          "path": "platform/services/statecraft/api/sync/service.ts"
         }
       },
       {
@@ -95,7 +95,7 @@
     ],
     "specPath": "specs/206-duplex-frame-integrity/spec.md",
     "status": "draft",
-    "summary": "Harden the OPC↔stagecraft duplex channel from version-parity to message integrity. Spec 189 guarantees both ends speak the same envelope schema version; transport security is TLS plus bearer auth at handshake. Within an authenticated stream nothing binds individual frames: no per-frame integrity check, no replay protection, no refusal of unauthenticated frames after negotiation (ASI07 m2/m3/m4). This spec adds a keyed per-frame MAC over payload plus envelope context, an anti-replay window built on the envelope's existing eventId/sequence metadata bound to task windows, and fail-closed downgrade refusal — riding a schema-version bump so spec 189's strict equality remains the single negotiation gate. Session MAC keys are ephemeral and platform-minted at handshake, rotated on grant renewal; this preserves the spec 198 FR-014 posture (OPC holds no long-lived signing keys — an ephemeral channel MAC key is not a signing authority).\n",
+    "summary": "Harden the OPC↔statecraft duplex channel from version-parity to message integrity. Spec 189 guarantees both ends speak the same envelope schema version; transport security is TLS plus bearer auth at handshake. Within an authenticated stream nothing binds individual frames: no per-frame integrity check, no replay protection, no refusal of unauthenticated frames after negotiation (ASI07 m2/m3/m4). This spec adds a keyed per-frame MAC over payload plus envelope context, an anti-replay window built on the envelope's existing eventId/sequence metadata bound to task windows, and fail-closed downgrade refusal — riding a schema-version bump so spec 189's strict equality remains the single negotiation gate. Session MAC keys are ephemeral and platform-minted at handshake, rotated on grant renewal; this preserves the spec 198 FR-014 posture (OPC holds no long-lived signing keys — an ephemeral channel MAC key is not a signing authority).\n",
     "title": "Duplex Frame Integrity and Anti-Replay (ASI07)"
   },
   "shardHash": "dbdf67478bec25da4300cd6b0681fa551ad85d881e31d3b0b87dbf9c3b57de53",

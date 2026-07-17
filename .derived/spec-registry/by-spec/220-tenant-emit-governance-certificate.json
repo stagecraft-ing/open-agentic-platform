@@ -24,15 +24,15 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.ts"
+        "path": "platform/services/statecraft/api/projects/scaffold/tenantSigningKey.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.test.ts"
+        "path": "platform/services/statecraft/api/projects/scaffold/tenantSigningKey.test.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/projects/scaffold/regenerateProducedClient.test.ts"
+        "path": "platform/services/statecraft/api/projects/scaffold/regenerateProducedClient.test.ts"
       }
     ],
     "extends": [
@@ -73,7 +73,7 @@
         "spec": "112-factory-project-lifecycle",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/create.ts"
+          "path": "platform/services/statecraft/api/projects/create.ts"
         }
       },
       {
@@ -81,7 +81,7 @@
         "spec": "112-factory-project-lifecycle",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts"
         }
       },
       {
@@ -89,7 +89,7 @@
         "spec": "112-factory-project-lifecycle",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/templateCache.ts"
         }
       },
       {
@@ -97,7 +97,7 @@
         "spec": "140-acme-vue-node-scaffold-source-id-cutover",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/types.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/types.ts"
         }
       },
       {
@@ -105,7 +105,7 @@
         "spec": "116-supply-chain-policy-gates",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/package.json"
+          "path": "platform/services/statecraft/package.json"
         }
       }
     ],

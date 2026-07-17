@@ -14,7 +14,7 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/runs.ts"
+        "path": "platform/services/statecraft/api/factory/runs.ts"
       }
     ],
     "extends": [
@@ -56,7 +56,7 @@
       "Decisions and follow-ups",
       "12. Post-approval hardening: adapter manifest validation (2026-06-05)",
       "Security hardening amendment (2026-07-02)",
-      "Stagecraft-web gate delivery + resume-path amendment (2026-07-09)",
+      "Statecraft-web gate delivery + resume-path amendment (2026-07-09)",
       "Correlation diagnostics + fail-loud amendment (2026-07-10)"
     ],
     "specPath": "specs/124-opc-factory-run-platform-integration/spec.md",

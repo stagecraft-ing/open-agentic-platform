@@ -21,9 +21,9 @@ scheduler time.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: stagecraft-api-workspace
+  name: statecraft-api-workspace
   labels:
-    app: stagecraft-api
+    app: statecraft-api
 spec:
   accessModes:
     - {{ .Values.workspace.persistence.accessMode | default "ReadWriteOnce" }}

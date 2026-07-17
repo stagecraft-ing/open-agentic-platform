@@ -25,7 +25,7 @@ output "oidc_issuer_url" {
 }
 
 output "registry_url" {
-  value       = split("/", aws_ecr_repository.stagecraft.repository_url)[0]
+  value       = split("/", aws_ecr_repository.statecraft.repository_url)[0]
   description = "ECR registry URL (without repository name)"
 }
 
@@ -38,8 +38,8 @@ output "secret_store_name" {
   description = "Logical name for the secret store — used in ESO ClusterSecretStore"
 }
 
-output "stagecraft_identity_id" {
-  value = module.stagecraft_irsa.iam_role_arn
+output "statecraft_identity_id" {
+  value = module.statecraft_irsa.iam_role_arn
 }
 
 output "deployd_identity_id" {
@@ -50,5 +50,5 @@ output "eso_role_arn" {
   value = module.eso_irsa.iam_role_arn
 }
 
-output "stagecraft_serviceaccount_name" { value = "stagecraft-api-sa" }
+output "statecraft_serviceaccount_name" { value = "statecraft-api-sa" }
 output "deployd_serviceaccount_name"    { value = "deployd-api-sa" }

@@ -75,8 +75,8 @@ summary: >
   flag fall back to spec 130's any-one-claimant heuristic. Further amended by spec 160
   (2026-05-22) to repoint the input-hash walk from the legacy `factory/adapters/*` and
   `factory/process/stages/*` directories (removed in the spec 108 relocation) to the
-  stagecraft-resident `platform/services/stagecraft/api/factory/adapter-scopes.json`
-  and `platform/services/stagecraft/api/factory/process-stages/`. Layer 3 narrative
+  statecraft-resident `platform/services/statecraft/api/factory/adapter-scopes.json`
+  and `platform/services/statecraft/api/factory/process-stages/`. Layer 3 narrative
   below is preserved as historical record; the live Layer 3 surface moved to
   `tools/oap/oap-code-index-enrich` in Cut D W-07c.
 depends_on:
@@ -183,10 +183,10 @@ Cross-references spec frontmatter `implements` declarations against actual file 
 > generic indexer in Cut D W-07c (now emitted by `tools/oap/oap-code-index-enrich`),
 > and the on-disk locations cited below were removed when the `factory/` directory
 > was retired in the spec 108 relocation. The input-hash walk now reads the
-> stagecraft-resident `platform/services/stagecraft/api/factory/adapter-scopes.json`
+> statecraft-resident `platform/services/statecraft/api/factory/adapter-scopes.json`
 > (the static fallback snapshot retained after spec 108 dropped the
 > `factory_adapters` table) and the forward-compatible
-> `platform/services/stagecraft/api/factory/process-stages/` directory. The Layer 3
+> `platform/services/statecraft/api/factory/process-stages/` directory. The Layer 3
 > narrative below is preserved as historical record of the original four-layer model.
 
 Derived from `factory/adapters/*/manifest.yaml` files and the global pipeline stage
@@ -379,10 +379,10 @@ The indexer MUST identify:
 
 > **Amended by spec 160 (2026-05-22):** Adapter manifests are no longer authored
 > as per-adapter `manifest.yaml` files in a repo-resident `factory/adapters/`
-> directory. The authoritative store is stagecraft's
+> directory. The authoritative store is statecraft's
 > `factory_artifact_substrate` table (spec 139); the file-backed snapshot the
 > indexer hashes is
-> `platform/services/stagecraft/api/factory/adapter-scopes.json`. The Layer 3
+> `platform/services/statecraft/api/factory/adapter-scopes.json`. The Layer 3
 > emission moved to `tools/oap/oap-code-index-enrich` in Cut D W-07c; the
 > generic indexer retains only the input-hash walk repointed by spec 160.
 

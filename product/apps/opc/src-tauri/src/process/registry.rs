@@ -24,7 +24,7 @@ pub struct ProcessInfo {
     pub model: String,
     /// Tab/execution session that owns this process (spec 110 §2.4).
     /// Minted on tab creation; stable for the lifetime of the run. Used by
-    /// stagecraft's duplex stream to route `factory.run.ack` /
+    /// statecraft's duplex stream to route `factory.run.ack` /
     /// `execution.status` back to the originating request.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub session_id: Option<String>,

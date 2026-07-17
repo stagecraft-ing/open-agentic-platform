@@ -1,7 +1,7 @@
 ---
-id: "113-stagecraft-projects-rename-and-clone"
-slug: stagecraft-projects-rename-and-clone
-title: Stagecraft Projects Rename + In-Org Project Clone
+id: "113-statecraft-projects-rename-and-clone"
+slug: statecraft-projects-rename-and-clone
+title: Statecraft Projects Rename + In-Org Project Clone
 status: approved
 implementation: complete
 owner: bart
@@ -10,7 +10,7 @@ kind: product
 domain: platform
 risk: medium
 summary: >
-  Renames the stagecraft web "Dashboard" surface to "Projects" (page title,
+  Renames the statecraft web "Dashboard" surface to "Projects" (page title,
   subtitle, top-nav label) and turns the existing copy-icon stub on each
   project row into a real Clone action. Clone opens a dialog where the user
   can rename the new project (project name, slug, GitHub repo name) with
@@ -29,46 +29,46 @@ depends_on:
 extends:
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app._index.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app._index.tsx }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.tsx }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/components/CloneProjectDialog.tsx }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/projects-api.server.ts }
+    unit: { kind: file, path: platform/services/statecraft/web/app/lib/projects-api.server.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/clone.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/clone.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/cloneHelpers.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/cloneHelpers.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/cloneAvailability.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/cloneAvailability.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/encore.service.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/encore.service.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/cloneAvailability.test.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/cloneAvailability.test.ts }
 references:
   - role: historical
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/clone.test.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/clone.test.ts }
 ---
 
-# 113 — Stagecraft Projects Rename + In-Org Project Clone
+# 113 — Statecraft Projects Rename + In-Org Project Clone
 
-**Feature Branch:** `113-stagecraft-projects-rename-and-clone`
+**Feature Branch:** `113-statecraft-projects-rename-and-clone`
 **Created:** 2026-04-26
 **Status:** Draft
-**Input:** User description: "Rename Dashboard to Projects; add a Clone action on each listed project that clones the imported repo into the current org (e.g. `stagecraft-ing`)."
+**Input:** User description: "Rename Dashboard to Projects; add a Clone action on each listed project that clones the imported repo into the current org (e.g. `statecrafting`)."
 
 ## 1. Problem
 
-The stagecraft project listing page is currently labelled "Dashboard" with a "Manage your projects" subtitle, and the top nav uses the same word. The page is not a dashboard — it is a projects index — and the label drifts from spec 087's workspace-as-atom framing where projects are first-class operational units.
+The statecraft project listing page is currently labelled "Dashboard" with a "Manage your projects" subtitle, and the top nav uses the same word. The page is not a dashboard — it is a projects index — and the label drifts from spec 087's workspace-as-atom framing where projects are first-class operational units.
 
 Each project row already renders a Copy-style icon between the row title and the Edit/Delete affordances. The handler is a `/* TODO: duplicate project */` stub (`web/app/routes/app._index.tsx:213-219`). There is no API behind it, no audit, no GitHub side-effect.
 
@@ -78,7 +78,7 @@ Users want to fork a working project — repo, adapter binding, raw knowledge ob
 
 - The project listing page reads "Projects" everywhere a user can see it (page title, subtitle, top-nav tab).
 - A Clone action on each project row opens a dialog where the user can rename the new project (project name, slug, GitHub repo name). The dialog runs debounced, async availability checks against the destination GitHub org and the workspace's project slugs so the user knows before submitting whether their chosen names will be accepted.
-- On submit, Clone creates, in the user's current OAP org's GitHub installation, a fresh GitHub repo populated with the source repo's full git history, registers a new stagecraft project bound to that repo, and lands the user on the new project's detail page.
+- On submit, Clone creates, in the user's current OAP org's GitHub installation, a fresh GitHub repo populated with the source repo's full git history, registers a new statecraft project bound to that repo, and lands the user on the new project's detail page.
 - Clone is governed: it requires `org:project.create` in the destination org and read access to the source project; it emits a `project.cloned` audit event; failures roll back partial state (no orphaned GitHub repos, no orphaned DB rows).
 - Adapter binding and `.artifacts/raw/` knowledge objects carry over — the cloned project is operational on day 1 with the same factory shape as the source.
 
@@ -95,21 +95,21 @@ Users want to fork a working project — repo, adapter binding, raw knowledge ob
 
 ### User Story 1 — Clone a project into the current org with rename (Priority: P1)
 
-A workspace member viewing the projects index decides to fork an existing project to experiment without touching the original. They click the Clone icon on the project row. A dialog opens pre-filled with sensible defaults: project name `"{source.name} (clone)"`, project slug `"{source.slug}-clone"`, and destination GitHub repo name `"{source-repoName}-clone"`. The destination GitHub org login (e.g. `stagecraft-ing`) is shown as read-only so the user knows where the new repo will land.
+A workspace member viewing the projects index decides to fork an existing project to experiment without touching the original. They click the Clone icon on the project row. A dialog opens pre-filled with sensible defaults: project name `"{source.name} (clone)"`, project slug `"{source.slug}-clone"`, and destination GitHub repo name `"{source-repoName}-clone"`. The destination GitHub org login (e.g. `statecrafting`) is shown as read-only so the user knows where the new repo will land.
 
 The user can edit any of the three editable fields. As they type into the repo-name field, the UI debounces by ~300ms and asks the server whether the name is available in the destination org; the field shows one of *Checking… / Available / Already exists / Invalid name*. The same live check runs against the workspace's project slug uniqueness for the slug field. The Submit button stays disabled until both checks read Available (or both fields equal a known-available default).
 
-On submit, the listing refreshes with a new entry sitting next to the source, and the user is navigated to the new project's detail page. The new project's repo lives under the destination org login (e.g. `stagecraft-ing/{user-chosen-name}`) with the source repo's full git history.
+On submit, the listing refreshes with a new entry sitting next to the source, and the user is navigated to the new project's detail page. The new project's repo lives under the destination org login (e.g. `statecrafting/{user-chosen-name}`) with the source repo's full git history.
 
 **Why this priority:** This is the whole feature — the Clone action delivers the user-facing value. Rename without Clone leaves the page worded correctly but no new capability shipped.
 
-**Independent Test:** From a fresh stagecraft instance with one imported project bound to a real GitHub repo and an active GitHub App installation in the destination org, click Clone on the row. Edit the repo name to one that already exists in the destination org and verify the dialog shows "Already exists" and Submit is disabled. Edit it back to an unused name, see "Available", and submit. Verify (a) a new GitHub repo exists under the destination org with the user-chosen name, (b) `git log` on the new repo matches the source's default-branch SHAs, (c) a new `projects` row exists with the user-chosen slug, the same `workspaceId` and `factoryAdapterId` as the source, (d) `.artifacts/raw/` files appear in the new project's knowledge objects with matching `contentHash` values, (e) an `audit_log` row of action `project.cloned` is present and records both the user-chosen and source names.
+**Independent Test:** From a fresh statecraft instance with one imported project bound to a real GitHub repo and an active GitHub App installation in the destination org, click Clone on the row. Edit the repo name to one that already exists in the destination org and verify the dialog shows "Already exists" and Submit is disabled. Edit it back to an unused name, see "Available", and submit. Verify (a) a new GitHub repo exists under the destination org with the user-chosen name, (b) `git log` on the new repo matches the source's default-branch SHAs, (c) a new `projects` row exists with the user-chosen slug, the same `workspaceId` and `factoryAdapterId` as the source, (d) `.artifacts/raw/` files appear in the new project's knowledge objects with matching `contentHash` values, (e) an `audit_log` row of action `project.cloned` is present and records both the user-chosen and source names.
 
 **Acceptance Scenarios:**
 
-1. **Given** a project with a primary repo `acme/foo` and adapter `acme-vue-node`, **and** the current org has GitHub App installed for `stagecraft-ing`, **When** the user clicks Clone on the row, **Then** a dialog opens with name=`foo (clone)`, slug=`foo-clone`, repoName=`foo-clone`, destinationOrg=`stagecraft-ing` (read-only), and the availability indicators next to slug and repoName both report Available.
-2. **Given** the dialog is open with default values that are all available, **When** the user submits without editing, **Then** a new repo `stagecraft-ing/foo-clone` is created with the same git history, a new project `foo (clone)` appears in the listing in the same workspace bound to that repo with the same adapter, the user is navigated to its detail page, and an `audit_log` row records the clone.
-3. **Given** the destination org already contains a repo `stagecraft-ing/foo-clone`, **When** the dialog opens, **Then** the repoName field shows "Already exists" with a hint to pick another name, **and** the Submit button is disabled, **and** changing the field to `foo-experiment` and waiting past the debounce updates the indicator to Available and re-enables Submit.
+1. **Given** a project with a primary repo `acme/foo` and adapter `acme-vue-node`, **and** the current org has GitHub App installed for `statecrafting`, **When** the user clicks Clone on the row, **Then** a dialog opens with name=`foo (clone)`, slug=`foo-clone`, repoName=`foo-clone`, destinationOrg=`statecrafting` (read-only), and the availability indicators next to slug and repoName both report Available.
+2. **Given** the dialog is open with default values that are all available, **When** the user submits without editing, **Then** a new repo `statecrafting/foo-clone` is created with the same git history, a new project `foo (clone)` appears in the listing in the same workspace bound to that repo with the same adapter, the user is navigated to its detail page, and an `audit_log` row records the clone.
+3. **Given** the destination org already contains a repo `statecrafting/foo-clone`, **When** the dialog opens, **Then** the repoName field shows "Already exists" with a hint to pick another name, **and** the Submit button is disabled, **and** changing the field to `foo-experiment` and waiting past the debounce updates the indicator to Available and re-enables Submit.
 4. **Given** the user types `foo bar!` (invalid GitHub repo name) into the repo-name field, **When** the debounce elapses, **Then** the indicator reads "Invalid name" with a one-line rule reminder ("Only letters, digits, hyphens, underscores, and dots; max 100 chars"), **and** Submit is disabled, **and** no GitHub API call is made for that value.
 5. **Given** two users open the dialog simultaneously and both pick `foo-clone` (which was free at check time), **When** they both submit, **Then** the server-side uniquification loop picks distinct names so one gets `foo-clone` and the other gets `foo-clone-2`, **and** both successes return their actual final names so the UI reflects truth.
 6. **Given** the source repo is private, **When** the user clones, **Then** the destination repo is also created private and inherits the destination org's standard branch protection from the factory-create flow.
@@ -144,7 +144,7 @@ A user landing on `/app` sees "Projects" as the page title (not "Dashboard"). Th
 - **Availability check race / TOCTOU.** A name reported Available in the dialog can become unavailable by the time the user submits (another user, another tab, an external GitHub commit). The server MUST always re-uniquify on submit; if the user-supplied name is unavailable AND the user explicitly typed it (i.e. it is not the server's pre-fill default), the server MUST fail with `name_taken` rather than silently pick a different name behind the user's back. If the value submitted equals the server's pre-fill default, the server MAY suffix `-2`, `-3`, … (matching FR-017) and the response carries the actual chosen name so the UI reflects truth.
 - **Availability endpoint rate-limited by GitHub.** GitHub's secondary rate limit can throttle repo lookups. The endpoint MUST respond `{ available: null, reason: "rate_limited", retryAfterSec }` rather than guessing. The UI MUST treat `null` as "unable to verify; submit anyway and rely on server-side uniquification" (Submit is enabled but a warning shows).
 - **Repo name clash exhausted after N suffix attempts (default N = 25).** Clone MUST fail with `name_exhausted` rather than picking a degenerate name.
-- **Very large source repo.** A soft cap (default 500 MB working tree, 50k commits) MUST be enforced server-side. Repos exceeding the cap fail with `source_too_large` and a remediation message. The cap is configurable via env (`STAGECRAFT_CLONE_MAX_BYTES`, `STAGECRAFT_CLONE_MAX_COMMITS`).
+- **Very large source repo.** A soft cap (default 500 MB working tree, 50k commits) MUST be enforced server-side. Repos exceeding the cap fail with `source_too_large` and a remediation message. The cap is configurable via env (`STATECRAFT_CLONE_MAX_BYTES`, `STATECRAFT_CLONE_MAX_COMMITS`).
 - **Concurrent clones of the same source.** Two clones running simultaneously MUST each get a unique destination name via the same suffix-uniquification loop, gated by GitHub's 422 `already exists` response on `POST /orgs/:org/repos`.
 - **Source repo lives in a GitHub org different from the destination.** This is permitted as long as the user has read access to the source (via `resolveProjectToken`). The destination is always the OAP-current-org's installation login — Clone never targets the source's GitHub org unless they happen to be the same.
 - **Invalid input characters in the dialog.** GitHub repo names disallow most punctuation; project slugs must match `[a-z0-9-]+`. The UI MUST validate format client-side before issuing an availability call (so an invalid value never costs a GitHub API request) and the server MUST re-validate format on the availability endpoint and the submit endpoint.
@@ -199,7 +199,7 @@ A user landing on `/app` sees "Projects" as the page title (not "Dashboard"). Th
 - **FR-033**: After repo+project creation, the orchestrator MUST run the same raw-artifact registration path used by `factory-import` (`registerRawArtifactsFromRepo`) against the locally cloned working copy and bind resulting `knowledge_objects` to the new project.
 - **FR-034**: On any failure after GitHub repo creation, the orchestrator MUST delete the destination repo (best-effort, with structured warning if delete fails) before returning the error to the caller. On any failure after the `projects` row insert, the orchestrator MUST delete the row (cascade handles `project_repos`) and the GitHub repo.
 - **FR-035**: The endpoint MUST emit an `audit_log` row with `action = "project.cloned"`, `actor = auth.userId`, `target = newProjectId`, and `metadata = { sourceProjectId, sourceRepoFullName, newRepoFullName, requestedRepoName, requestedSlug, rawArtifactsCopied, rawArtifactsSkipped, durationMs }`. Including the requested-vs-final names lets governance reconstruct any silent suffixing.
-- **FR-036**: The endpoint MUST enforce a server-side soft cap on source size (`STAGECRAFT_CLONE_MAX_BYTES`, default 500 MB working tree post-clone) and commit count (`STAGECRAFT_CLONE_MAX_COMMITS`, default 50000). Exceeding either MUST return `source_too_large` and skip both repo creation and DB writes.
+- **FR-036**: The endpoint MUST enforce a server-side soft cap on source size (`STATECRAFT_CLONE_MAX_BYTES`, default 500 MB working tree post-clone) and commit count (`STATECRAFT_CLONE_MAX_COMMITS`, default 50000). Exceeding either MUST return `source_too_large` and skip both repo creation and DB writes.
 - **FR-037**: The endpoint MUST NOT copy `project_members`, `environments`, or `project_github_pats` rows. The new project starts with the cloning user as its only member (role `admin`), matching the create-with-repo flow.
 - **FR-038**: The submit response MUST include the actual final `name`, `slug`, `repoName` (post any server-side suffixing) so the UI navigates to the right place and never displays a name that does not match server truth.
 

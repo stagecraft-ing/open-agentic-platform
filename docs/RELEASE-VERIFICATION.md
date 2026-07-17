@@ -35,7 +35,7 @@ Requires `gh` CLI version 2.50 or later.
 ```bash
 # Verify a desktop installer (the attested release subject)
 gh attestation verify path/to/opc_<version>_aarch64.dmg \
-  --repo stagecraft-ing/open-agentic-platform
+  --repo statecrafting/open-agentic-platform
 
 # Expected output:
 # Loaded digest sha256:... for file://...
@@ -43,10 +43,10 @@ gh attestation verify path/to/opc_<version>_aarch64.dmg \
 # - Verification succeeded!
 #
 # The following policy criteria will be enforced:
-# - Source Repository Owner URI: https://github.com/stagecraft-ing
-# - Source Repository URI:       https://github.com/stagecraft-ing/open-agentic-platform
+# - Source Repository Owner URI: https://github.com/statecraft-ing
+# - Source Repository URI:       https://github.com/statecrafting/open-agentic-platform
 # - Predicate type:              https://slsa.dev/provenance/v1
-# - Subject Alternative Name:    https://github.com/stagecraft-ing/open-agentic-platform/.github/workflows/release-desktop.yml@refs/tags/...
+# - Subject Alternative Name:    https://github.com/statecrafting/open-agentic-platform/.github/workflows/release-desktop.yml@refs/tags/...
 ```
 
 ## Verifying without `gh`

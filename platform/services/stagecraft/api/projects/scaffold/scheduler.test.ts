@@ -35,7 +35,7 @@ describe("spec 140 §2.2 — resolveScaffoldUpstream (T030)", () => {
         org_id, source_id, role, repo_url, ref, subpath, created_at, updated_at
       ) VALUES (
         ${ORG_ID_A}, 'template', 'scaffold',
-        'Stagecraft-ing/template', 'main', NULL, now(), now()
+        'statecrafting/template', 'main', NULL, now(), now()
       )
       ON CONFLICT (org_id, source_id) DO NOTHING
     `);
@@ -58,7 +58,7 @@ describe("spec 140 §2.2 — resolveScaffoldUpstream (T030)", () => {
       "template",
     );
     expect(result).not.toBeNull();
-    expect(result!.repoUrl).toBe("Stagecraft-ing/template");
+    expect(result!.repoUrl).toBe("statecrafting/template");
     expect(result!.ref).toBe("main");
   });
 

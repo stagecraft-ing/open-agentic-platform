@@ -19,9 +19,9 @@ sections (round-trip, migration dry-run, integration, replay).
 
 ## Path Conventions
 
-- Stagecraft API: `platform/services/stagecraft/api/`
-- Stagecraft web: `platform/services/stagecraft/web/`
-- Stagecraft DB: `platform/services/stagecraft/api/db/`
+- Statecraft API: `platform/services/statecraft/api/`
+- Statecraft web: `platform/services/statecraft/web/`
+- Statecraft DB: `platform/services/statecraft/api/db/`
 - Factory engine (Rust): `crates/factory-engine/`
 - Factory contracts (Rust): `crates/factory-contracts/`
 - OPC desktop: `product/apps/opc/src-tauri/src/commands/`
@@ -333,7 +333,7 @@ regression.
       "§3 superseded by 139" with link. Spec 111 and 123 get the
       equivalent.
 - [ ] T095 [P4] CLAUDE.md sweep: root, `platform/`, and
-      `platform/services/stagecraft/` get the new substrate model
+      `platform/services/statecraft/` get the new substrate model
       reflected. The "Factory tables" listing in
       `platform/CLAUDE.md` updated. Per project memory: governance
       docs land in the activation PR.

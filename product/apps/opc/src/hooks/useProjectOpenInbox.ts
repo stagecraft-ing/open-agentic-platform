@@ -4,7 +4,7 @@
 // Rust deep-link dispatcher when an `opc://project/open?...` URL
 // arrives. Maintains a single "pending handoff" slot (the latest
 // request wins; older unread requests are replaced) and resolves the
-// stagecraft bundle for it on demand.
+// statecraft bundle for it on demand.
 //
 // Wire shape mirrors `commands::project_open::ProjectOpenRequest`.
 

@@ -16,7 +16,7 @@
     "dependsOn": [
       "136-tenant-hello-demo-service",
       "137-tenant-environment-access-gates",
-      "138-stagecraft-create-realised-scaffold",
+      "138-statecraft-create-realised-scaffold",
       "119-project-as-unit-of-governance",
       "199-factory-thin-consumer-sync"
     ],
@@ -32,19 +32,19 @@
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/deploy/hostname.ts"
+        "path": "platform/services/statecraft/api/deploy/hostname.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/deploy/hostname.test.ts"
+        "path": "platform/services/statecraft/api/deploy/hostname.test.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/deploy/deployResolve.ts"
+        "path": "platform/services/statecraft/api/deploy/deployResolve.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/deploy/deployResolve.test.ts"
+        "path": "platform/services/statecraft/api/deploy/deployResolve.test.ts"
       },
       {
         "kind": "file",
@@ -61,7 +61,7 @@
         "spec": "136-tenant-hello-demo-service",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/chartSelector.ts"
+          "path": "platform/services/statecraft/api/deploy/chartSelector.ts"
         }
       },
       {
@@ -69,7 +69,7 @@
         "spec": "136-tenant-hello-demo-service",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/chartSelector.test.ts"
+          "path": "platform/services/statecraft/api/deploy/chartSelector.test.ts"
         }
       },
       {
@@ -98,10 +98,10 @@
       },
       {
         "nature": "additive",
-        "spec": "077-stagecraft-factory-api",
+        "spec": "077-statecraft-factory-api",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deploy.ts"
+          "path": "platform/services/statecraft/api/deploy/deploy.ts"
         }
       },
       {
@@ -122,10 +122,10 @@
       },
       {
         "nature": "additive",
-        "spec": "138-stagecraft-create-realised-scaffold",
+        "spec": "138-statecraft-create-realised-scaffold",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/CLAUDE.md"
+          "path": "platform/services/statecraft/CLAUDE.md"
         }
       }
     ],
@@ -169,7 +169,7 @@
         "role": "scaffold-fixture-source",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/templateCache.ts"
         }
       },
       {

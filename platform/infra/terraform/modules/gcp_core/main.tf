@@ -42,17 +42,17 @@ resource "google_artifact_registry_repository" "repo" {
   format        = "DOCKER"
 }
 
-# GCP Service Account for stagecraft (Workload Identity)
-resource "google_service_account" "stagecraft" {
-  account_id   = "${var.project_name}-stagecraft"
-  display_name = "Stagecraft API service account"
+# GCP Service Account for statecraft (Workload Identity)
+resource "google_service_account" "statecraft" {
+  account_id   = "${var.project_name}-statecraft"
+  display_name = "Statecraft API service account"
 }
 
-resource "google_service_account_iam_binding" "stagecraft_wi" {
-  service_account_id = google_service_account.stagecraft.name
+resource "google_service_account_iam_binding" "statecraft_wi" {
+  service_account_id = google_service_account.statecraft.name
   role               = "roles/iam.workloadIdentityUser"
   members = [
-    "serviceAccount:${var.gcp_project_id}.svc.id.goog[stagecraft-system/stagecraft-api-sa]"
+    "serviceAccount:${var.gcp_project_id}.svc.id.goog[statecraft-system/statecraft-api-sa]"
   ]
 }
 
@@ -71,10 +71,10 @@ resource "google_service_account_iam_binding" "deployd_wi" {
 }
 
 # Grant Secret Manager access to service accounts
-resource "google_project_iam_member" "stagecraft_secrets" {
+resource "google_project_iam_member" "statecraft_secrets" {
   project = var.gcp_project_id
   role    = "roles/secretmanager.secretAccessor"
-  member  = "serviceAccount:${google_service_account.stagecraft.email}"
+  member  = "serviceAccount:${google_service_account.statecraft.email}"
 }
 
 resource "google_project_iam_member" "deployd_secrets" {

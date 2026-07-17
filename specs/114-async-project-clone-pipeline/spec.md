@@ -12,31 +12,31 @@ risk: medium
 depends_on:
   - "109-factory-pat-and-pubsub-sync"  # factory-pat-and-pubsub-sync (PubSub run-row + worker pattern this spec mirrors)
   - "112-factory-project-lifecycle"  # factory-project-lifecycle (registerRawArtifactsFromRepo, OPC deep link)
-  - "113-stagecraft-projects-rename-and-clone"  # stagecraft-projects-rename-and-clone (the synchronous endpoint this spec replaces)
+  - "113-statecraft-projects-rename-and-clone"  # statecraft-projects-rename-and-clone (the synchronous endpoint this spec replaces)
 code_aliases: ["ASYNC_PROJECT_CLONE"]
 supersedes:
-  - spec: "113-stagecraft-projects-rename-and-clone"
+  - spec: "113-statecraft-projects-rename-and-clone"
     scope: partial
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/clone.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/clone.ts }
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/projects/cloneCore.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/projects/cloneEvents.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/projects/cloneWorker.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/projects/cloneRunStatus.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.projects.$sourceProjectId.clone.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.projects.clone-runs.$cloneJobId.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/api/db/schema.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projects/cloneCore.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projects/cloneEvents.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projects/cloneWorker.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projects/cloneRunStatus.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.projects.$sourceProjectId.clone.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.projects.clone-runs.$cloneJobId.tsx }
 extends:
-  - spec: "113-stagecraft-projects-rename-and-clone"
+  - spec: "113-statecraft-projects-rename-and-clone"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx }
-  - spec: "113-stagecraft-projects-rename-and-clone"
+    unit: { kind: file, path: platform/services/statecraft/web/app/components/CloneProjectDialog.tsx }
+  - spec: "113-statecraft-projects-rename-and-clone"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/projects-api.server.ts }
+    unit: { kind: file, path: platform/services/statecraft/web/app/lib/projects-api.server.ts }
 summary: >
   Spec 113's `POST /api/projects/:id/clone` does the full mirror-clone +
   mirror-push + raw-artifact hydration synchronously inside the HTTP
-  request. For non-trivial source repos this exceeds the stagecraft
+  request. For non-trivial source repos this exceeds the statecraft
   ingress's default ~60s read timeout (no `proxy-read-timeout` annotation
   on the chart) and the SSR proxy translates the upstream cut-off into a
   502 in the browser — the symptom users hit on 2026-04-27. This spec
@@ -56,7 +56,7 @@ summary: >
 
 ## 1. Problem
 
-`platform/services/stagecraft/api/projects/clone.ts` (spec 113 §FR-023..FR-038) executes:
+`platform/services/statecraft/api/projects/clone.ts` (spec 113 §FR-023..FR-038) executes:
 
 1. source-token resolution
 2. `git clone --mirror` of the source repo into a tempdir
@@ -71,7 +71,7 @@ summary: >
 11. audit-log insert
 12. `publishProjectCatalogUpsert`
 
-— all inside a single `await` on the Encore handler. Steps 2, 7, and 10 are unbounded shell I/O against GitHub and S3. The stagecraft Helm chart (`platform/charts/stagecraft/values-hetzner.yaml`) sets only `nginx.ingress.kubernetes.io/proxy-body-size: "10m"`; without `proxy-read-timeout`, ingress-nginx's default 60s upstream read timeout applies. When the handler runs longer than 60s the ingress returns 502 (with `retry-after: 60`), the React Router SSR proxy translates that into 502 to the dialog (`web/app/routes/app.projects.$sourceProjectId.clone.tsx:54`), and the user sees `HTTP 502` inline.
+— all inside a single `await` on the Encore handler. Steps 2, 7, and 10 are unbounded shell I/O against GitHub and S3. The statecraft Helm chart (`platform/charts/statecraft/values-hetzner.yaml`) sets only `nginx.ingress.kubernetes.io/proxy-body-size: "10m"`; without `proxy-read-timeout`, ingress-nginx's default 60s upstream read timeout applies. When the handler runs longer than 60s the ingress returns 502 (with `retry-after: 60`), the React Router SSR proxy translates that into 502 to the dialog (`web/app/routes/app.projects.$sourceProjectId.clone.tsx:54`), and the user sees `HTTP 502` inline.
 
 Spec 113 already documented "very large source repo" (`source_too_large` cap at 500 MB / 50k commits) but the reverse case is the live failure: a *legal* repo whose mirror+push+hydrate cumulatively exceeds 60s. Bumping the ingress timeout would mask the underlying shape — synchronous request-bound long-running I/O — without fixing the next failure mode (pod restart drops the request, the user has no visibility into progress, retries are unsafe because the destination repo may already exist).
 
@@ -88,7 +88,7 @@ Spec 113 already documented "very large source repo" (`source_too_large` cap at 
 - Cross-org clones, environment copy, member copy, PAT copy — all out of scope per spec 113 §3 and not reopened here.
 - Background retry of failed clones. A failed run is terminal; the user resubmits from the dialog. Worker idempotency under PubSub redelivery is required (CAS-claim) but operator-driven retry is not.
 - Real-time progress events. The dialog polls; no SSE / WebSocket stream. (A later spec MAY layer one on if needed.)
-- A separate ingress-timeout patch. Stagecraft's chart can keep its current timeouts; the clone HTTP call no longer depends on them. Other long endpoints, if any, are not in scope.
+- A separate ingress-timeout patch. Statecraft's chart can keep its current timeouts; the clone HTTP call no longer depends on them. Other long endpoints, if any, are not in scope.
 - Changing the availability endpoint (`GET /api/projects/clone/check-availability`). It stays exactly as spec 113 §FR-017..FR-022 left it.
 
 ## 4. User Scenarios & Testing
@@ -174,6 +174,6 @@ A workspace member opens the Clone dialog on a project whose primary repo holds 
 
 ## 7. Risks
 
-- **Worker pod and stagecraft API pod separation.** Encore PubSub subscriptions run inside the same Encore service binary today; if we ever split projects out, the worker subscription needs to come along.
+- **Worker pod and statecraft API pod separation.** Encore PubSub subscriptions run inside the same Encore service binary today; if we ever split projects out, the worker subscription needs to come along.
 - **DB schema drift.** The schema changes are additive — no existing column is dropped — but the test fixtures touched by spec 113 will need to gain a `project_clone_runs` table. The drizzle CI step MUST regenerate the migration set.
 - **Suffix-uniquification race.** Two queued runs for the same source with default names will both run `resolveFinalRepoName` in worker context. The 422-on-create path covers the residual race (spec 113 FR-029 already documents this as the safety net).

@@ -14,7 +14,7 @@ and then build everything at once.
 
 ## Technical context
 
-- **Language/Stack:** Encore.ts (stagecraft API + UI), Drizzle ORM,
+- **Language/Stack:** Encore.ts (statecraft API + UI), Drizzle ORM,
   PostgreSQL (env-gate schema), Rust/axum (`deployd-api-rs`), kube-rs
   (current K8s renderer; spec 136's Phase 2.b Helm migration is a
   separate dependency this plan tracks but does not block on).
@@ -83,18 +83,18 @@ Phase 0 produces a `clarifications-resolved.md` companion (or amends
    identity on first federated login. Edge cases (allowlist removal,
    user-already-exists collision) documented.
 6. **Auth Providers UX.** Confirm that Auth Provider configuration
-   stays in Rauthy admin UI for v1; surface as future stagecraft work
+   stays in Rauthy admin UI for v1; surface as future statecraft work
    if useful.
 
 **Phase 0 deliverables:** clarifications resolved in spec.md (or
 companion file), spec status flipped `draft → approved`. No code
 changes under FR-001..FR-010 land before this phase closes (spec.md
-§FR-007's "stagecraft never stores a password" invariant is the
+§FR-007's "statecraft never stores a password" invariant is the
 load-bearing constraint that gates everything downstream).
 
 ### Phase 1 — Schema migration
 
-- `platform/services/stagecraft/api/db/migrations/3X_environment_access_gates.up.sql`
+- `platform/services/statecraft/api/db/migrations/3X_environment_access_gates.up.sql`
   — `environment_access_gates` table:
   `(environment_id PK FK→environments.id, enabled bool NOT NULL DEFAULT
   false, rauthy_client_ref text NULL, login_method_magic_link bool
@@ -110,7 +110,7 @@ load-bearing constraint that gates everything downstream).
 - Down migration drops both tables.
 - Drizzle schema additions in `api/db/schema.ts`.
 
-### Phase 2 — Stagecraft API CRUD
+### Phase 2 — Statecraft API CRUD
 
 - `api/environments/accessGates.ts`:
   - `GET /api/environments/:id/access-gate` — read current descriptor.
@@ -144,7 +144,7 @@ load-bearing constraint that gates everything downstream).
 
 - `deployd-api-rs/src/routes.rs` — `DeploymentRequest` gains an
   optional `access_gate: Option<AccessGateDescriptor>` field.
-  Stagecraft populates it from the environment's descriptor.
+  Statecraft populates it from the environment's descriptor.
 - `deployd-api-rs/src/k8s.rs` — when descriptor is `Some(g)` with
   `g.enabled == true`:
   1. Render an `oauth2-proxy` Deployment + ClusterIP Service in the
@@ -153,10 +153,10 @@ load-bearing constraint that gates everything downstream).
   2. Wire `auth-url` / `auth-signin` annotations on the tenant
      Ingress, pointing at the per-env oauth2-proxy Service.
   3. Render a Secret carrying the proxy's cookie secret + Rauthy
-     client secret. Secret data is sourced from a stagecraft-managed
+     client secret. Secret data is sourced from a statecraft-managed
      secret; deployd-api does NOT generate cookie secrets itself.
 - DELETE path tears down both the oauth2-proxy resources and the
-  Rauthy client (via stagecraft callback for the latter).
+  Rauthy client (via statecraft callback for the latter).
 - Reconcile path: descriptor change without redeploying the tenant
   Deployment (FR-009, FR-010). State machine handles toggle and
   login-method edits without restarting tenant pods.
@@ -168,7 +168,7 @@ K8s objects. The plan's risk register flags this as a sequencing
 choice (do 137 Phase 4 with kube-rs OR wait for spec 136 Phase 2.b
 and do it via Helm).
 
-### Phase 5 — Stagecraft UI
+### Phase 5 — Statecraft UI
 
 - Per-environment "Access gate" card on the project's environment
   page. Toggle on/off; allowlist editor (add/remove email + domain);
@@ -212,7 +212,7 @@ Phase 6 is the lifecycle PR; nothing else lands with it.
 | Phase 0 clarifications drift during implementation | medium | Each phase's PR description cites the §Clarifications resolution it depends on; reviewer enforces "if the resolution changes, the PR is blocked, not the spec." |
 | Rauthy admin API shape doesn't match assumed contract | medium | Phase 3 starts with a smoke that verifies the four contract assumptions (volume, deletion, password-login toggle, Auth Provider reference) before writing the wrapper. |
 | oauth2-proxy + ingress-nginx chain breaks under load | low | Per-env proxy isolates blast radius; document the topology revisit criterion (pod count threshold) in the §Clarifications resolution. |
-| Cookie secret leaks via stagecraft DB | medium | **Amended 2026-05-17 (Phase 4↔5 integration).** Original mitigation assumed K8s-Secret-only storage. Migration 41 persists `rauthy_client_secret` + `cookie_secret` on `environment_access_gates` because: (a) Rauthy 0.35 admin GET never returns the client secret (T003 smoke) — stagecraft must capture it at create time or lose it; (b) rotating cookie secrets per-deploy would invalidate every gate session. FR-007 is preserved: these are infrastructure credentials, NOT user passwords / hashes / upstream-IdP user tokens. v1 path is plaintext at rest in Postgres; KMS-backed encryption-at-rest is a follow-up spec when the secret-corpus footprint warrants it. |
+| Cookie secret leaks via statecraft DB | medium | **Amended 2026-05-17 (Phase 4↔5 integration).** Original mitigation assumed K8s-Secret-only storage. Migration 41 persists `rauthy_client_secret` + `cookie_secret` on `environment_access_gates` because: (a) Rauthy 0.35 admin GET never returns the client secret (T003 smoke) — statecraft must capture it at create time or lose it; (b) rotating cookie secrets per-deploy would invalidate every gate session. FR-007 is preserved: these are infrastructure credentials, NOT user passwords / hashes / upstream-IdP user tokens. v1 path is plaintext at rest in Postgres; KMS-backed encryption-at-rest is a follow-up spec when the secret-corpus footprint warrants it. |
 | Spec 136 Phase 2.b Helm migration drift | medium | Phase 4 is renderer-agnostic — kube-rs path works today; if 136 Phase 2.b lands first, refactor Phase 4's renderer onto Helm overlay before merging. |
 | `password_login_enabled: false` is bypassed by future Rauthy version | low | Phase 6 evidence includes a regression test that POSTs a password to the gate client and asserts the explicit error; future Rauthy bumps re-run this. |
 | Email allowlist user-experience confusion (case sensitivity, domain vs email match precedence) | low | Phase 2 API normalises emails to lowercase; domain matches use case-insensitive suffix match; spec.md §Clarifications captures the precedence rule. |
@@ -221,11 +221,11 @@ Phase 6 is the lifecycle PR; nothing else lands with it.
 
 - Passkey / WebAuthn login (`spec.md` §"Out of scope"; additive in a
   follow-up).
-- Single sign-on across stagecraft and tenants.
+- Single sign-on across statecraft and tenants.
 - Cross-environment shared sessions.
 - Audit-log shape for gate-protected accesses (request-level audit is
   deployd-api / sidecar territory, not this spec).
 - Tenant-side auth (the tenant remains free to layer its own).
-- Auth Provider configuration UX in stagecraft (admins configure
+- Auth Provider configuration UX in statecraft (admins configure
   upstream IdPs in Rauthy directly for v1).
 - Self-service invitation flows for non-administrators.

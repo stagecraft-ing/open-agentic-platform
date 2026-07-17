@@ -164,7 +164,7 @@ SHA-256 hashing of typical factory artifacts (markdown, YAML, source code files 
 ### Scope
 
 - Rust OIDC client_credentials token exchange for axiomregent
-- JWT validation middleware for all three stagecraft platform seams
+- JWT validation middleware for all three statecraft platform seams
 - Backward-compatible fallback to static `PLATFORM_M2M_TOKEN`
 - Scope-based access control on each seam endpoint
 
@@ -172,14 +172,14 @@ SHA-256 hashing of typical factory artifacts (markdown, YAML, source code files 
 
 | Seam | Direction | Current Auth | Endpoint |
 |------|-----------|-------------|----------|
-| A (policy) | axiomregent -> stagecraft | None (public) | `GET /api/policy-bundle/:workspaceId` |
-| B (audit) | axiomregent -> stagecraft | Static bearer token | `POST /api/audit-records` |
-| C (grants) | axiomregent -> stagecraft | None (public) | `GET /api/grants/:userId/:workspaceId` |
+| A (policy) | axiomregent -> statecraft | None (public) | `GET /api/policy-bundle/:workspaceId` |
+| B (audit) | axiomregent -> statecraft | Static bearer token | `POST /api/audit-records` |
+| C (grants) | axiomregent -> statecraft | None (public) | `GET /api/grants/:userId/:workspaceId` |
 
 Proven OIDC patterns already exist:
 - **Rust JWT validation**: `platform/services/deployd-api-rs/src/auth.rs` — RS256 JWKS with 10-min cache
-- **TS client_credentials flow**: `platform/services/stagecraft/api/deploy/oidcM2m.ts` — `fetchClientCredentialsToken()` + `getCachedDeploydAuthHeader()`
-- **TS JWT validation**: `platform/services/stagecraft/api/auth/rauthy.ts` — `validateJwt()` with 1-hour JWKS cache
+- **TS client_credentials flow**: `platform/services/statecraft/api/deploy/oidcM2m.ts` — `fetchClientCredentialsToken()` + `getCachedDeploydAuthHeader()`
+- **TS JWT validation**: `platform/services/statecraft/api/auth/rauthy.ts` — `validateJwt()` with 1-hour JWKS cache
 
 ### FR-010: Rust OIDC Client for axiomregent
 
@@ -252,7 +252,7 @@ impl AuthProvider {
 2. In `forward()`, resolve the bearer token via `auth.get_bearer_token("platform:audit:write")` before POSTing
 3. Token refresh failures are logged to stderr but do not block dispatch (fire-and-forget preserved)
 
-The stagecraft audit endpoint (`platform/services/stagecraft/api/audit/audit.ts`) SHALL:
+The statecraft audit endpoint (`platform/services/statecraft/api/audit/audit.ts`) SHALL:
 1. Extract the Bearer token from `req.authorization`
 2. Attempt `validateJwt()` (from `rauthy.ts`) and check for `platform:audit:write` in the `scope` claim
 3. If JWT validation fails and `PLATFORM_M2M_TOKEN` is configured, fall back to static string comparison
@@ -262,15 +262,15 @@ The stagecraft audit endpoint (`platform/services/stagecraft/api/audit/audit.ts`
 
 `spawn_policy_refresh()` and `fetch_bundle()` in `crates/axiomregent/src/router/policy_http.rs` SHALL use `AuthProvider` with scope `platform:policy:read`.
 
-The stagecraft policy endpoint (`platform/services/stagecraft/api/policy/policy.ts`) SHALL validate the request using the same JWT + fallback pattern as Seam B, requiring scope `platform:policy:read`.
+The statecraft policy endpoint (`platform/services/statecraft/api/policy/policy.ts`) SHALL validate the request using the same JWT + fallback pattern as Seam B, requiring scope `platform:policy:read`.
 
 ### FR-015: Seam C Upgrade (Grants)
 
-The stagecraft grants endpoint (`platform/services/stagecraft/api/grants/grants.ts`) SHALL validate the request using the same JWT + fallback pattern, requiring scope `platform:grants:read`.
+The statecraft grants endpoint (`platform/services/statecraft/api/grants/grants.ts`) SHALL validate the request using the same JWT + fallback pattern, requiring scope `platform:grants:read`.
 
 ### FR-016: Shared Validation Middleware
 
-A shared helper SHALL be created at `platform/services/stagecraft/api/auth/m2mAuth.ts`:
+A shared helper SHALL be created at `platform/services/statecraft/api/auth/m2mAuth.ts`:
 
 ```typescript
 export async function validateM2mRequest(
@@ -307,9 +307,9 @@ Deployments with only `PLATFORM_M2M_TOKEN` configured (no OIDC vars) SHALL conti
 ### Success Criteria
 
 - **SC-010**: axiomregent can POST audit records using an OIDC JWT acquired via client_credentials flow
-- **SC-011**: stagecraft audit endpoint accepts OIDC JWTs with `platform:audit:write` scope
-- **SC-012**: stagecraft audit endpoint still accepts static bearer tokens when `PLATFORM_M2M_TOKEN` is set
-- **SC-013**: stagecraft policy and grants endpoints reject unauthenticated requests
+- **SC-011**: statecraft audit endpoint accepts OIDC JWTs with `platform:audit:write` scope
+- **SC-012**: statecraft audit endpoint still accepts static bearer tokens when `PLATFORM_M2M_TOKEN` is set
+- **SC-013**: statecraft policy and grants endpoints reject unauthenticated requests
 
 ---
 
@@ -320,7 +320,7 @@ Deployments with only `PLATFORM_M2M_TOKEN` configured (no OIDC vars) SHALL conti
 ### Scope
 
 - Content-addressable local artifact store
-- `factory_artifacts` table in stagecraft PostgreSQL
+- `factory_artifacts` table in statecraft PostgreSQL
 - `previous_pipeline_id` linkage between factory pipeline runs
 - Cache-hit detection at stage boundaries (presented as checkpoint gate, not automatic skip)
 
@@ -370,7 +370,7 @@ CREATE INDEX idx_factory_artifacts_pipeline ON factory_artifacts(pipeline_id, st
 CREATE INDEX idx_factory_artifacts_hash ON factory_artifacts(content_hash);
 ```
 
-The `previousPipelineId` column and `factoryArtifacts` table SHALL also be added to the Drizzle schema in `platform/services/stagecraft/api/db/schema.ts`.
+The `previousPipelineId` column and `factoryArtifacts` table SHALL also be added to the Drizzle schema in `platform/services/statecraft/api/db/schema.ts`.
 
 ### FR-022: Previous Pipeline Linkage
 
@@ -399,7 +399,7 @@ This respects orchestrator rule #3 (stop at checkpoints — wait for explicit us
 
 ### FR-025: Platform Artifact API
 
-Two new endpoints in `platform/services/stagecraft/api/factory/`:
+Two new endpoints in `platform/services/statecraft/api/factory/`:
 - `POST /api/projects/:id/factory/artifacts` — record artifact metadata (pipeline_id, stage_id, artifact_type, content_hash, storage_path, size_bytes)
 - `GET /api/projects/:id/factory/artifacts/lookup` — query by `content_hash` and `stage_id`, returns matching artifact metadata from previous pipelines
 
@@ -529,15 +529,15 @@ Phases 1 and 2 can be implemented in parallel. Phase 3 requires Phase 1. Phase 4
 | `crates/axiomregent/src/router/audit_http.rs` | 2 | Use `AuthProvider` |
 | `crates/axiomregent/src/router/policy_http.rs` | 2 | Use `AuthProvider` |
 | `crates/axiomregent/src/router/mod.rs` | 2 | Wire `AuthProvider` |
-| `platform/services/stagecraft/api/auth/m2mAuth.ts` | 2 | New: shared JWT+fallback middleware |
-| `platform/services/stagecraft/api/audit/audit.ts` | 2 | Use `validateM2mRequest()` |
-| `platform/services/stagecraft/api/policy/policy.ts` | 2 | Use `validateM2mRequest()` |
-| `platform/services/stagecraft/api/grants/grants.ts` | 2 | Use `validateM2mRequest()` |
+| `platform/services/statecraft/api/auth/m2mAuth.ts` | 2 | New: shared JWT+fallback middleware |
+| `platform/services/statecraft/api/audit/audit.ts` | 2 | Use `validateM2mRequest()` |
+| `platform/services/statecraft/api/policy/policy.ts` | 2 | Use `validateM2mRequest()` |
+| `platform/services/statecraft/api/grants/grants.ts` | 2 | Use `validateM2mRequest()` |
 | `crates/factory-engine/src/artifact_store.rs` | 3 | New: `ArtifactStore` trait + `LocalArtifactStore` |
 | `crates/factory-engine/src/pipeline_state.rs` | 3 | Add `previous_pipeline_id` |
 | `crates/factory-engine/src/engine.rs` | 3 | Query previous pipeline on init |
-| `platform/services/stagecraft/api/db/schema.ts` | 3 | Add `previousPipelineId`, `factoryArtifacts` table |
-| `platform/services/stagecraft/api/factory/factory.ts` | 3 | Artifact record/lookup endpoints |
+| `platform/services/statecraft/api/db/schema.ts` | 3 | Add `previousPipelineId`, `factoryArtifacts` table |
+| `platform/services/statecraft/api/factory/factory.ts` | 3 | Artifact record/lookup endpoints |
 | `crates/factory-contracts/src/namespace.rs` | 4 | New: validation utility |
 | `crates/factory-contracts/src/lib.rs` | 4 | Add `pub mod namespace` |
 
@@ -549,7 +549,7 @@ Phases 1 and 2 can be implemented in parallel. Phase 3 requires Phase 1. Phase 4
 | 052-state-persistence | `WorkflowStore`, `summary.json` format |
 | 074-factory-ingestion | `StageArtifact`, `PipelineState`, `BuildSpecInfo` |
 | 075-factory-workflow-engine | Dispatch loop, verification hooks, harness state |
-| 077-stagecraft-factory-api | `factory_pipelines`, `factory_stages` DB tables |
+| 077-statecraft-factory-api | `factory_pipelines`, `factory_stages` DB tables |
 | 080-github-identity-onboarding | Rauthy OIDC infrastructure, `validateJwt()` |
 
 ## Risks

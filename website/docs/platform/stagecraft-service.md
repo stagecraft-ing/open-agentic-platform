@@ -1,6 +1,6 @@
-# Stagecraft Service
+# Statecraft Service
 
-The `stagecraft` service is the central SaaS backend for the Open Agentic Platform. Built with Encore.ts, it provides the core control plane APIs for projects, audit, and factory lifecycle management.
+The `statecraft` service is the central SaaS backend for the Open Agentic Platform. Built with Encore.ts, it provides the core control plane APIs for projects, audit, and factory lifecycle management.
 
 ## Core Responsibilities
 
@@ -13,7 +13,7 @@ The `stagecraft` service is the central SaaS backend for the Open Agentic Platfo
 
 ## Database Schema
 
-Stagecraft uses PostgreSQL via Drizzle ORM. The schema is defined in `services/stagecraft/api/db/schema.ts`. Key tables include:
+Statecraft uses PostgreSQL via Drizzle ORM. The schema is defined in `services/statecraft/api/db/schema.ts`. Key tables include:
 
 - `organizations`, `projects`, `project_repos`
 - `users`, `project_members`, `project_grants`
@@ -23,12 +23,12 @@ Stagecraft uses PostgreSQL via Drizzle ORM. The schema is defined in `services/s
 
 ## Encore.ts Integration
 
-Stagecraft leverages the Encore.ts framework for rapid development and built-in distributed tracing. 
+Statecraft leverages the Encore.ts framework for rapid development and built-in distributed tracing. 
 
 To run the service locally:
 
 ```bash
-cd platform/services/stagecraft
+cd platform/services/statecraft
 npm run start
 ```
 

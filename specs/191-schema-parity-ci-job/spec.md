@@ -81,8 +81,8 @@ verbatim, so spec 104's run-mirror is satisfied token-for-token:
 Toolchains: Rust (`dtolnay/rust-toolchain`, `Swatinem/rust-cache`) and
 **bun** via `oven-sh/setup-bun`, SHA-pinned per spec 158. bun is the first
 of its kind in CI. The walker's only runtime import,
-`platform/services/stagecraft/api/knowledge/extractionOutput.ts`, has **no
-imports of its own**, so no `npm install` / stagecraft dependency step is
+`platform/services/statecraft/api/knowledge/extractionOutput.ts`, has **no
+imports of its own**, so no `npm install` / statecraft dependency step is
 needed — bun imports one dependency-free `.ts`.
 
 ### 2.2 The route (spec 177)
@@ -94,9 +94,9 @@ walker actually compares, a routed job gated on it, and an entry in the
 ```yaml
 schema_parity:
   - 'crates/factory-contracts/**'
-  - 'platform/services/stagecraft/api/knowledge/**'
-  - 'platform/services/stagecraft/api/governance/**'
-  - 'platform/services/stagecraft/api/sync/**'
+  - 'platform/services/statecraft/api/knowledge/**'
+  - 'platform/services/statecraft/api/governance/**'
+  - 'platform/services/statecraft/api/sync/**'
   - 'product/apps/opc/src-tauri/src/commands/sync_client.rs'
   - 'tools/oap/schema-parity-check/**'
   - '.github/workflows/ci-schema-parity.yml'

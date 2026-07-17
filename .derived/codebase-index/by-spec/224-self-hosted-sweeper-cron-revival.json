@@ -16,19 +16,19 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/charts/stagecraft/templates/cronjob-factory-runs-sweeper.yaml",
+        "path": "platform/charts/statecraft/templates/cronjob-factory-runs-sweeper.yaml",
         "source": "spec-edge"
       },
       {
-        "path": "platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml",
+        "path": "platform/charts/statecraft/templates/cronjob-orphan-sweeper.yaml",
         "source": "spec-edge"
       },
       {
-        "path": "platform/charts/stagecraft/templates/external-secret-factory-sweeper.yaml",
+        "path": "platform/charts/statecraft/templates/external-secret-factory-sweeper.yaml",
         "source": "spec-edge"
       },
       {
-        "path": "platform/charts/stagecraft/templates/external-secret-knowledge-sweeper.yaml",
+        "path": "platform/charts/statecraft/templates/external-secret-knowledge-sweeper.yaml",
         "source": "spec-edge"
       },
       {
@@ -40,11 +40,11 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/auth/m2mAuth.ts",
+        "path": "platform/services/statecraft/api/auth/m2mAuth.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/runsScheduler.ts",
+        "path": "platform/services/statecraft/api/factory/runsScheduler.ts",
         "source": "spec-edge"
       },
       {
@@ -56,27 +56,27 @@
       {
         "locations": [
           {
-            "file": "platform/charts/stagecraft/templates/cronjob-factory-runs-sweeper.yaml"
+            "file": "platform/charts/statecraft/templates/cronjob-factory-runs-sweeper.yaml"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/charts/stagecraft/templates/cronjob-factory-runs-sweeper.yaml"
+          "path": "platform/charts/statecraft/templates/cronjob-factory-runs-sweeper.yaml"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/charts/stagecraft/templates/external-secret-factory-sweeper.yaml"
+            "file": "platform/charts/statecraft/templates/external-secret-factory-sweeper.yaml"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/charts/stagecraft/templates/external-secret-factory-sweeper.yaml"
+          "path": "platform/charts/statecraft/templates/external-secret-factory-sweeper.yaml"
         }
       },
       {
@@ -95,14 +95,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/runsScheduler.ts"
+            "file": "platform/services/statecraft/api/factory/runsScheduler.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/runsScheduler.ts"
+          "path": "platform/services/statecraft/api/factory/runsScheduler.ts"
         }
       },
       {
@@ -121,27 +121,27 @@
       {
         "locations": [
           {
-            "file": "platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml"
+            "file": "platform/charts/statecraft/templates/cronjob-orphan-sweeper.yaml"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml"
+          "path": "platform/charts/statecraft/templates/cronjob-orphan-sweeper.yaml"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/charts/stagecraft/templates/external-secret-knowledge-sweeper.yaml"
+            "file": "platform/charts/statecraft/templates/external-secret-knowledge-sweeper.yaml"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/charts/stagecraft/templates/external-secret-knowledge-sweeper.yaml"
+          "path": "platform/charts/statecraft/templates/external-secret-knowledge-sweeper.yaml"
         }
       },
       {
@@ -160,14 +160,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/auth/m2mAuth.ts"
+            "file": "platform/services/statecraft/api/auth/m2mAuth.ts"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/auth/m2mAuth.ts"
+          "path": "platform/services/statecraft/api/auth/m2mAuth.ts"
         }
       },
       {

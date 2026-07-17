@@ -19,7 +19,7 @@
 # (currently the `.+` catch-all — every namespace gets a copy). Tenant
 # Ingresses (rendered by deployd-api in per-app namespaces) reference
 # `secretName: tenants-wildcard-tls` and find the replicated Secret in
-# their own namespace at TLS-terminate time. No stagecraft side-write,
+# their own namespace at TLS-terminate time. No statecraft side-write,
 # no deployd-api kube-rs hand-rolled clone — the cluster takes care of
 # replication declaratively.
 apiVersion: cert-manager.io/v1

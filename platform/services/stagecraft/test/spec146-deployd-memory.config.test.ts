@@ -9,7 +9,7 @@
 // env-var, no application-level fan-out surface. Assertions (i) and
 // (ii) cover the load-bearing cgroup leg; assertion (iii) is an inverse-
 // polarity guard against a future drive-by NODE_OPTIONS edit ("let's add
-// it for parity with stagecraft-api") that would silently pretend Rust
+// it for parity with statecraft-api") that would silently pretend Rust
 // has a managed heap to cap.
 
 import { readFileSync } from "node:fs";
@@ -96,7 +96,7 @@ describe("spec 146 — deployd-api memory-hardening configuration assertions", (
     // Inverse-polarity assertion. Rust has no managed heap;
     // --max-old-space-size has no analog. Spec 146 §2.2 documents this
     // as a deliberate N/A leg. A future drive-by edit ("let's add
-    // NODE_OPTIONS for parity with stagecraft-api") would either be a
+    // NODE_OPTIONS for parity with statecraft-api") would either be a
     // no-op (Rust ignores the env var) or a mis-signal that this binary
     // somehow runs Node — both are wrong. Catch it loudly.
     const yaml = readFileSync(VALUES_YAML, "utf-8");

@@ -30,7 +30,7 @@ extends:
     unit: { kind: file, path: crates/orchestrator/src/lib.rs }
 summary: >
   Make persistence project-native and sync-trackable. Replace fire-and-forget
-  Stagecraft calls with tracked acknowledgement, update SyncStatus in the
+  Statecraft calls with tracked acknowledgement, update SyncStatus in the
   promotion check, and add project_id columns to workflow persistence stores.
   Originally authored against workspace_id; amended by spec 119 when workspace
   was collapsed into project.
@@ -47,7 +47,7 @@ Parent plan: [089 Governed Convergence](../089-governed-convergence-plan/plan.md
 Two persistence subsystems fail to serve the governed execution model:
 
 1. **SyncStatus is always default.** `lib.rs` line 1804 hardcodes `SyncStatus::default()` (all
-   `false`) with a `TODO(097)` comment. All Stagecraft calls in `factory.rs` use `tokio::spawn`
+   `false`) with a `TODO(097)` comment. All Statecraft calls in `factory.rs` use `tokio::spawn`
    fire-and-forget — the `EventIngestionResponse { ingested }` and
    `RecordArtifactsResponse { recorded }` return values are discarded inside spawned tasks.
    Consequently, all workflows complete as `CompletedLocal` regardless of actual sync state.
@@ -162,8 +162,8 @@ Add Tauri command `list_project_workflows` and register in `lib.rs` invoke_handl
 
 ## Acceptance Criteria
 
-- **SC-099-1**: `SyncTracker` collects event ingestion and artifact recording acknowledgements from Stagecraft responses
-- **SC-099-2**: `SyncStatus` passed to `check_promotion_eligibility` reflects actual Stagecraft sync state, not hardcoded defaults
+- **SC-099-1**: `SyncTracker` collects event ingestion and artifact recording acknowledgements from Statecraft responses
+- **SC-099-2**: `SyncStatus` passed to `check_promotion_eligibility` reflects actual Statecraft sync state, not hardcoded defaults
 - **SC-099-3**: Workflows that successfully sync events and artifacts are marked `Completed` (not `CompletedLocal`)
 - **SC-099-4**: `workflows` table in SQLite store has `project_id TEXT` column with index, populated on write
 - **SC-099-5**: `workflows` table in Hiqlite store has `project_id TEXT` column, populated on write

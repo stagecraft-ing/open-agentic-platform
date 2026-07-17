@@ -472,7 +472,7 @@
       ]
     },
     "provenanceEntry": {
-      "description": "Spec 156 — typed external derivation pointer. Two initial kinds: `knowledge` (stagecraft `knowledge_objects` URI shape) and `code-fingerprint` (xray content-addressed SHA-256). Adding a new kind requires an amendment spec that widens both this enum and V-027's scheme alignment table.",
+      "description": "Spec 156 — typed external derivation pointer. Two initial kinds: `knowledge` (statecraft `knowledge_objects` URI shape) and `code-fingerprint` (xray content-addressed SHA-256). Adding a new kind requires an amendment spec that widens both this enum and V-027's scheme alignment table.",
       "type": "object",
       "additionalProperties": false,
       "required": ["kind", "ref"],
@@ -484,7 +484,7 @@
         "ref": {
           "type": "string",
           "minLength": 1,
-          "description": "URI matching the declared kind's scheme. `knowledge`: `stagecraft://project/<uuid>/knowledge/<uuid>`; `code-fingerprint`: `xray-fingerprint://<sha256>`. Scheme alignment is enforced at compile time by V-027; body well-formedness by V-028."
+          "description": "URI matching the declared kind's scheme. `knowledge`: `statecraft://project/<uuid>/knowledge/<uuid>`; `code-fingerprint`: `xray-fingerprint://<sha256>`. Scheme alignment is enforced at compile time by V-027; body well-formedness by V-028."
         }
       }
     },

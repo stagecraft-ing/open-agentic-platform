@@ -196,7 +196,7 @@ unchanged by spec 135):
 | `ci-rust` (12 manifests, serial check + clippy + test) | `ci-fast-rust`: `cargo clippy --workspace` + `cargo nextest --workspace` (or `cargo test`) on `crates/Cargo.toml` covers 11 of 12 entries; deployd-api-rs runs as a concurrent sibling. `cargo clippy --all-targets -- -D warnings` subsumes `cargo check`. |
 | `ci-tools` (8 tool crates serial; 10× registry-consumer subset loop) | `ci-fast-tools`: parallel xargs fan-out across tool manifests; shared `CARGO_TARGET_DIR`; subset loop dropped (§2.2(4)) with prefix-existence meta-check preserved. |
 | `ci-desktop` | `ci-fast-desktop`: rust phase concurrent with `pnpm install`; `tsc` and `vitest` concurrent. |
-| `ci-stagecraft` | `ci-fast-stagecraft`: `tsc` and `vitest` concurrent after `npm ci`. |
+| `ci-statecraft` | `ci-fast-statecraft`: `tsc` and `vitest` concurrent after `npm ci`. |
 | `ci-schema-parity` | `ci-fast-schema-parity`: same — already short. |
 | `ci-spec-code-coupling` | `ci-fast-spec-coupling`: same — already short. |
 | `ci-supply-chain` | `ci-fast-supply-chain`: parallel xargs for cargo-deny; pnpm/npm audit in background. |

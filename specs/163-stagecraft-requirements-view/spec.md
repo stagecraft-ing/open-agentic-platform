@@ -1,7 +1,7 @@
 ---
-id: "163-stagecraft-requirements-view"
-slug: stagecraft-requirements-view
-title: "Spec-spine Requirements view in stagecraft"
+id: "163-statecraft-requirements-view"
+slug: statecraft-requirements-view
+title: "Spec-spine Requirements view in statecraft"
 status: approved
 implementation: complete
 owner: bart
@@ -10,7 +10,7 @@ kind: platform
 domain: platform
 risk: medium
 depends_on:
-  - "087-unified-workspace-architecture"  # unified-workspace-architecture (stagecraft project surface)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (statecraft project surface)
   - "103-init-protocol-governed-reads"  # init-protocol-governed-reads (registry-consumer is the read surface)
   - "130-spec-coupling-primary-owner"  # spec-coupling-primary-owner (relationship graph projection)
   - "147-spec-kind-grammar"  # spec-kind-grammar (kind / shape / category dimensions for filtering)
@@ -18,11 +18,11 @@ depends_on:
   - "154-logical-unit-ownership-grammar"  # logical-unit-ownership-grammar (the unit grammar the view renders)
   - "156-references-edge-provenance-grammar"  # references-edge-provenance-grammar (the provenance badges)
   - "161-knowledge-requirements-provenance-emission"  # knowledge-requirements-provenance-emission (rendering contract)
-code_aliases: ["STAGECRAFT_REQUIREMENTS_VIEW", "SPEC_SPINE_DASHBOARD"]
+code_aliases: ["STATECRAFT_REQUIREMENTS_VIEW", "SPEC_SPINE_DASHBOARD"]
 amended: "2026-06-18"
 amendment_record: |
   amended 2026-06-18 by spec 217 (engine-swap collapse): the spec-registry reader
-  this spec establishes (platform/services/stagecraft/api/specRegistry/) was
+  this spec establishes (platform/services/statecraft/api/specRegistry/) was
   repointed off the deleted in-tree registry-consumer binary onto the published
   spec-spine CLI. registryReader.ts now invokes `spec-spine registry` with
   `--repo <projectRoot>` (was `--registry-path <file>`) and parses
@@ -30,22 +30,22 @@ amendment_record: |
   directory (was registry.json). The Requirements view contract and rendering are
   unchanged; only the underlying read mechanism moved to the library seam.
 establishes:
-  - unit: { kind: directory, path: platform/services/stagecraft/api/specRegistry }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-registry-api.server.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-registry-grouping.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-registry-grouping.test.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.$specId.tsx }
+  - unit: { kind: directory, path: platform/services/statecraft/api/specRegistry }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/spec-registry-api.server.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/spec-registry-grouping.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/spec-registry-grouping.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId.requirements.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId.requirements.$specId.tsx }
 extends:
   - spec: "087-unified-workspace-architecture"
     nature: additive
-    unit: { kind: directory, path: platform/services/stagecraft/web/app/routes }
+    unit: { kind: directory, path: platform/services/statecraft/web/app/routes }
   - spec: "087-unified-workspace-architecture"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes.ts }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes.ts }
   - spec: "087-unified-workspace-architecture"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/db/schema.ts }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }
@@ -54,7 +54,7 @@ references:
   - role: governed-read-discipline
     unit: { kind: file, path: specs/103-init-protocol-governed-reads/spec.md }
   - role: pair-spec
-    unit: { kind: file, path: specs/164-stagecraft-development-lifecycle-board/spec.md }
+    unit: { kind: file, path: specs/164-statecraft-development-lifecycle-board/spec.md }
 summary: >
   The net-new `app.project.$projectId.requirements.tsx`
   route. Renders the spec-spine of the project — the
@@ -78,19 +78,19 @@ summary: >
   a typed link.
 
   Spec 163 covers the **rendering** of the spec-spine
-  inside stagecraft. Editing, approval, and lifecycle
+  inside statecraft. Editing, approval, and lifecycle
   state transitions are covered by spec 164
   (Development view) and a future review/approve spec;
   spec 163 is read-shaped and is the stakeholder lens
   on project intent.
 ---
 
-# 163 — Spec-spine Requirements view in stagecraft
+# 163 — Spec-spine Requirements view in statecraft
 
 ## 1. Problem
 
-Stagecraft's project surface today (per the route inventory at
-`platform/services/stagecraft/web/app/routes/`) carries Dashboard,
+Statecraft's project surface today (per the route inventory at
+`platform/services/statecraft/web/app/routes/`) carries Dashboard,
 Knowledge, Pipelines, Deploys, Agents, and Settings menus. It does
 *not* render the spec-spine. The spec spine is the project's
 authored intent — the artifact AIDE-VELOCITY approximates with
@@ -124,14 +124,14 @@ The *Requirements* menu is the load-bearing addition. Without it:
   §2.4) is a statement about authoring discipline with no
   consumer surface beyond CLI tools.
 
-The gap is concrete and specific to stagecraft: OPC has dashboards
-(governance, inspect, portfolio); stagecraft has none for the
+The gap is concrete and specific to statecraft: OPC has dashboards
+(governance, inspect, portfolio); statecraft has none for the
 spec-spine itself. A project-level reader cannot see the project's
 specs anywhere on the platform.
 
 ## 2. Decision
 
-Add `platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.tsx`
+Add `platform/services/statecraft/web/app/routes/app.project.$projectId.requirements.tsx`
 as a read-shaped surface over the project's local spec-spine. The
 surface composes four layers:
 
@@ -173,7 +173,7 @@ A project owner may attach a custom display name to a derived
 group — pure presentation metadata. The custom name has *no*
 semantic effect on the spec-spine: it does not change ownership,
 authority, or any gate behaviour. It is a label shown to
-stakeholders. The custom names live in stagecraft's database
+stakeholders. The custom names live in statecraft's database
 (per-project, per-derived-group-identity), not in spec
 frontmatter.
 
@@ -206,18 +206,18 @@ review / edit / approval flows but those are owned by:
 Spec 163 strictly renders the current state. This separation keeps
 the Requirements view aligned with the constitution's "human
 durable truth: markdown files" principle — editing happens at the
-authoring layer, not through a stagecraft UI.
+authoring layer, not through a statecraft UI.
 
 ## 4. Functional Requirements
 
 - **FR-001** A new Remix route at
-  `platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.tsx`
+  `platform/services/statecraft/web/app/routes/app.project.$projectId.requirements.tsx`
   loads the project's spec-spine and renders the inventory
   (§2.1).
 - **FR-002** The spec-spine read uses the governed-read
   discipline (spec 103): registry-consumer is the source of
   truth. The route invokes registry-consumer through a typed
-  Encore.ts API surface (`platform/services/stagecraft/api/...`)
+  Encore.ts API surface (`platform/services/statecraft/api/...`)
   rather than parsing `.derived/spec-registry/registry.json`
   directly.
 - **FR-003** The user can switch between flat list and grouped
@@ -225,7 +225,7 @@ authoring layer, not through a stagecraft UI.
   `by-establishment-chain`, and `by-supersession-chain`
   projections.
 - **FR-004** A project owner can attach a cosmetic display name
-  to any derived group. Custom names are persisted in stagecraft
+  to any derived group. Custom names are persisted in statecraft
   (project-scoped) and rendered as the group's label. Custom
   names have no spec-spine semantic effect.
 - **FR-005** Specs with `references:` entries of
@@ -289,7 +289,7 @@ kernel), the project's `.derived/spec-registry/registry.json` is
 generated by the project's own spec-compiler invocation. Spec 163
 reads from there.
 
-For projects imported via stagecraft's existing
+For projects imported via statecraft's existing
 `api/projects/import.ts` path that have not yet run through the
 decomposition pipeline (spec 165), the registry may be empty. The
 empty-state CTA in FR-007 covers this case.

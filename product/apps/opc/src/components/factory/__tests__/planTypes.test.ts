@@ -26,7 +26,7 @@ function basePlan(overrides: Partial<AgentPlan> = {}): AgentPlan {
       {
         id: 'a2',
         kind: 'edit_code',
-        target: 'platform/services/stagecraft/api/auth/rauthyAdminClients.ts',
+        target: 'platform/services/statecraft/api/auth/rauthyAdminClients.ts',
         diff: { hunks: ['@@ -1,1 +1,1 @@\n- old\n+ new'] },
       },
     ],

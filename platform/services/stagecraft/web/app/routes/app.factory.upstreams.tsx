@@ -168,7 +168,7 @@ export default function UpstreamsForm() {
           refName="factoryRef"
           label="Factory source"
           hint="Canonical process definitions and adapter scaffolds."
-          placeholder="Stagecraft-ing/factory"
+          placeholder="statecrafting/factory"
           defaultRepo={upstream?.factorySource ?? ""}
           defaultRef={upstream?.factoryRef ?? "main"}
           disabled={!canConfigure}
@@ -179,7 +179,7 @@ export default function UpstreamsForm() {
           refName="templateRef"
           label="Template source"
           hint="Per-project templates consumed by the factory."
-          placeholder="Stagecraft-ing/template"
+          placeholder="statecrafting/template"
           defaultRepo={upstream?.templateSource ?? ""}
           defaultRef={upstream?.templateRef ?? "main"}
           disabled={!canConfigure}

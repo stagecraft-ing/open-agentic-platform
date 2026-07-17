@@ -706,7 +706,7 @@ export namespace agents {
         /**
          * Seam D: Validate agent execution against org-level policies.
          * GET /api/agents/:slug/authorized
-         * 
+         *
          * Returns 200 if the agent is authorized.
          * Returns 403 with { reason } if the agent is blocked.
          * Agents with no policy row are allowed by default.
@@ -855,7 +855,7 @@ export namespace audit {
 
         /**
          * Spec 175 FR-007 — list recent audit_log rows scoped to a project.
-         * 
+         *
          * The default `limit` is 5 to match the dashboard panel; callers asking
          * for more raise to a hard cap of 50.
          */
@@ -1207,7 +1207,7 @@ export namespace db {
 
 /**
  * Deploy service: proxies deployment requests to deployd-api using OIDC M2M auth.
- * Absorbs the former stagecraft-api functionality.
+ * Absorbs the former statecraft-api functionality.
  */
 export namespace deploy {
     export interface DeploymentView {
@@ -1302,10 +1302,10 @@ export namespace environments {
          * Name of the K8s Secret in the tenant namespace that holds the
          * wildcard TLS material. Defaults to "tenants-wildcard-tls" on insert;
          * exposed in GET so the UI can show / let admins override.
-         * 
+         *
          * Note: the secret itself is replicated into tenant namespaces by
          * kubernetes-reflector (see `platform/infra/hetzner/manifests/
-         * tenants-wildcard-certificate.yaml`); stagecraft only stores the name.
+         * tenants-wildcard-certificate.yaml`); statecraft only stores the name.
          */
         tlsSecretName: string
 
@@ -1788,10 +1788,10 @@ export namespace factory {
         "policy_overrides"?: PolicyOverrides
         /**
          * Trigger path for this pipeline (spec 110 §8 Rollout Phase 6 — default
-         * flipped to `"stagecraft"`; OPC-direct remains available for offline
+         * flipped to `"statecraft"`; OPC-direct remains available for offline
          * workflows and for the desktop's dual-write path).
-         * 
-         * - "stagecraft" (default): stagecraft dispatches a `factory.run.request`
+         *
+         * - "statecraft" (default): statecraft dispatches a `factory.run.request`
          * through the duplex channel so a connected OPC executes the run.
          * Used by the web Initialize button and `oap-ctl run factory`.
          * - "opc-direct": the caller is already running the engine locally; no
@@ -1906,7 +1906,7 @@ export namespace factory {
         payload?: { [key: string]: any }
     }
 
-    export type PipelineSource = "opc-direct" | "stagecraft"
+    export type PipelineSource = "opc-direct" | "statecraft"
 
     export interface PolicyOverrides {
         "max_retry_per_feature"?: number
@@ -2319,7 +2319,7 @@ export namespace factory {
 
         /**
          * Validate a completed pipeline run for promotion eligibility.
-         * 
+         *
          * Checks that the pipeline belongs to the project, all stages have records,
          * artifacts are present, and the audit log has a completion event. If all
          * checks pass, creates a promotion record. Spec 097 Slice 3 (renamed from
@@ -2834,7 +2834,7 @@ export namespace grants {
         /**
          * Spec 119 §6.4 — Serve project-scoped permission grants to OPC desktop app.
          * GET /api/grants/:userId/:projectId — M2M bearer token auth (OIDC JWT or static fallback).
-         * 
+         *
          * Returns the grant row if found, otherwise restrictive defaults (read-only, tier 1).
          */
         public async getGrants(userId: string, projectId: string, params: GrantsRequest): Promise<GrantsResponse> {
@@ -3924,13 +3924,13 @@ export namespace projects {
 
     /**
      * Spec 112 §6.4 — short-lived clone token derived from spec 109 state.
-     * 
+     *
      * The bundle returns a token OPC threads into the git clone subprocess
      * (`https://x-access-token:<value>@…`) and into the factory engine
      * launch as `GITHUB_TOKEN`. The long-lived PAT itself never crosses
-     * Stagecraft → OPC except in the `project_github_pat` branch, where
+     * Statecraft → OPC except in the `project_github_pat` branch, where
      * GitHub does not offer a derived short-lived form (§10 risk).
-     * 
+     *
      * `expiresAt` is set for `github_installation` (≈1h TTL) and null for
      * `project_github_pat`. Public-anonymous resolution returns null at
      * the field level — null means "clone anonymously", not "resolution
@@ -4663,7 +4663,7 @@ export namespace specRegistry {
 
     /**
      * Aggregate response for the inventory loader (FR-001).
-     * 
+     *
      * `registryAvailable === false` means the project has no spec-spine yet —
      * the route renders the empty-state CTA (FR-007 / SC-005). When true,
      * `specs` is the flat inventory sorted by id.
@@ -4768,7 +4768,7 @@ export namespace specRegistry {
 
         /**
          * FR-001 / FR-002 — list specs from the project's spec-spine.
-         * 
+         *
          * Returns `{registryAvailable: false, specs: []}` when the project has
          * no registry yet (newly imported, decomposition not yet run). The
          * route uses this to render the FR-007 empty-state CTA.
@@ -4955,7 +4955,7 @@ export namespace sync {
 
     /**
      * Business-doc reference carried on a `factory.run.request` (spec 110 §2.1).
-     * 
+     *
      * Distinct from the file-local `BusinessDocRef` in `api/factory/factory.ts`
      * (which uses snake_case `storage_ref` to match HTTP shape); this is the
      * wire-level camelCase form used on the envelope.
@@ -4994,7 +4994,7 @@ export namespace sync {
 
     /**
      * Envelope schema version.
-     * 
+     *
      * Spec 087 §5.3 FR-SYNC-003: every envelope MUST carry a schema version. The
      * current protocol is version 2 (spec 119 collapsed workspace → org as the
      * session key). The guard in `isClientEnvelope` rejects any other value.
@@ -5010,7 +5010,7 @@ export namespace sync {
      * `crates/factory-engine/src/agent_resolver.rs::ResolvedAgent` — the spec
      * 124 acceptance criterion A-9 grep gate (T088) and the spec 122 Stage CD
      * comparator both depend on the `(orgAgentId, version, contentHash)` triple.
-     * 
+     *
      * Wire convention: camelCase on the duplex envelope (matches the rest of
      * the `ClientEnvelopeWire` shape). The DB column `factory_runs.source_shas`
      * stores the snake_case form `{ org_agent_id, version, content_hash }` per
@@ -5035,14 +5035,14 @@ export namespace sync {
 
     /**
      * Knowledge-bundle reference carried on a `factory.run.request` (spec 110 §2.3).
-     * 
+     *
      * The desktop resolves each entry against a content-addressable cache at
      * `$OPC_CACHE_DIR/knowledge/<contentHash>` before passing local paths to the
      * factory engine; the hash is the trust boundary (mismatch ⇒ run fails).
      */
     export interface KnowledgeBundle {
         /**
-         * Knowledge-object UUID on stagecraft.
+         * Knowledge-object UUID on statecraft.
          */
         objectId: string
 
@@ -5063,7 +5063,7 @@ export namespace sync {
     }
 
     /**
-     * Events pushed from OPC to Stagecraft.
+     * Events pushed from OPC to Statecraft.
      */
     export interface OpcInboundEvent {
         type: string
@@ -5220,7 +5220,7 @@ export namespace sync {
          * Monotonic cursor issued by the server for outbound events within an
          * org. Clients MAY persist this and pass it back as
          * `SyncHandshake.lastServerCursor` on reconnect.
-         * 
+         *
          * This is best-effort in the in-memory implementation; a durable store
          * is required before clients can safely rely on it for replay.
          */
@@ -5254,7 +5254,7 @@ export namespace sync {
     }
 
     /**
-     * Events pushed from Stagecraft to connected clients (web UI, OPC).
+     * Events pushed from Statecraft to connected clients (web UI, OPC).
      */
     export interface SyncEvent {
         type: string

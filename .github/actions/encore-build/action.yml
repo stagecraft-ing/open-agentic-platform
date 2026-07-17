@@ -1,4 +1,4 @@
-name: Encore build (stagecraft)
+name: Encore build (statecraft)
 description: >
   Composite action: build the React Router frontend, build the Rust runtime
   helpers, stage them into a locally-tagged runtime base image, install a
@@ -9,9 +9,9 @@ description: >
 
 inputs:
   working-directory:
-    description: Path to the stagecraft service root
+    description: Path to the statecraft service root
     required: false
-    default: platform/services/stagecraft
+    default: platform/services/statecraft
   encore-version:
     description: Encore CLI version to install
     required: true
@@ -19,7 +19,7 @@ inputs:
     description: Path to infra.config.*.json (relative to working-directory)
     required: true
   image-tag:
-    description: Full image reference to tag the built image with (e.g. ghcr.io/foo/bar:sha-abc or stagecraft-ci:pr-123)
+    description: Full image reference to tag the built image with (e.g. ghcr.io/foo/bar:sha-abc or statecraft-ci:pr-123)
     required: true
 
 runs:
@@ -30,7 +30,7 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       run: cd web && npx react-router build
 
-    # Rust helpers that stagecraft's API shells out to at runtime:
+    # Rust helpers that statecraft's API shells out to at runtime:
     #   - artifact-extract        (knowledge advance endpoint)
     #   - factory-project-detect  (project import endpoint)
     # Built before the Encore image step so they can be baked into the
@@ -42,11 +42,11 @@ runs:
       with:
         toolchain: '1.95.0'
 
-    - name: Cache Rust build (stagecraft helpers)
+    - name: Cache Rust build (statecraft helpers)
       uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
       with:
         workspaces: .
-        shared-key: stagecraft-helpers
+        shared-key: statecraft-helpers
 
     - name: Build Rust helpers
       shell: bash
@@ -85,7 +85,7 @@ runs:
           if docker build \
             --platform linux/amd64 \
             -f Dockerfile.base \
-            -t stagecraft-base:${{ github.sha }} \
+            -t statecraft-base:${{ github.sha }} \
             .; then
             break
           fi
@@ -99,7 +99,7 @@ runs:
         done
 
     # Install Encore CLI via the dedicated composite action (DRY with
-    # ci-stagecraft typecheck which needs the same install for codegen).
+    # ci-statecraft typecheck which needs the same install for codegen).
     - name: Install Encore CLI
       uses: ./.github/actions/encore-install
       with:
@@ -111,5 +111,5 @@ runs:
       run: |
         encore build docker \
           --config ${{ inputs.config }} \
-          --base stagecraft-base:${{ github.sha }} \
+          --base statecraft-base:${{ github.sha }} \
           ${{ inputs.image-tag }}

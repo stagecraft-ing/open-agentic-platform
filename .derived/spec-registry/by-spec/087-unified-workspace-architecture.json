@@ -9,7 +9,7 @@
       "074-factory-ingestion",
       "075-factory-workflow-engine",
       "076-factory-desktop-panel",
-      "077-stagecraft-factory-api",
+      "077-statecraft-factory-api",
       "078-platform-completion-plan",
       "080-github-identity-onboarding",
       "082-artifact-integrity-platform-hardening"
@@ -18,27 +18,27 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/sync/types.ts"
+        "path": "platform/services/statecraft/api/sync/types.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/sync/service.ts"
+        "path": "platform/services/statecraft/api/sync/service.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/sync/duplex.ts"
+        "path": "platform/services/statecraft/api/sync/duplex.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/sync/relay.ts"
+        "path": "platform/services/statecraft/api/sync/relay.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/sync/store.ts"
+        "path": "platform/services/statecraft/api/sync/store.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/sync/registry.ts"
+        "path": "platform/services/statecraft/api/sync/registry.ts"
       }
     ],
     "extraFrontmatter": {
@@ -68,7 +68,7 @@
       "2.3 Project Definition",
       "3. Two Planes, One System",
       "3.1 Plane Responsibilities",
-      "Web Plane — stagecraft.ing",
+      "Web Plane — statecraft.ing",
       "Desktop Plane — OPC",
       "3.2 Factory Position",
       "4. Knowledge Intake Domain",
@@ -94,7 +94,7 @@
       "Phase 3: Web UI + Sync Channel",
       "Phase 4: Connector Framework",
       "Phase 5: Identity + Governance Hardening",
-      "9. Database Schema Additions (Stagecraft)",
+      "9. Database Schema Additions (Statecraft)",
       "10. Non-Functional Requirements",
       "11. End-State Model Summary",
       "12. Open issues / follow-ups (amendment, 2026-05-08)"

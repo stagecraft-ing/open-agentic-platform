@@ -52,14 +52,14 @@ export function overrideScannerVersion(): string {
 const IDEMPOTENCY_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 function getStaleAfterSec(): number {
-  const v = process.env.STAGECRAFT_OVERRIDE_SCAN_STALE_AFTER_SEC;
+  const v = process.env.statecraft_OVERRIDE_SCAN_STALE_AFTER_SEC;
   if (!v) return 600;
   const n = Number.parseInt(v, 10);
   return Number.isFinite(n) && n > 0 ? n : 600;
 }
 
 function getMaxAutoRetries(): number {
-  const v = process.env.STAGECRAFT_OVERRIDE_SCAN_MAX_AUTO_RETRIES;
+  const v = process.env.statecraft_OVERRIDE_SCAN_MAX_AUTO_RETRIES;
   if (!v) return 2;
   const n = Number.parseInt(v, 10);
   return Number.isFinite(n) && n >= 0 ? n : 2;

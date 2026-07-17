@@ -8,9 +8,9 @@
 //! Walks `<root>/.artifacts/raw/`, runs `extract_deterministic` per file,
 //! writes one `ExtractionOutput` JSON per file to
 //! `<root>/.artifacts/extracted/<basename>.json`, and emits a JSONL summary
-//! on stdout matching the contract that stagecraft's
+//! on stdout matching the contract that statecraft's
 //! `advanceKnowledgeToExtracted` endpoint (`api/projects/projectKnowledge.ts`)
-//! parses. The endpoint is gated on `STAGECRAFT_EXTRACT_LEGACY_TRANSITION`
+//! parses. The endpoint is gated on `STATECRAFT_EXTRACT_LEGACY_TRANSITION`
 //! (spec 115 FR-027) — modern flow goes through the content-addressed
 //! `POST .../extraction-output` endpoint introduced by spec 120.
 //!

@@ -2,7 +2,7 @@
  * Outbox / Inbox Sync Protocol — typed envelopes.
  *
  * Authority boundaries (per spec 087, amended by spec 119):
- *   - Stagecraft is authoritative for identity, project, policy, grants,
+ *   - Statecraft is authoritative for identity, project, policy, grants,
  *     deployment/governance state, audit envelopes.
  *   - Desktop/OPC is authoritative for local execution progress, checkpoints,
  *     local agent/tool runs, local runtime observations.
@@ -199,7 +199,7 @@ export interface EnvelopeMeta {
 // ---------------------------------------------------------------------------
 
 /**
- * Desktop/OPC-originated events that Stagecraft should record or act on.
+ * Desktop/OPC-originated events that Statecraft should record or act on.
  * Each variant is a clearly-bounded desktop-authoritative signal — never a
  * control-plane mutation that would blur authority.
  *
@@ -287,8 +287,8 @@ export interface ClientAgentInvocation {
 
 /**
  * Candidate audit events from the desktop. These are NOT final audit records —
- * Stagecraft retains the right to reject, normalise or enrich them before
- * committing. This preserves Stagecraft as the audit authority.
+ * Statecraft retains the right to reject, normalise or enrich them before
+ * committing. This preserves Statecraft as the audit authority.
  */
 export interface ClientAuditCandidate {
   kind: "audit.candidate";
@@ -305,7 +305,7 @@ export interface ClientAuditCandidate {
  * This is an OBSERVATION of local intent — it does not assert server state,
  * so it fits within the 087 §5.3 extension rule for `ClientEnvelope`. The
  * `accepted: false` path is how policy/local-state declines surface back to
- * stagecraft.
+ * statecraft.
  */
 export interface ClientFactoryRunAck {
   kind: "factory.run.ack";
@@ -413,7 +413,7 @@ export interface ClientFactoryRunCompleted {
   /**
    * Spec 198 FR-014 — self-hash of the locally-emitted governance
    * certificate. When present (and a grant chain exists for the run),
-   * stagecraft verifies the chain it issued and replies with a targeted
+   * statecraft verifies the chain it issued and replies with a targeted
    * `factory.run.certificate_countersign`. Absent on ungoverned/legacy
    * runs — the certificate then stays visibly unsealed.
    */
@@ -451,7 +451,7 @@ export interface ClientFactoryRunCancelled {
 
 /**
  * Spec 198 FR-005 — run-grant issuance request (the intent capsule, filed).
- * The engine submits the capsule content before stage s0; stagecraft
+ * The engine submits the capsule content before stage s0; statecraft
  * validates it against the standing admission + revocations and replies
  * with a targeted `factory.run.grant`. A run that cannot obtain a grant
  * does not start governed execution (fail-closed engine-side).
@@ -526,7 +526,7 @@ export interface ClientAgentCatalogFetchRequest {
 
 /**
  * Spec 207 AC-4: the local side submits an audit segment HEAD (hash plus
- * metadata) over the duplex channel. Stagecraft countersigns and persists
+ * metadata) over the duplex channel. Statecraft countersigns and persists
  * a seal row. Offline-first: the local side accumulates unanchored heads
  * and submits at reconnect.
  */
@@ -546,7 +546,7 @@ export interface ClientAuditSegmentCountersignRequest {
  * Spec 208 FR-003: the engine acknowledges an `org.halt.activated` /
  * `org.halt.lifted` broadcast once it has reached its pause-and-checkpoint
  * boundary (for a halt) or completed re-admission (for a lift). The ack is the
- * measured propagation bound: stagecraft appends a per-engine timestamp to the
+ * measured propagation bound: statecraft appends a per-engine timestamp to the
  * quarantine record's `acks` array so the realized bound is an audited fact
  * after every pull.
  *
@@ -597,7 +597,7 @@ export interface ClientHeartbeat {
 // ---------------------------------------------------------------------------
 
 /**
- * Stagecraft-originated events describing authoritative state changes.
+ * Statecraft-originated events describing authoritative state changes.
  * Also carries ACK/NACK for inbound client events.
  */
 export type ServerEnvelope =
@@ -645,7 +645,7 @@ export interface ServerFactoryRunGrant {
 
 /**
  * Spec 198 FR-014 — targeted reply after `factory.run.completed` carries a
- * `certificateSha256`: stagecraft verified the engine's chain against the
+ * `certificateSha256`: statecraft verified the engine's chain against the
  * grant sequence it issued and countersigned the certificate. The engine
  * patches `platform_countersign` into the persisted
  * `governance-certificate.json`. `countersigned: false` is attributable
@@ -790,7 +790,7 @@ export interface ServerFactoryEvent {
  * factory engine; the hash is the trust boundary (mismatch ⇒ run fails).
  */
 export interface KnowledgeBundle {
-  /** Knowledge-object UUID on stagecraft. */
+  /** Knowledge-object UUID on statecraft. */
   objectId: string;
   /** Suggested local filename (preserves extension for the engine). */
   filename: string;
@@ -813,11 +813,11 @@ export interface EnvelopeBusinessDoc {
 }
 
 /**
- * Stagecraft directs a connected OPC to start a locally-executed factory run
+ * Statecraft directs a connected OPC to start a locally-executed factory run
  * (spec 110 §2.1).
  *
  * Authority invariant (087 §5.3): this IS a control-plane directive. The
- * request originates from an authenticated stagecraft user; the desktop
+ * request originates from an authenticated statecraft user; the desktop
  * enforces its local policy bundle before acting and replies with
  * `factory.run.ack` (`accepted: false`) when it declines. One OPC accepts;
  * others receive `sync.nack` for the same `meta.eventId`.
@@ -837,9 +837,9 @@ export interface ServerFactoryRunRequest {
   businessDocs: EnvelopeBusinessDoc[];
   /** Policy bundle id compiled server-side for this project. */
   policyBundleId: string;
-  /** ISO-8601 when stagecraft dispatched the request. */
+  /** ISO-8601 when statecraft dispatched the request. */
   requestedAt: string;
-  /** ISO-8601 after which stagecraft will mark the pipeline `abandoned`. */
+  /** ISO-8601 after which statecraft will mark the pipeline `abandoned`. */
   deadlineAt: string;
 }
 
@@ -861,7 +861,7 @@ export interface AgentCatalogSnapshotEntry {
 }
 
 /**
- * Stagecraft announces that an agent definition was published or retired
+ * Statecraft announces that an agent definition was published or retired
  * (spec 111 §2.3, amended by spec 123 to be org-scoped). Carries the
  * full frontmatter + body so connected OPCs can update their local caches
  * in one round-trip. Also used as the targeted reply to a
@@ -915,7 +915,7 @@ export interface ServerAgentCatalogSnapshot {
 // ---------------------------------------------------------------------------
 
 /**
- * Stagecraft announces that a project's binding to an org agent changed.
+ * Statecraft announces that a project's binding to an org agent changed.
  * Fans out only to OPCs whose claimed org matches; desktop-side filters
  * by `projectId` to apply only to the project the user has active.
  */
@@ -960,7 +960,7 @@ export interface ServerProjectAgentBindingSnapshot {
 }
 
 /**
- * Stagecraft announces that a project was created/updated/deleted
+ * Statecraft announces that a project was created/updated/deleted
  * (spec 112 §7). Reuses the spec 111 sync pattern: one wire message carries
  * everything OPC needs to surface the row in its "Projects" panel — no
  * secondary round-trip. Deletions are expressed by the `tombstone` flag so
@@ -977,7 +977,7 @@ export interface ServerProjectCatalogUpsert {
   description: string;
   /** Factory adapter row id this project is bound to; null for pre-112 projects. */
   factoryAdapterId: string | null;
-  /** One of the factory-project-detect levels, as inferred by stagecraft at create/import time. */
+  /** One of the factory-project-detect levels, as inferred by statecraft at create/import time. */
   detectionLevel:
     | "not_factory"
     | "scaffold_only"
@@ -1001,7 +1001,7 @@ export interface ServerProjectCatalogUpsert {
 }
 
 /**
- * Terminator emitted by stagecraft after the post-handshake project
+ * Terminator emitted by statecraft after the post-handshake project
  * catalog snapshot has finished replaying for a given client — including
  * the zero-projects case where no {@link ServerProjectCatalogUpsert}
  * frames went out at all. Lets the desktop distinguish "still connecting"

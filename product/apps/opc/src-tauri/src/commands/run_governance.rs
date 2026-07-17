@@ -20,7 +20,7 @@ use factory_engine::platform_jws::{PlatformJwks, TYP_ADMISSION_SEAL, verify_comp
 use orchestrator::PreStepGate;
 
 use super::factory_platform::{GrantOutcome, GrantRenewArgs, GrantRequestArgs, RunEmitter};
-use super::stagecraft_client::StagecraftClient;
+use super::statecraft_client::StatecraftClient;
 use super::sync_client::FactoryAgentRef;
 
 /// Everything a governed run carries from admission verification to
@@ -55,9 +55,9 @@ impl RunGovernance {
 /// the issuance grant. Every failure is fail-closed: the caller MUST NOT
 /// dispatch any stage on `Err` (spec 198 FR-001/FR-005/FR-014).
 pub async fn establish(
-    sc: &StagecraftClient,
+    sc: &StatecraftClient,
     emitter: RunEmitter,
-    stagecraft_project_id: &str,
+    statecraft_project_id: &str,
     platform_run_id: &str,
     goal: &str,
     run_dir: &Path,
@@ -69,13 +69,13 @@ pub async fn establish(
     // These INFO lines bound the diagnosis to a phase without changing any
     // control flow.
     log::info!(
-        "run governance: establish start (project={stagecraft_project_id}, run={platform_run_id})"
+        "run governance: establish start (project={statecraft_project_id}, run={platform_run_id})"
     );
 
     // 1. The standing admission, with the platform seal (ASI04 m1).
     log::info!("run governance: fetching project bundle for admission check");
     let bundle = sc
-        .get_project_opc_bundle(stagecraft_project_id)
+        .get_project_opc_bundle(statecraft_project_id)
         .await
         .map_err(|e| format!("cannot fetch project bundle for admission check: {e}"))?;
     let admission = bundle.admission.ok_or_else(|| {
@@ -139,7 +139,7 @@ pub async fn establish(
         goal,
         Vec::new(),
         envelope_hash.clone(),
-        stagecraft_project_id,
+        statecraft_project_id,
         platform_run_id,
     );
     capsule
@@ -162,7 +162,7 @@ pub async fn establish(
             capsule_hash: &capsule.capsule_hash(),
             envelope_hash: &envelope_hash,
             build_spec_hash: None,
-            project_id: Some(stagecraft_project_id),
+            project_id: Some(statecraft_project_id),
             constraints: Some(capsule.constraints.clone()),
         })
         .await

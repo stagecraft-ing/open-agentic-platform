@@ -134,7 +134,7 @@ export function _resetForTests(): void {
 // ── Path helpers ───────────────────────────────────────────────────────
 
 export function defaultWorkspaceDir(): string {
-  return resolve(process.env.STAGECRAFT_WORKSPACE_DIR ?? "./workspace");
+  return resolve(process.env.statecraft_WORKSPACE_DIR ?? "./workspace");
 }
 
 /** template-encore checkout: the `--source` baseline. */
@@ -352,12 +352,12 @@ async function resolveEncoreCliVersion(workspace: string): Promise<string> {
  * Provision the Encore CLI into the PVC (one-time per pod, idempotent on the
  * pinned version). The CLI is a standalone Go binary, NOT an npm package, so it
  * cannot ride the template cache's `npm install` the way `spec-spine` does, and
- * the stagecraft runtime image is slim (no curl/wget), so Encore's curl-based
+ * the statecraft runtime image is slim (no curl/wget), so Encore's curl-based
  * install.sh is unusable here. We download the pinned release tarball with
  * node's global `fetch` (streamed to disk to avoid buffering ~160MB) and extract
  * it with `tar` (present in the image); the tarball lays out `bin/encore` under
  * the install root, matching `encoreBin()`. Egress is HTTPS/443, allowed by the
- * stagecraft NetworkPolicy's general-HTTPS rule.
+ * statecraft NetworkPolicy's general-HTTPS rule.
  *
  * Version-pinned to the template's `encore.dev` runtime so the client the
  * scaffold generates matches the one the produced app's own `Typed client
@@ -455,7 +455,7 @@ export async function ensureEncoreCli(ctx: WarmupContext): Promise<void> {
 
 /**
  * The Encore release target for this host, mirroring install.sh's arch map. The
- * stagecraft runtime image is Linux; node's `process.arch` is `x64` or `arm64`.
+ * statecraft runtime image is Linux; node's `process.arch` is `x64` or `arm64`.
  */
 function encoreReleaseTarget(): string {
   return process.arch === "arm64" ? "linux_arm64" : "linux_amd64";

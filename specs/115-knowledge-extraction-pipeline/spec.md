@@ -29,27 +29,27 @@ depends_on:
   - "087-unified-workspace-architecture"  # unified-workspace-architecture (knowledge intake domain, lifecycle)
   - "114-async-project-clone-pipeline"  # async-project-clone-pipeline (Topic + Subscription + run-row pattern reused here)
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionEvents.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionWorker.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionCore.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionOutput.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionPolicy.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/auditActions.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/prompts.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/magic.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/types.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/dispatch.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/index.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/deterministic-text.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/deterministic-pdf-embedded.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/deterministic-docx.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/agent-base.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/agent-cost-helpers.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/agent-pdf-vision.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/agent-image-vision.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/knowledge.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/extractionEvents.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/extractionWorker.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/extractionCore.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/extractionOutput.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/extractionPolicy.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/auditActions.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/prompts.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/magic.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/extractors/types.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/extractors/dispatch.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/extractors/index.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/extractors/deterministic-text.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/extractors/deterministic-pdf-embedded.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/extractors/deterministic-docx.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/extractors/agent-base.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/extractors/agent-cost-helpers.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/extractors/agent-pdf-vision.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/extractors/agent-image-vision.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/knowledge/knowledge.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId.knowledge.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx }
 ---
 
 # 115 — Knowledge Extraction Pipeline
@@ -61,7 +61,7 @@ establishes:
 
 ## 1. Problem
 
-Spec 087 §4.3 and §8 Phase 2 define a knowledge object lifecycle of `imported → extracting → extracted → classified → available` and call out an extraction stage that performs OCR, text extraction, classification, and structured-output generation. The state machine scaffolding shipped (`platform/services/stagecraft/api/db/migrations/10_create_knowledge_intake.up.sql:16-58`, `api/knowledge/knowledge.ts:422-501`) but the pipeline did not. Today, advancement happens only when a human clicks "Advance to {nextState}" on `web/app/routes/app.project.$projectId.knowledge.$id.tsx:172-184` and the API blindly accepts whatever JSON the caller hands in for `extraction_output` (`knowledge.ts:475-477`).
+Spec 087 §4.3 and §8 Phase 2 define a knowledge object lifecycle of `imported → extracting → extracted → classified → available` and call out an extraction stage that performs OCR, text extraction, classification, and structured-output generation. The state machine scaffolding shipped (`platform/services/statecraft/api/db/migrations/10_create_knowledge_intake.up.sql:16-58`, `api/knowledge/knowledge.ts:422-501`) but the pipeline did not. Today, advancement happens only when a human clicks "Advance to {nextState}" on `web/app/routes/app.project.$projectId.knowledge.$id.tsx:172-184` and the API blindly accepts whatever JSON the caller hands in for `extraction_output` (`knowledge.ts:475-477`).
 
 This means:
 
@@ -139,7 +139,7 @@ A user uploads a corrupt PDF. The deterministic extractor fails to parse the tra
 1. **Given** an object in `extracting` whose extractor throws or returns a typed `extractor_failed`, **When** the worker handles the error, **Then** the run row moves to `failed` with `error = { code, message, extractorKind }`, the object's `state` reverts to `imported`, and `knowledge_objects.lastExtractionError` is populated.
 2. **Given** a failed object, **When** the user calls `POST /api/knowledge/objects/:id/retry-extraction`, **Then** a fresh run row is inserted at `pending`, a message is published, and the same dispatch logic runs — the retry is *not* pinned to the previously-failing extractor.
 3. **Given** an object whose deterministic extractor failed, **When** the agent extractor is the policy-eligible fallback, **Then** the dispatcher routes to the agent on retry rather than re-running the broken deterministic path.
-4. **Given** an object that has failed N times where N exceeds `STAGECRAFT_EXTRACT_MAX_AUTO_RETRIES` (default 2), **When** the worker considers auto-retry, **Then** it does NOT auto-retry — only an operator-initiated Retry advances it. This stops a poison message from looping.
+4. **Given** an object that has failed N times where N exceeds `STATECRAFT_EXTRACT_MAX_AUTO_RETRIES` (default 2), **When** the worker considers auto-retry, **Then** it does NOT auto-retry — only an operator-initiated Retry advances it. This stops a poison message from looping.
 
 ---
 
@@ -154,14 +154,14 @@ A SharePoint connector sync run lands 47 new knowledge objects in `imported`. Ea
 **Acceptance Scenarios:**
 
 1. **Given** a connector sync that inserts a `knowledge_objects` row with `state = "imported"`, **When** the sync transaction commits, **Then** the same enqueue helper that `confirmUpload` uses is invoked for each new row.
-2. **Given** a connector sync of 100 objects, **When** the worker processes them, **Then** they extract concurrently up to `STAGECRAFT_EXTRACT_WORKER_CONCURRENCY` (default 8) and the remainder queue without dropping.
+2. **Given** a connector sync of 100 objects, **When** the worker processes them, **Then** they extract concurrently up to `STATECRAFT_EXTRACT_WORKER_CONCURRENCY` (default 8) and the remainder queue without dropping.
 3. **Given** a connector that re-syncs an existing object whose `content_hash` is unchanged, **When** the connector tries to re-enqueue, **Then** the enqueue helper short-circuits (idempotency on `(workspaceId, contentHash, extractorVersion)`) — no duplicate run is created.
 
 ---
 
 ### Edge Cases
 
-- **Worker crashes mid-extraction.** The run row was `running`, the object was `extracting`. On worker restart, the staleness sweeper (`STAGECRAFT_EXTRACT_STALE_AFTER_SEC`, default 600s) flips runs whose `runningAt` is older than the threshold to `failed` with `error.code = "worker_crashed"` and reverts the object to `imported` so a Retry can recover it.
+- **Worker crashes mid-extraction.** The run row was `running`, the object was `extracting`. On worker restart, the staleness sweeper (`STATECRAFT_EXTRACT_STALE_AFTER_SEC`, default 600s) flips runs whose `runningAt` is older than the threshold to `failed` with `error.code = "worker_crashed"` and reverts the object to `imported` so a Retry can recover it.
 - **Same content uploaded twice.** Two upload requests with identical `content_hash` produce two `knowledge_objects` rows (existing behaviour, deliberately preserved for provenance) but only ONE extraction run — the second enqueue resolves to the first run's id and the second object's `extraction_output` is copied from the first object once that run completes. No second model call.
 - **Object deleted while extracting.** The worker MUST detect deletion before writing `extraction_output`. If the object disappears mid-run, the worker writes `status = "abandoned"` to the run row and exits cleanly — no broadcast, no audit-row of `knowledge.extracted`.
 - **Policy change between enqueue and run.** The worker re-resolves the policy at run time, not at enqueue time. If a policy that allowed vision is replaced by one that disallows it, the run fails with `policy_denied`, not `extracted` — stale enqueues do not bypass the gate.
@@ -196,8 +196,8 @@ A SharePoint connector sync run lands 47 new knowledge objects in `imported`. Ea
   does not over-couple to FR-003's specific window length.
 - **FR-004**: A new subscription `extractionWorker` MUST consume `KnowledgeExtractionRequestTopic`. On message: load the run, CAS-transition `pending → running` and stamp `runningAt`, advance `knowledge_objects.state` to `extracting` (if currently `imported`), invoke the dispatcher, write the typed `extraction_output` on success, advance object state to `extracted`, transition the run to `completed`, audit, and broadcast.
 - **FR-005**: The worker MUST be idempotent. A redelivered message whose run is already `running`, `completed`, `failed`, or `abandoned` MUST be a no-op (logged at `info`).
-- **FR-006**: A staleness sweeper (`scheduler.ts` cron, every 60s) MUST flip `running` runs whose `runningAt < now() - STAGECRAFT_EXTRACT_STALE_AFTER_SEC` (default 600s) to `failed` with `error.code = "worker_crashed"` and revert the object's `state` to `imported`.
-- **FR-007**: Worker concurrency MUST be controlled by `STAGECRAFT_EXTRACT_WORKER_CONCURRENCY` (default 8). The Encore `Subscription` config exposes the relevant knob (`maxConcurrency`).
+- **FR-006**: A staleness sweeper (`scheduler.ts` cron, every 60s) MUST flip `running` runs whose `runningAt < now() - STATECRAFT_EXTRACT_STALE_AFTER_SEC` (default 600s) to `failed` with `error.code = "worker_crashed"` and revert the object's `state` to `imported`.
+- **FR-007**: Worker concurrency MUST be controlled by `STATECRAFT_EXTRACT_WORKER_CONCURRENCY` (default 8). The Encore `Subscription` config exposes the relevant knob (`maxConcurrency`).
 
 #### Enqueue triggers
 
@@ -270,14 +270,14 @@ A SharePoint connector sync run lands 47 new knowledge objects in `imported`. Ea
 #### Failure handling
 
 - **FR-022**: On extractor throw or typed `extractor_failed`, the worker MUST: revert the object's `state` to `imported`, set `knowledge_objects.lastExtractionError = { code, message, extractorKind, attemptedAt }`, mark the run `failed` with that error embedded, and emit `audit_log` action `knowledge.extraction_failed`. No `extraction_output` is written.
-- **FR-023**: An object whose `attempts` count for the current `(workspaceId, contentHash, extractorVersion)` key has reached `STAGECRAFT_EXTRACT_MAX_AUTO_RETRIES` (default 2) MUST NOT be auto-retried by the worker on a redelivered message. The Retry endpoint (FR-010) is the only path forward.
+- **FR-023**: An object whose `attempts` count for the current `(workspaceId, contentHash, extractorVersion)` key has reached `STATECRAFT_EXTRACT_MAX_AUTO_RETRIES` (default 2) MUST NOT be auto-retried by the worker on a redelivered message. The Retry endpoint (FR-010) is the only path forward.
 - **FR-024**: A successful retry that produces `extraction_output` MUST clear `lastExtractionError`. A successful run after failures MUST keep the prior failed run rows for forensic visibility.
 
 #### Schema and audit
 
 - **FR-025**: `knowledge_objects` MUST gain `last_extraction_error JSONB`. Existing rows backfill to `NULL`.
 - **FR-026**: `audit_log` MUST gain three new actions: `knowledge.extracted`, `knowledge.extraction_failed`, `knowledge.extraction_retry_requested`. The metadata for `knowledge.extracted` MUST include `extractorKind`, `extractorVersion`, `durationMs`, and (for agent extractors) `modelId`, `promptFingerprint`, `costUsd`.
-- **FR-027**: The legacy `transitionState` endpoint (`knowledge.ts:436-501`) MUST be retained but gated: in non-debug mode (`STAGECRAFT_EXTRACT_LEGACY_TRANSITION = false`, the default) it MUST refuse with `precondition_failed` code `legacy_transition_disabled`. Operators can flip the env to re-enable for incident response. The legacy path MUST emit an audit row tagged `legacy_path = true` so any use of it shows up in audit reports.
+- **FR-027**: The legacy `transitionState` endpoint (`knowledge.ts:436-501`) MUST be retained but gated: in non-debug mode (`STATECRAFT_EXTRACT_LEGACY_TRANSITION = false`, the default) it MUST refuse with `precondition_failed` code `legacy_transition_disabled`. Operators can flip the env to re-enable for incident response. The legacy path MUST emit an audit row tagged `legacy_path = true` so any use of it shows up in audit reports.
 - **FR-028**: The web UI's manual "Advance to {nextState}" button (`web/app/routes/app.project.$projectId.knowledge.$id.tsx:172-184`) MUST be removed in default builds. The same surface MUST render: a status badge, the most recent run's extractor info, and (when failed) a Retry button + the last error code/message. The legacy click-walk MAY remain visible behind `?debug=1`.
 
 #### SDK and broadcast
@@ -302,7 +302,7 @@ A SharePoint connector sync run lands 47 new knowledge objects in `imported`. Ea
 
 ### 5.4 Out-of-process operations
 
-- Agent extractors call the Anthropic API directly via the `@anthropic-ai/sdk` (already a stagecraft dependency). They MUST use prompt caching for system prompts (the per-extractor instruction block) so high-volume workspaces benefit from cache hits.
+- Agent extractors call the Anthropic API directly via the `@anthropic-ai/sdk` (already a statecraft dependency). They MUST use prompt caching for system prompts (the per-extractor instruction block) so high-volume workspaces benefit from cache hits.
 - Deterministic PDF extraction uses `pdf-parse` (or equivalent — implementation choice, not a spec constraint). DOCX uses `mammoth` or equivalent. The spec does not pin the library.
 - Magic-number sniffing reads the first 4KB of the S3 object via `headObject` + a ranged GET. The full object is *not* downloaded for sniffing.
 
@@ -316,14 +316,14 @@ A SharePoint connector sync run lands 47 new knowledge objects in `imported`. Ea
 - **SC-004**: Every `extracted` object has a non-null `extraction_output.text`, a non-null `extraction_output.extractor.kind`, and (for agent extractors) a non-null `extraction_output.extractor.agentRun.modelId`. A unit test runs over a fixture set covering all extractor kinds.
 - **SC-005**: A workspace policy that sets `visionAllowed = false` causes 100% of image-only PDF uploads to park at `imported` with `lastExtractionError.code = "policy_denied"` and ZERO outbound model calls, verified by a fake Anthropic transport asserting call count.
 - **SC-006**: A workspace policy with `costCeilingUsdPerDay = 0.50` blocks the (n+1)th call once the day-aggregate exceeds $0.50, with `error.code = "daily_cost_exhausted"`. The daily counter resets at UTC midnight.
-- **SC-007**: A worker process killed mid-run causes the corresponding object to recover to a Retry-ready state within `STAGECRAFT_EXTRACT_STALE_AFTER_SEC + 60s` (default 660s). No object is permanently stranded by a single worker crash.
+- **SC-007**: A worker process killed mid-run causes the corresponding object to recover to a Retry-ready state within `STATECRAFT_EXTRACT_STALE_AFTER_SEC + 60s` (default 660s). No object is permanently stranded by a single worker crash.
 - **SC-008**: The legacy `transitionState` endpoint, when called in default-config builds, returns `precondition_failed` with `legacy_transition_disabled` 100% of the time. A regression test asserts this.
 - **SC-009**: Objects with identical `content_hash` uploaded back-to-back trigger exactly one model call across both, verified by a fake Anthropic transport asserting call count.
-- **SC-010**: A poisoned object (extractor throws on every attempt) does not auto-retry beyond `STAGECRAFT_EXTRACT_MAX_AUTO_RETRIES` (default 2). The third+ messages are no-ops. The Retry endpoint still works.
+- **SC-010**: A poisoned object (extractor throws on every attempt) does not auto-retry beyond `STATECRAFT_EXTRACT_MAX_AUTO_RETRIES` (default 2). The third+ messages are no-ops. The Retry endpoint still works.
 
 ## 7. Open Decisions
 
-- **Should extraction live in stagecraft, or be brokered to OPC?** Spec 087 §3.2 says the web plane "does not execute Claude Code sessions." This spec interprets that as a prohibition on stateful, tool-bearing, code-modifying agent sessions — not on one-shot model calls that read bytes and emit text. If governance treats *any* model call as desktop-only, the worker becomes a broker that publishes work for OPC instances to claim. The trade is: in-stagecraft extraction is operationally simpler and works without an online desktop; OPC-side extraction is architecturally purer but requires at least one online OPC per workspace. **Recommended:** in-stagecraft for v1; revisit if the §3.2 boundary tightens.
+- **Should extraction live in statecraft, or be brokered to OPC?** Spec 087 §3.2 says the web plane "does not execute Claude Code sessions." This spec interprets that as a prohibition on stateful, tool-bearing, code-modifying agent sessions — not on one-shot model calls that read bytes and emit text. If governance treats *any* model call as desktop-only, the worker becomes a broker that publishes work for OPC instances to claim. The trade is: in-statecraft extraction is operationally simpler and works without an online desktop; OPC-side extraction is architecturally purer but requires at least one online OPC per workspace. **Recommended:** in-statecraft for v1; revisit if the §3.2 boundary tightens.
 - **Classification stage scope.** Whether `extracted → classified → available` is a separate spec or an extension here. Recommendation: separate spec, because classification taxonomy is governance-shaped (which categories matter for which factory adapters?) and pulling it into 115 inflates the surface area.
 - **Per-page partial success.** A 200-page PDF where 3 pages fail OCR — should the run be `completed` with a `metadata.failedPages` field, or `failed`? V1 chooses `completed` if ≥80% of pages produced text, `failed` otherwise. The threshold is configurable.
 - **Re-extraction on extractor version bump.** When an extractor's `version` advances, existing extracted objects are stale. Should the system auto-enqueue them? V1: no — operators trigger backfill explicitly. A backfill endpoint may live in a follow-up spec.
@@ -332,12 +332,12 @@ A SharePoint connector sync run lands 47 new knowledge objects in `imported`. Ea
 
 ## 8. Provenance
 
-- `platform/services/stagecraft/api/db/migrations/10_create_knowledge_intake.up.sql:16-58` — current `knowledge_object_state` enum and `knowledge_objects` schema (this spec adds a column and a new table).
-- `platform/services/stagecraft/api/knowledge/knowledge.ts:422-501` — current click-walk `transitionState` endpoint (this spec gates it behind a debug env).
-- `platform/services/stagecraft/api/knowledge/knowledge.ts:293-367` — `confirmUpload`; this spec adds an `enqueueExtraction` call after the audit insert.
-- `platform/services/stagecraft/api/knowledge/scheduler.ts` — connector sync orchestrator; this spec adds enqueue hooks on new-row insertion.
-- `platform/services/stagecraft/api/projects/cloneEvents.ts` and `cloneWorker.ts` — pattern reused verbatim for the extraction Topic + Subscription (spec 114).
-- `platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx:172-184` — the manual "Advance to {nextState}" button this spec removes.
+- `platform/services/statecraft/api/db/migrations/10_create_knowledge_intake.up.sql:16-58` — current `knowledge_object_state` enum and `knowledge_objects` schema (this spec adds a column and a new table).
+- `platform/services/statecraft/api/knowledge/knowledge.ts:422-501` — current click-walk `transitionState` endpoint (this spec gates it behind a debug env).
+- `platform/services/statecraft/api/knowledge/knowledge.ts:293-367` — `confirmUpload`; this spec adds an `enqueueExtraction` call after the audit insert.
+- `platform/services/statecraft/api/knowledge/scheduler.ts` — connector sync orchestrator; this spec adds enqueue hooks on new-row insertion.
+- `platform/services/statecraft/api/projects/cloneEvents.ts` and `cloneWorker.ts` — pattern reused verbatim for the extraction Topic + Subscription (spec 114).
+- `platform/services/statecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx:172-184` — the manual "Advance to {nextState}" button this spec removes.
 - Spec 087 §4.3 and §8 Phase 2 — the unimplemented extraction stage this spec delivers.
 - Spec 036 — safety-tier governance; agent extractors register at the appropriate tier.
 - Spec 047 — governance control plane; provides the policy slice resolution.

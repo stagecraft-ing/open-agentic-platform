@@ -2,7 +2,7 @@
 //
 // Live DB (runs only under `encore test`; gated out of bare vitest in
 // `vite.config.ts`). `storage.headObject` is mocked because the
-// stagecraft test-infra Postgres is live but no in-cluster MinIO is
+// statecraft test-infra Postgres is live but no in-cluster MinIO is
 // available; the sweeper's only S3 dependency is `headObject`, and
 // the mock is consistent across the sweeper's direct call and any
 // downstream call from `confirmUploadCore`.

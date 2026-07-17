@@ -9,7 +9,7 @@
 // Staleness signal: `factory_runs.last_event_at` is bumped on every
 // `factory.run.*` envelope handled by the duplex handlers (Phase 3). A
 // row whose `last_event_at` is older than
-// `STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC` (default 1800s, i.e. 30 min)
+// `STATECRAFT_FACTORY_RUN_STALE_AFTER_SEC` (default 1800s, i.e. 30 min)
 // is presumed dead.
 //
 // Bias: prefer false-positive failure to false-positive aliveness. A
@@ -35,11 +35,11 @@ import { validateM2mRequest } from "../auth/m2mAuth.js";
  *  half an hour is overwhelmingly likely to be the desktop having died. */
 const DEFAULT_STALE_AFTER_SEC = 30 * 60;
 
-/** Override via `STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC=<seconds>`. Used
+/** Override via `STATECRAFT_FACTORY_RUN_STALE_AFTER_SEC=<seconds>`. Used
  *  by integration tests that compress the window down to one-digit
- *  seconds; documented in stagecraft/CLAUDE.md alongside spec 115's
+ *  seconds; documented in statecraft/CLAUDE.md alongside spec 115's
  *  knobs. */
-const ENV_STALE_AFTER_SEC = "STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC";
+const ENV_STALE_AFTER_SEC = "STATECRAFT_FACTORY_RUN_STALE_AFTER_SEC";
 
 /** spec 119 §2 seed migration `2_seed_system_user`. The sweeper is a
  *  server-side cron, not a user action — every audit row it emits MUST

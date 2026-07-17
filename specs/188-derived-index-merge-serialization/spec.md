@@ -471,7 +471,7 @@ This satisfies SC-005 ("preserved"): the guarantee is unchanged; only the
 enforcement mechanism narrowed. Specs 101, 177, and 184 carry the
 corresponding amendments (spec 188 `amends:` all three). The originally-feared
 envelope-version / schema-parity ripple (specs 189/190/191) does **not**
-apply: those gate the OPC↔stagecraft WebSocket duplex protocol version, not
+apply: those gate the OPC↔statecraft WebSocket duplex protocol version, not
 the codebase-index schema, which lives in a separate validation system.
 
 ## Success Criteria

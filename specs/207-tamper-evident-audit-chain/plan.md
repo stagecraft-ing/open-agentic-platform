@@ -23,19 +23,19 @@
    (`verify_audit_chain`) so it is unit-testable without spawning a
    process; the binary is a thin CLI shell.
 
-3. **Stagecraft DB audit rows (FR-001 carve-out).** Database-resident
+3. **Statecraft DB audit rows (FR-001 carve-out).** Database-resident
    audit rows (`auditActions.ts`) are NOT file-chained by this spec.
    Honest posture: their anchoring story is the platform countersign
    (spec 198 FR-014) plus an append-only DB operational posture, not the
    per-record file chain. This is recorded here rather than pretending
-   the file mechanism fits a relational table. No stagecraft code changes
+   the file mechanism fits a relational table. No statecraft code changes
    in this phase.
 
 4. **Anchoring split (FR-002).** The LOCAL half (segment head at
    rotation + cross-segment continuity) lands now because AC-2 and AC-5
    require it and it is fully offline. The CROSS-REPO half (run-scoped
    segments entering the governance certificate artifact list;
-   session-scoped segments countersigned by stagecraft per spec 198
+   session-scoped segments countersigned by statecraft per spec 198
    FR-014) is Phase 2 and rides the existing key infrastructure rather
    than duplicating it.
 
@@ -103,7 +103,7 @@ AC-5 with local-only, deterministic tests.
 - **AC-3:** run-scoped segment head hash enters the run governance
   certificate artifact list (factory-engine); `verify-certificate` fails
   after tampering. Rides spec 102 / 198 phase-4 cert machinery.
-- **AC-4:** session-scoped segments countersigned by stagecraft (spec 198
+- **AC-4:** session-scoped segments countersigned by statecraft (spec 198
   FR-014); offline sessions chain locally and anchor retroactively at next
   connection, with the unanchored window queryable. Offline-first,
   honestly degraded.
@@ -176,8 +176,8 @@ governance certificate so `verify-certificate` catches tampering.
 
 ### Phase 2b (PR B): platform countersign (AC-4)
 
-Session-scoped segments are countersigned by stagecraft (spec 198 FR-014:
-stagecraft seals, the local side is keyless), with offline-first retroactive
+Session-scoped segments are countersigned by statecraft (spec 198 FR-014:
+statecraft seals, the local side is keyless), with offline-first retroactive
 anchoring. Cross-repo; lands after 2a.
 
 - **New duplex message** `audit.segment.countersign_request` /
@@ -213,7 +213,7 @@ constructed nowhere). The live governed-tool permission path is axiomregent's
 `policy_preflight_response` / `audit_tool_dispatch`, not the dormant spec-068
 runtime. A consumer-only client PR would be a dead consumer. So PR B is split:
 
-- **PR B1 (server, DONE, #394 / `0889b27e`).** Stagecraft countersign handler,
+- **PR B1 (server, DONE, #394 / `0889b27e`).** Statecraft countersign handler,
   seal table, signing typ, duplex dispatch. As above.
 - **PR B2a (producer, THIS PR).** Wire the live session audit chain in
   axiomregent so a real chain runs, rotates, and emits closed segment heads.

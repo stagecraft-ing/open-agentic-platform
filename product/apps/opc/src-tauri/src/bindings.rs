@@ -84,10 +84,10 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         crate::commands::auth::auth_get_status,
         crate::commands::auth::auth_logout,
         crate::commands::auth::auth_take_pending_callback,
-        // App settings (runtime-configurable Stagecraft URL)
-        crate::commands::settings::get_stagecraft_base_url,
-        crate::commands::settings::set_stagecraft_base_url,
-        crate::commands::settings::reconnect_stagecraft_duplex,
+        // App settings (runtime-configurable Statecraft URL)
+        crate::commands::settings::get_statecraft_base_url,
+        crate::commands::settings::set_statecraft_base_url,
+        crate::commands::settings::reconnect_statecraft_duplex,
     ])
 }
 

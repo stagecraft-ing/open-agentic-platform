@@ -24,7 +24,7 @@ import { auditLog } from "../db/schema";
 // Types
 // ---------------------------------------------------------------------------
 
-/** Events pushed from Stagecraft to connected clients (web UI, OPC). */
+/** Events pushed from Statecraft to connected clients (web UI, OPC). */
 interface SyncEvent {
   type: string;
   orgId: string;
@@ -32,7 +32,7 @@ interface SyncEvent {
   payload: Record<string, unknown>;
 }
 
-/** Events pushed from OPC to Stagecraft. */
+/** Events pushed from OPC to Statecraft. */
 interface OpcInboundEvent {
   type: string;
   orgId: string;

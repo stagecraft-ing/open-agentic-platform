@@ -128,7 +128,7 @@ export default function FactoryOverview() {
             repo={upstream?.factorySource ?? null}
             ref={upstream?.factoryRef ?? null}
             sha={upstream?.lastSyncSha?.factory ?? null}
-            placeholder="Stagecraft-ing/factory"
+            placeholder="statecrafting/factory"
           />
           <UpstreamCard
             title="Template source"
@@ -136,7 +136,7 @@ export default function FactoryOverview() {
             repo={upstream?.templateSource ?? null}
             ref={upstream?.templateRef ?? null}
             sha={upstream?.lastSyncSha?.template ?? null}
-            placeholder="Stagecraft-ing/template"
+            placeholder="statecrafting/template"
           />
         </div>
 

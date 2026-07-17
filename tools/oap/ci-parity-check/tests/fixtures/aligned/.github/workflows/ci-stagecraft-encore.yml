@@ -1,7 +1,7 @@
 # Aligned fixture for ci-parity-check tests (spec 104 §5.2 / spec 211 AC-4).
 # The encore-lane run lines' significant tokens are all mirrored by the
-# sibling Makefile's `ci-stagecraft-encore` recipe → zero drift.
-name: CI stagecraft encore
+# sibling Makefile's `ci-statecraft-encore` recipe → zero drift.
+name: CI statecraft encore
 on: [push]
 jobs:
   encore-test:

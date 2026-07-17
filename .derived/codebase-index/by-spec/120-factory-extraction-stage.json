@@ -3,9 +3,9 @@
     "dependsOn": [
       "074-factory-ingestion",
       "075-factory-workflow-engine",
-      "077-stagecraft-factory-api",
+      "077-statecraft-factory-api",
       "094-unified-artifact-store",
-      "110-stagecraft-to-opc-factory-trigger",
+      "110-statecraft-to-opc-factory-trigger",
       "115-knowledge-extraction-pipeline"
     ],
     "implementingPaths": [
@@ -34,11 +34,11 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractionExternal.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractionExternal.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractionOutput.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractionOutput.ts",
         "source": "spec-edge"
       },
       {
@@ -46,7 +46,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs",
+        "path": "product/apps/opc/src-tauri/src/commands/statecraft_client.rs",
         "source": "spec-edge"
       },
       {
@@ -84,14 +84,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractionExternal.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractionExternal.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractionExternal.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractionExternal.ts"
         }
       },
       {
@@ -149,14 +149,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractionOutput.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractionOutput.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractionOutput.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractionOutput.ts"
         }
       },
       {
@@ -175,14 +175,14 @@
       {
         "locations": [
           {
-            "file": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs"
+            "file": "product/apps/opc/src-tauri/src/commands/statecraft_client.rs"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs"
+          "path": "product/apps/opc/src-tauri/src/commands/statecraft_client.rs"
         }
       }
     ],

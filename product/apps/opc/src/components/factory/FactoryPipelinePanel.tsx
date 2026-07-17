@@ -1,5 +1,5 @@
 // Spec: specs/076-factory-desktop-panel/spec.md
-// Spec 112 §6.3 — bundle prop carries the stagecraft handoff context.
+// Spec 112 §6.3 — bundle prop carries the statecraft handoff context.
 // Top-level Factory pipeline panel registered in TabContent.
 //
 // Spec 171: the panel also renders the PlanReviewDialog when an

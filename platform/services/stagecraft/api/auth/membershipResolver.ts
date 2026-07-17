@@ -8,7 +8,7 @@
  *   1. appInstallationStrategy — iterate every active `github_installations`
  *      row, fetch an installation access token via `signAppJwt`, and ask
  *      GitHub whether `githubLogin` is a member of each installed org.
- *      Requires the stagecraft GitHub App manifest to grant
+ *      Requires the statecraft GitHub App manifest to grant
  *      `Organization permissions: Members: Read`.
  *
  *   2. userPatStrategy — if (and only if) the installation strategy returned
@@ -16,7 +16,7 @@
  *      the decrypted PAT to call `/user/orgs` and
  *      `/orgs/{org}/memberships/{login}` for any org that also has an active
  *      installation. This is the operator-documented escape hatch for orgs
- *      that refuse to install the stagecraft GitHub App.
+ *      that refuse to install the statecraft GitHub App.
  *
  * The resolver never falls through silently: if both strategies return empty,
  * it surfaces whichever signal is most actionable (`needs_pat`,
@@ -389,7 +389,7 @@ async function reconcileInstallationsFromGitHub(): Promise<number> {
       headers: {
         Authorization: `Bearer ${jwt}`,
         Accept: "application/vnd.github+json",
-        "User-Agent": "stagecraft",
+        "User-Agent": "statecraft",
       },
     });
     if (!resp.ok) {

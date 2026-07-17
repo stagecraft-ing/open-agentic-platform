@@ -1,6 +1,6 @@
 // Spec 200 FR-001 — staleness sweeper cron for override scan runs.
 // Re-drives `queued` rows whose publish was lost and fails stale `running`
-// rows (`STAGECRAFT_OVERRIDE_SCAN_STALE_AFTER_SEC`, default 600). Mirrors
+// rows (`STATECRAFT_OVERRIDE_SCAN_STALE_AFTER_SEC`, default 600). Mirrors
 // the spec 115 extraction-staleness-sweeper shape.
 
 import { api } from "encore.dev/api";

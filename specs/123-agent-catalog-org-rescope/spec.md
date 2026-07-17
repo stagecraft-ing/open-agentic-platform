@@ -30,40 +30,40 @@ establishes:
 extends:
   - spec: "119-project-as-unit-of-governance"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/api/agents/catalog.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/agents/catalog.ts }
   - spec: "119-project-as-unit-of-governance"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/api/agents/relay.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/agents/relay.ts }
   - spec: "119-project-as-unit-of-governance"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/api/agents/bindings.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/agents/bindings.ts }
   - spec: "119-project-as-unit-of-governance"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/api/sync/duplex.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/sync/duplex.ts }
   - spec: "119-project-as-unit-of-governance"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.agents._index.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.agents._index.tsx }
   - spec: "119-project-as-unit-of-governance"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.agents.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.agents.tsx }
   - spec: "119-project-as-unit-of-governance"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.agents.new.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.agents.new.tsx }
   - spec: "119-project-as-unit-of-governance"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.agents.$agentId.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.agents.$agentId.tsx }
   - spec: "119-project-as-unit-of-governance"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.agents.$agentId.publish.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.agents.$agentId.publish.tsx }
   - spec: "119-project-as-unit-of-governance"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.agents.$agentId.history.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.agents.$agentId.history.tsx }
   - spec: "119-project-as-unit-of-governance"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.agents._index.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId.agents._index.tsx }
   - spec: "119-project-as-unit-of-governance"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.agents.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId.agents.tsx }
   - spec: "119-project-as-unit-of-governance"
     nature: wrapping
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/agent_catalog_sync.rs }
@@ -104,13 +104,13 @@ summary: >
 
 ## 1. Problem
 
-Spec 111 (`org-agent-catalog-sync`, approved 2026-04-21, implementation complete) established agents as an organisational asset stored in stagecraft (`agent_catalog.workspace_id`) and pushed to OPC desktops via the duplex channel (spec 087 §5.3). Spec 119 (`project-as-unit-of-governance`, 2026-04-29) then collapsed `workspace` into `project` across the platform; migration `27_collapse_workspace_into_project` and the rewrite of `platform/services/stagecraft/api/agents/catalog.ts` (banner: *"Spec 119: agents are project-scoped"*) carried agents along with knowledge, runs, grants, connectors, and S3 bucket ownership into project scope.
+Spec 111 (`org-agent-catalog-sync`, approved 2026-04-21, implementation complete) established agents as an organisational asset stored in statecraft (`agent_catalog.workspace_id`) and pushed to OPC desktops via the duplex channel (spec 087 §5.3). Spec 119 (`project-as-unit-of-governance`, 2026-04-29) then collapsed `workspace` into `project` across the platform; migration `27_collapse_workspace_into_project` and the rewrite of `platform/services/statecraft/api/agents/catalog.ts` (banner: *"Spec 119: agents are project-scoped"*) carried agents along with knowledge, runs, grants, connectors, and S3 bucket ownership into project scope.
 
 The collapse was correct for **project-cohabiting data** — knowledge, sync runs, extraction outputs, and storage all bind to a single project's lifecycle and are duplicated by the clone pipeline (specs 113/114). It was wrong for **agents**, whose consumers and governance line live at org scope.
 
 ### 1.1 Symptoms of the mismatch
 
-1. **Stagecraft dashboard has no top-level Agents surface.** Projects and Factory live as org-level tabs; agents are buried under `app.project.$projectId.agents`. Operators looking for "the org's agent inventory" cannot find one because it does not exist as a first-class concept.
+1. **Statecraft dashboard has no top-level Agents surface.** Projects and Factory live as org-level tabs; agents are buried under `app.project.$projectId.agents`. Operators looking for "the org's agent inventory" cannot find one because it does not exist as a first-class concept.
 2. **Factory→agent references lose stable identity.** Factory pipelines (org-scoped per spec 108) need to say *"stage 3 uses `extractor@v7`."* With agents under `project_id`, the same name resolves to a different row per project — or no row at all when a pipeline runs against a fresh project. The runtime is forced into late-binding by *role* and version pinning is impossible. Spec 111 §1 named this exact problem; 119 reinstated it.
 3. **Cross-project Factory comparisons are contaminated.** Stage CD comparator (spec 122) and the Stage CD diff classification grammar are designed to surface behavioural drift between runs of the same pipeline against multiple projects. Per-project agent definitions inject definition drift on top of behavioural drift; the signal channel is no longer pure.
 4. **Two governance pipes.** Policy bundles, tool allowlists, safety tiers, and audit retention attach to the entity being governed. With Factory at org scope and agents at project scope, every governance feature has to traverse the seam: org policy must reach project-scoped agents (or fail to), and project policy must coordinate with org-scoped Factory pipelines (or fail to).
@@ -127,7 +127,7 @@ Restore agents to **org scope**, with projects as pinned consumers.
 
 1. **`agent_catalog` is keyed by `org_id`**, not `project_id`. Names are unique per `(org_id, name)`; versions monotonic per `(org_id, name)`.
 2. **Projects consume via a join table `project_agent_bindings`** that pins one org agent at one version per project. The binding row carries no override of the agent definition (frontmatter, body, tools, model). Bespoke project needs are addressed by forking the org agent into a new org agent (a one-line action in the catalog UI), not by per-project edits.
-3. **Top-nav `Agents` surface** in stagecraft, sibling of `Projects` and `Factory`. Owns the authoring, version history, publish/retire, and governance UI. The `Factory` tab and the `Projects` tab keep their current placement.
+3. **Top-nav `Agents` surface** in statecraft, sibling of `Projects` and `Factory`. Owns the authoring, version history, publish/retire, and governance UI. The `Factory` tab and the `Projects` tab keep their current placement.
 4. **Project `Agents` tab** stays where it is in the project nav, but its semantics change from authoring to consumption: it lists the project's bindings, exposes `bind / unbind / change-pinned-version` actions, and links out to the org catalog page for definition viewing.
 5. **Duplex sync (spec 087 §5.3, spec 111 §7) snaps back to org scope** for the catalog itself. A separate envelope variant carries project-binding deltas.
 6. **`workspace_id` does not return.** Org is the right scope; we do not re-introduce a layer between organization and project.
@@ -212,7 +212,7 @@ CREATE INDEX agent_catalog_audit_org_idx ON agent_catalog_audit (org_id, created
 > 28, 29) never touched it. Migration 30 therefore omits this SQL block
 > entirely; the table is already in the target shape. Authoritative
 > record: the migration file
-> `platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql`
+> `platform/services/statecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql`
 > header comment.
 
 ### 4.4 `project_agent_bindings` — new join table
@@ -286,7 +286,7 @@ The 119-era project-scoped CRUD for agent definitions (`POST /api/projects/:proj
 
 ### 6.1 New top-nav surface
 
-`platform/services/stagecraft/web/app/routes/app.tsx` nav adds:
+`platform/services/statecraft/web/app/routes/app.tsx` nav adds:
 
 ```ts
 { to: "/app/agents", label: "Agents", end: false }
@@ -391,16 +391,16 @@ The catalog envelope and the binding envelope are independent: catalog updates f
 
 ### 7.3 Schema-version handling
 
-The bump from `v: 1` (spec 111) to `v: 2` is a clean break per pre-alpha posture (no users). Desktops that have not received the schema update reject `v: 2` envelopes and surface a "stagecraft requires desktop update" toast. Compile-time schema-version constants (per the embedded-schema-version feedback) make the version mismatch a build error if a desktop ships out of sync with the platform.
+The bump from `v: 1` (spec 111) to `v: 2` is a clean break per pre-alpha posture (no users). Desktops that have not received the schema update reject `v: 2` envelopes and surface a "statecraft requires desktop update" toast. Compile-time schema-version constants (per the embedded-schema-version feedback) make the version mismatch a build error if a desktop ships out of sync with the platform.
 
 ## 8. Code Surface
 
-### 8.1 Stagecraft API
+### 8.1 Statecraft API
 
-- `platform/services/stagecraft/api/agents/catalog.ts` — rewrite for org scope. Banner updated: *"Spec 123: agents are org-scoped; projects consume via bindings."*
-- `platform/services/stagecraft/api/agents/bindings.ts` — new module for the project-binding endpoints.
-- `platform/services/stagecraft/api/agents/relay.ts` — duplex envelope routing updated for v2 catalog + v1 binding envelopes.
-- `platform/services/stagecraft/api/sync/duplex.ts` — register the binding envelope kinds.
+- `platform/services/statecraft/api/agents/catalog.ts` — rewrite for org scope. Banner updated: *"Spec 123: agents are org-scoped; projects consume via bindings."*
+- `platform/services/statecraft/api/agents/bindings.ts` — new module for the project-binding endpoints.
+- `platform/services/statecraft/api/agents/relay.ts` — duplex envelope routing updated for v2 catalog + v1 binding envelopes.
+- `platform/services/statecraft/api/sync/duplex.ts` — register the binding envelope kinds.
 
 ### 8.2 Factory engine
 
@@ -465,9 +465,9 @@ A-2. Migration `30_agent_catalog_org_rescope.up.sql` applies cleanly against a r
 
 A-3. `agent_catalog`, `agent_catalog_audit`, and `agent_policies` carry `org_id` (not `project_id`). `project_agent_bindings` exists with the schema in §4.4 and the four invariants I-B1..I-B4.
 
-A-4. Stagecraft web shows `Agents` as a top-nav item between `Projects` and `Factory`. The org agent catalog UI implements list / create / edit / publish / retire / fork / history.
+A-4. Statecraft web shows `Agents` as a top-nav item between `Projects` and `Factory`. The org agent catalog UI implements list / create / edit / publish / retire / fork / history.
 
-A-5. `grep -rn "agent_catalog\.project_id\|agent_catalog_audit\.project_id\|agent_policies\.project_id\|agentCatalog\.projectId" platform/services/stagecraft crates product/apps/opc` returns zero hits outside (a) historical migration files, (b) the migration script for this spec, (c) frozen superseded specs, (d) this spec's body.
+A-5. `grep -rn "agent_catalog\.project_id\|agent_catalog_audit\.project_id\|agent_policies\.project_id\|agentCatalog\.projectId" platform/services/statecraft crates product/apps/opc` returns zero hits outside (a) historical migration files, (b) the migration script for this spec, (c) frozen superseded specs, (d) this spec's body.
 
 A-6. The project `Agents` tab implements bind / repin / unbind against the org catalog. The 119-era authoring routes under `app.project.$projectId.agents.new` and `agents.$agentId.publish` are deleted.
 
@@ -503,5 +503,5 @@ OQ-5. **Audit composition with bindings.** Spec 098 (governance-enforcement-stit
 - spec 111 (`org-agent-catalog-sync`) — original org-level design; this spec restores its scoping decision.
 - spec 119 (`project-as-unit-of-governance`) — the spec amended here.
 - spec 122 (`stakeholder-doc-inversion`) — Stage CD comparator, primary cross-project Factory consumer of agents.
-- platform/services/stagecraft/api/agents/catalog.ts — current project-scoped implementation under amendment.
-- platform/services/stagecraft/api/db/migrations/27_collapse_workspace_into_project.up.sql — the migration this spec partially reverses (agents only).
+- platform/services/statecraft/api/agents/catalog.ts — current project-scoped implementation under amendment.
+- platform/services/statecraft/api/db/migrations/27_collapse_workspace_into_project.up.sql — the migration this spec partially reverses (agents only).

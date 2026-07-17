@@ -42,7 +42,7 @@
 #
 # Required env (read from .env or shell):
 #   DOMAIN          — apex domain; minio.${DOMAIN} is the validation target
-#   APP_BASE_URL    — stagecraft origin used for the preflight Origin header
+#   APP_BASE_URL    — statecraft origin used for the preflight Origin header
 #
 # Read-only otherwise — does not modify any production data; all writes
 # scoped to a synthetic test row + a single test blob, both removed on exit.
@@ -113,15 +113,15 @@ cleanup() {
   # Use `mc rm` not filesystem rm — MinIO RELEASE.2024-12-18+ on-disk
   # layout does not expose objects at /export/${bucket}/${key} (see §12 FU-004(c)).
   if [ -n "${TEST_BUCKET:-}" ]; then
-    kubectl -n stagecraft-system exec deploy/minio -- sh -c '
+    kubectl -n statecraft-system exec deploy/minio -- sh -c '
       mc alias set local http://localhost:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null 2>&1
       mc rm "local/'"$TEST_BUCKET"'/'"$TEST_KEY"'" >/dev/null 2>&1
     ' >/dev/null 2>&1 || true
   fi
 
   # Test knowledge_objects row + audit rows scoped by target_id.
-  kubectl -n stagecraft-system exec postgresql-0 -- env PGPASSWORD="${POSTGRES_PASSWORD:-}" \
-    psql -U stagecraft -d auth -v ON_ERROR_STOP=1 -tAc "
+  kubectl -n statecraft-system exec postgresql-0 -- env PGPASSWORD="${POSTGRES_PASSWORD:-}" \
+    psql -U statecraft -d auth -v ON_ERROR_STOP=1 -tAc "
       DELETE FROM knowledge_objects WHERE id = '${TEST_OBJECT_ID}';
       DELETE FROM audit_log WHERE target_id = '${TEST_OBJECT_ID}';
     " >/dev/null 2>&1 || true
@@ -144,15 +144,15 @@ require_project_id() {
   # Filter the picker to projects whose bucket is S3-valid (<=63 chars).
   # The 'oldest project' alone can land on an over-long bucket — FU-004(a)
   # caught the 80-char EFVS bucket on the Hetzner cluster. The underlying
-  # production bug (stagecraft creating projects with invalid bucket
+  # production bug (statecraft creating projects with invalid bucket
   # names) is filed as FU-005 on spec 087.
   #
   # Prefer non-test projects so the canary lands on a stable, non-fixture
   # bucket where one exists; fall back to test-named projects if no other
   # valid-bucket project is on the cluster (i.e. don't strand the canary
   # entirely just because every prod project has an over-long bucket).
-  TEST_PROJECT_ID=$(kubectl -n stagecraft-system exec postgresql-0 -- env PGPASSWORD="${POSTGRES_PASSWORD:-}" \
-    psql -U stagecraft -d auth -tAc "
+  TEST_PROJECT_ID=$(kubectl -n statecraft-system exec postgresql-0 -- env PGPASSWORD="${POSTGRES_PASSWORD:-}" \
+    psql -U statecraft -d auth -tAc "
       SELECT id FROM projects
       WHERE length(object_store_bucket) <= 63
       ORDER BY CASE WHEN name ILIKE '%test%' THEN 1 ELSE 0 END,
@@ -180,10 +180,10 @@ fi
 ok "minio.${DOMAIN} → ${RESOLVED_IP}"
 
 prereq_section "TLS certificate minio-tls is Ready"
-CERT_READY=$(kubectl -n stagecraft-system get certificate minio-tls \
+CERT_READY=$(kubectl -n statecraft-system get certificate minio-tls \
   -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || true)
 if [ "$CERT_READY" != "True" ]; then
-  CERT_REASON=$(kubectl -n stagecraft-system get certificate minio-tls \
+  CERT_REASON=$(kubectl -n statecraft-system get certificate minio-tls \
     -o jsonpath='{.status.conditions[?(@.type=="Ready")].message}' 2>/dev/null || echo "certificate not found")
   prereq_fail "TLS certificate minio-tls not Ready: ${CERT_REASON}
   Possible causes: HCLOUD_DNS_API_TOKEN missing, letsencrypt-dns01 ClusterIssuer not created, cert-manager-webhook-hetzner not installed.
@@ -229,7 +229,7 @@ ACAO=$(curl -sS -D - -o /dev/null --max-time 10 \
 if [ -z "$ACAO" ]; then
   prereq_fail "CORS preflight returned no Access-Control-Allow-Origin header.
   MINIO_API_CORS_ALLOW_ORIGIN env may not be set on the MinIO container.
-  Verify with: kubectl -n stagecraft-system exec deploy/minio -- env | grep CORS"
+  Verify with: kubectl -n statecraft-system exec deploy/minio -- env | grep CORS"
 fi
 if [ "$ACAO" != "${APP_BASE_URL}" ] && [ "$ACAO" != "*" ]; then
   prereq_fail "CORS ACAO mismatch: got '${ACAO}', expected '${APP_BASE_URL}'.
@@ -244,8 +244,8 @@ ok "OPTIONS preflight returns Access-Control-Allow-Origin: ${ACAO}"
 require_project_id
 
 contract_section "Resolve project bucket"
-TEST_BUCKET=$(kubectl -n stagecraft-system exec postgresql-0 -- env PGPASSWORD="${POSTGRES_PASSWORD:-}" \
-  psql -U stagecraft -d auth -tAc "SELECT object_store_bucket FROM projects WHERE id = '${TEST_PROJECT_ID}';" \
+TEST_BUCKET=$(kubectl -n statecraft-system exec postgresql-0 -- env PGPASSWORD="${POSTGRES_PASSWORD:-}" \
+  psql -U statecraft -d auth -tAc "SELECT object_store_bucket FROM projects WHERE id = '${TEST_PROJECT_ID}';" \
   2>/dev/null | tr -d '[:space:]')
 if [ -z "$TEST_BUCKET" ]; then
   contract_fail "no bucket recorded for project ${TEST_PROJECT_ID}; project row is malformed"
@@ -257,8 +257,8 @@ contract_section "Generate presigned PUT URL via SigV4 (python3 stdlib)"
 # helm chart renders them there; reading via printenv is the canonical
 # authoritative path. Avoids relying on operator-workstation env vars,
 # which the prior `mc share upload` path silently depended on.
-MINIO_USER=$(kubectl -n stagecraft-system exec deploy/minio -- printenv MINIO_ROOT_USER 2>/dev/null | tr -d '[:space:]')
-MINIO_PASS=$(kubectl -n stagecraft-system exec deploy/minio -- printenv MINIO_ROOT_PASSWORD 2>/dev/null | tr -d '[:space:]')
+MINIO_USER=$(kubectl -n statecraft-system exec deploy/minio -- printenv MINIO_ROOT_USER 2>/dev/null | tr -d '[:space:]')
+MINIO_PASS=$(kubectl -n statecraft-system exec deploy/minio -- printenv MINIO_ROOT_PASSWORD 2>/dev/null | tr -d '[:space:]')
 if [ -z "$MINIO_USER" ] || [ -z "$MINIO_PASS" ]; then
   contract_fail "could not read MINIO_ROOT_USER/MINIO_ROOT_PASSWORD from the MinIO pod env"
 fi
@@ -366,7 +366,7 @@ contract_section "Blob lands in MinIO bucket under the expected key"
 # layout (RELEASE.2024-12-18+) does not expose objects at the simple
 # /export/${bucket}/${key} path that the prior filesystem `[ -f ... ]`
 # check assumed. See §12 FU-004(c).
-BLOB_LANDED=$(kubectl -n stagecraft-system exec deploy/minio -- sh -c '
+BLOB_LANDED=$(kubectl -n statecraft-system exec deploy/minio -- sh -c '
   mc alias set local http://localhost:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null 2>&1
   if mc stat "local/'"$TEST_BUCKET"'/'"$TEST_KEY"'" >/dev/null 2>&1; then echo present; else echo absent; fi
 ' 2>/dev/null | tr -d '[:space:]')
@@ -382,10 +382,10 @@ contract_section "Self-hosted scheduler — K8s CronJob registered (spec 143 §4
 # production scheduler is the K8s CronJob provisioned by post-create.sh.
 # Validate it exists, schedule matches, and has fired at least once
 # (after the first cadence interval has elapsed since deploy).
-SWEEPER_SCHEDULE=$(kubectl -n stagecraft-system get cronjob knowledge-orphan-imported-sweeper \
+SWEEPER_SCHEDULE=$(kubectl -n statecraft-system get cronjob knowledge-orphan-imported-sweeper \
   -o jsonpath='{.spec.schedule}' 2>/dev/null || true)
 if [ -z "$SWEEPER_SCHEDULE" ]; then
-  contract_fail "K8s CronJob 'knowledge-orphan-imported-sweeper' not found in stagecraft-system.
+  contract_fail "K8s CronJob 'knowledge-orphan-imported-sweeper' not found in statecraft-system.
   Re-run post-create.sh; the spec 143 §4.5b amendment requires this resource as the
   production scheduler. The Encore CronJob declaration alone is a no-op in
   self-hosted deploys (no Encore Cloud scheduler present)."
@@ -396,7 +396,7 @@ ok "K8s CronJob schedule: ${SWEEPER_SCHEDULE}"
 # have NEVER fired (just-deployed cluster) won't have lastScheduleTime
 # set yet — that's an exit-2 prerequisite (deploy is too fresh), not
 # exit-3 contract failure.
-LAST_SCHEDULE=$(kubectl -n stagecraft-system get cronjob knowledge-orphan-imported-sweeper \
+LAST_SCHEDULE=$(kubectl -n statecraft-system get cronjob knowledge-orphan-imported-sweeper \
   -o jsonpath='{.status.lastScheduleTime}' 2>/dev/null || true)
 if [ -z "$LAST_SCHEDULE" ]; then
   prereq_fail "CronJob has never fired (no .status.lastScheduleTime).
@@ -417,8 +417,8 @@ if [ "$AGE_SEC" -gt 3600 ]; then
   2× cadence window (3600s). The cron is registered but has stopped
   firing. Investigate the cronjob-controller, recent K8s events, and
   the most recent job's pod logs:
-    kubectl -n stagecraft-system get jobs -l job-name=knowledge-orphan-imported-sweeper-...
-    kubectl -n stagecraft-system describe cronjob knowledge-orphan-imported-sweeper"
+    kubectl -n statecraft-system get jobs -l job-name=knowledge-orphan-imported-sweeper-...
+    kubectl -n statecraft-system describe cronjob knowledge-orphan-imported-sweeper"
 fi
 ok "CronJob last fired ${AGE_SEC}s ago (within 2× cadence window)"
 
@@ -428,7 +428,7 @@ ok "CronJob last fired ${AGE_SEC}s ago (within 2× cadence window)"
 # recent Job owned by this CronJob succeeded — i.e. the curl returned 2xx
 # AND the handler ran. Without this check, FR-010 reports green even when
 # reconciliation has never executed in production.
-LAST_JOB=$(kubectl -n stagecraft-system get jobs \
+LAST_JOB=$(kubectl -n statecraft-system get jobs \
   --sort-by=.metadata.creationTimestamp \
   -o json 2>/dev/null \
   | python3 -c '
@@ -444,10 +444,10 @@ print(matching[-1]["metadata"]["name"] if matching else "")
 if [ -z "$LAST_JOB" ]; then
   ok "no completed jobs yet (CronJob registered but cadence not reached)"
 else
-  JOB_SUCCEEDED=$(kubectl -n stagecraft-system get job "$LAST_JOB" -o jsonpath='{.status.succeeded}' 2>/dev/null || echo "0")
-  JOB_FAILED=$(kubectl -n stagecraft-system get job "$LAST_JOB" -o jsonpath='{.status.failed}' 2>/dev/null || echo "0")
+  JOB_SUCCEEDED=$(kubectl -n statecraft-system get job "$LAST_JOB" -o jsonpath='{.status.succeeded}' 2>/dev/null || echo "0")
+  JOB_FAILED=$(kubectl -n statecraft-system get job "$LAST_JOB" -o jsonpath='{.status.failed}' 2>/dev/null || echo "0")
   if [ "${JOB_FAILED:-0}" != "0" ] || [ "${JOB_SUCCEEDED:-0}" = "0" ]; then
-    POD_LOG=$(kubectl -n stagecraft-system logs --selector=job-name="$LAST_JOB" --tail=10 2>/dev/null | head -20 || true)
+    POD_LOG=$(kubectl -n statecraft-system logs --selector=job-name="$LAST_JOB" --tail=10 2>/dev/null | head -20 || true)
     contract_fail "most recent CronJob run ($LAST_JOB) did not succeed.
   succeeded=${JOB_SUCCEEDED:-0}, failed=${JOB_FAILED:-0}.
   Recent pod logs:

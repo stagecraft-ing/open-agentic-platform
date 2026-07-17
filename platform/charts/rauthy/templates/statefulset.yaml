@@ -67,7 +67,7 @@ spec:
             # Rauthy defaults refresh-token `nbf` to `iat + access_token_lifetime - 60`
             # so a freshly issued refresh token is deliberately "not valid yet" until
             # the access token is about to expire (token_set.rs:389-394). The
-            # stagecraft spec 106 callback refreshes immediately after the code
+            # statecraft spec 106 callback refreshes immediately after the code
             # exchange to materialise the `oap` scope custom claims, which falls
             # inside that lockout and fails with
             #   401 JwtToken "Token is not valid yet"
@@ -77,7 +77,7 @@ spec:
               value: {{ .Values.access.disableRefreshTokenNbf | default true | quote }}
             # deployd-api rejects any bearer token with no `sub` claim
             # (routes.rs create_deployment: "token missing subject claim").
-            # The `client_credentials` grant is stagecraft's machine-to-machine
+            # The `client_credentials` grant is statecraft's machine-to-machine
             # deploy dispatch path (api/deploy/oidcM2m.ts); Rauthy omits `sub`
             # from those tokens unless this flag is set, so every M2M-triggered
             # deploy fails deployd's owner-bind guard. Map `sub = <client id>`
@@ -235,7 +235,7 @@ spec:
               subPath: config.toml
               readOnly: true
             # readOnlyRootFilesystem needs a writable /tmp (same pattern as
-            # the stagecraft/deployd-api/acme-vue-encore charts).
+            # the statecraft/deployd-api/acme-vue-encore charts).
             - name: tmp
               mountPath: /tmp
       volumes:

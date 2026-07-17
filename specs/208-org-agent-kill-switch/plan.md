@@ -77,11 +77,11 @@ outbox by design).
 | FR-002 credential revocation | Grant refusal at issuance/renewal (immediate); NHI cascade over `nhi_delegation_index` when spec 205 lands; degrade to grant + session until then | `grantPreflight:337-372`; spec 205 FR-004 index |
 | FR-003 propagation bound | Outbox broadcast + per-engine `org.halt.ack` recorded as timestamps on the `org_halts` record | `dispatchServerEvent:255`; `handleInbound:76` ack dispatch |
 | FR-004 quarantine record + reintegration | `org_halts` record lifecycle (`halted` -> `reintegrating` -> `lifted`; a scope is `active` when it has no non-`lifted` record); human-actor lift gate reusing the `liftRevocationCore` precedent; staged per-scope re-admission | `revocations.ts:152` (pattern), new `org_halts` state column |
-| FR-005 drill | e2e pull-and-lift against `mock_stagecraft` in the nightly lane | `product/apps/opc/tests-e2e/`, `opc-e2e-nightly.yml` |
+| FR-005 drill | e2e pull-and-lift against `mock_statecraft` in the nightly lane | `product/apps/opc/tests-e2e/`, `opc-e2e-nightly.yml` |
 
 ## Technical Context
 
-**Language/Version**: TypeScript (Encore.ts stagecraft, npm) for the verb,
+**Language/Version**: TypeScript (Encore.ts statecraft, npm) for the verb,
 storage, enforcement, and propagation; Rust (OPC Tauri) for the
 halt-aware termination path and the ack send; the featuregraph golden moves
 on the spec frontmatter edit.
@@ -89,11 +89,11 @@ on the spec frontmatter edit.
 `grantDuplexHandlers.ts`), the org-scoped duplex (`sync/service.ts` +
 `registry.ts`), the spec 172 checkpoint infrastructure (`CheckpointState`,
 `live_sessions.rs:452-481`), the spec 187 e2e harness.
-**Storage**: stagecraft Postgres. New `org_halts` table (one migration);
+**Storage**: statecraft Postgres. New `org_halts` table (one migration);
 no column change to `factory_revocations`. Per-engine acks are a JSONB
 column on `org_halts` (1:many per halt, halt-local; a child table is
 over-modeling for the access pattern).
-**Testing**: stagecraft DB-bound tests on the spec 211 encore-test lane
+**Testing**: statecraft DB-bound tests on the spec 211 encore-test lane
 (the enforcement and ack suites are DB-bound, like
 `grantDuplexHandlers.test.ts`); pure vitest for the selector/predicate
 helpers; Rust unit for the `live_sessions.rs` halt path; the FR-005 drill
@@ -224,7 +224,7 @@ specs/208-org-agent-kill-switch/
 ### Source Code (repository root)
 
 ```text
-platform/services/stagecraft/api/factory/
+platform/services/statecraft/api/factory/
 ├── orgHalt.ts                 # NEW (establishes): halt + lift verbs, org_halts CRUD,
 │                              #   broadcast trigger, scope-predicate helpers
 ├── revocations.ts             # extend (extends edge): export the org-halt consult helper;
@@ -233,7 +233,7 @@ platform/services/stagecraft/api/factory/
 │                              #   consult active org_halts in scope (line 363 seam)
 └── auditActions.ts            # extend: org-halt audit-action constants
 
-platform/services/stagecraft/api/sync/
+platform/services/statecraft/api/sync/
 ├── service.ts                 # refine (org-halt-propagation): broadcastOrgHalt via
 │                              #   dispatchServerEvent; inbound org.halt.ack dispatch
 ├── duplex.ts                  # refine: refuse session registration when org-halt active
@@ -241,7 +241,7 @@ platform/services/stagecraft/api/sync/
                                #   (org.halt.activated / org.halt.lifted / org.halt.ack);
                                #   spec 189 envelope-version bump
 
-platform/services/stagecraft/api/db/
+platform/services/statecraft/api/db/
 ├── migrations/NN_org_halts.up.sql / .down.sql   # NEW (establishes): org_halts table
 └── schema.ts                  # drizzle org_halts table + types
 
@@ -252,7 +252,7 @@ product/apps/opc/src-tauri/src/commands/
 
 product/apps/opc/tests-e2e/
 ├── fixtures/208/              # NEW: seeded multi-session run fixture
-└── harness/<drill>.test.ts    # NEW: FR-005 pull-and-lift drill against mock_stagecraft
+└── harness/<drill>.test.ts    # NEW: FR-005 pull-and-lift drill against mock_statecraft
 
 .github/workflows/opc-e2e-nightly.yml   # co_authority (spec 187): wire the drill into the
                                         #   nightly lane IF the harness does not auto-discover
@@ -261,7 +261,7 @@ crates/featuregraph/tests/golden/features_graph.json   # +1 row (extends: 034)
 ```
 
 **Structure Decision**: enforcement, storage, and propagation land in
-stagecraft (the platform control plane is the only thing that can refuse a
+statecraft (the platform control plane is the only thing that can refuse a
 grant or broadcast to the org). OPC gains one halt-aware termination path
 and an ack send, both keyless. The drill lands in the existing e2e harness.
 

@@ -29,31 +29,31 @@
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/queueStormGate.ts"
+        "path": "platform/services/statecraft/api/factory/queueStormGate.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/queueStormGate.test.ts"
+        "path": "platform/services/statecraft/api/factory/queueStormGate.test.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/approvalVelocity-pure.ts"
+        "path": "platform/services/statecraft/api/factory/approvalVelocity-pure.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/approvalVelocity.ts"
+        "path": "platform/services/statecraft/api/factory/approvalVelocity.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/approvalVelocity-pure.test.ts"
+        "path": "platform/services/statecraft/api/factory/approvalVelocity-pure.test.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/approvalVelocity.test.ts"
+        "path": "platform/services/statecraft/api/factory/approvalVelocity.test.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/3_audit_log_actor_action_created_idx.up.sql"
+        "path": "platform/services/statecraft/api/db/migrations/3_audit_log_actor_action_created_idx.up.sql"
       }
     ],
     "extends": [
@@ -102,7 +102,7 @@
         "role": "context",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/runsScheduler.ts"
+          "path": "platform/services/statecraft/api/factory/runsScheduler.ts"
         }
       },
       {
@@ -188,42 +188,42 @@
         "aspect": "queue-storm-detection",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/runs.ts"
+          "path": "platform/services/statecraft/api/factory/runs.ts"
         }
       },
       {
         "aspect": "queue-storm-audit-actions",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+          "path": "platform/services/statecraft/api/factory/auditActions.ts"
         }
       },
       {
         "aspect": "encore-test-lane-assignment",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       },
       {
         "aspect": "queue-storm-env-knob-docs",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/CLAUDE.md"
+          "path": "platform/services/statecraft/CLAUDE.md"
         }
       },
       {
         "aspect": "approval-velocity-surface",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+          "path": "platform/services/statecraft/api/factory/approvalSummary.ts"
         }
       },
       {
         "aspect": "approval-velocity-audit-action",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+          "path": "platform/services/statecraft/api/factory/auditActions.ts"
         }
       }
     ],

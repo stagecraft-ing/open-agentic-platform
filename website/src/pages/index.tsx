@@ -62,7 +62,7 @@ const FeatureList: FeatureItem[] = [
   {
     title: 'The platform control plane',
     description:
-      'Rauthy OIDC identity (GitHub federated through Rauthy), deployd-api-rs scope-gated deployment orchestration over Helm, and the Encore.ts stagecraft SaaS for auth, projects, knowledge extraction, audit, and the Factory lifecycle API.',
+      'Rauthy OIDC identity (GitHub federated through Rauthy), deployd-api-rs scope-gated deployment orchestration over Helm, and the Encore.ts statecraft SaaS for auth, projects, knowledge extraction, audit, and the Factory lifecycle API.',
   },
   {
     title: 'The two-phase Factory engine',

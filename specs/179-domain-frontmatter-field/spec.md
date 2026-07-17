@@ -123,7 +123,7 @@ classification is explicitly deferred (see §7 Out of scope).
 | Value       | Tract |
 |-------------|-------|
 | `opc`       | OPC desktop cockpit: `product/apps/opc/`, `product/packages/` (the cockpit's npm packages), and Tauri-side IPC commands. |
-| `platform`  | Platform services tract: `platform/services/stagecraft/`, `platform/services/deployd-api-rs/`, `platform/services/tenant-hello/`, identity (Rauthy chart), `platform/infra/`, `platform/charts/`, `platform/k8s/`. |
+| `platform`  | Platform services tract: `platform/services/statecraft/`, `platform/services/deployd-api-rs/`, `platform/services/tenant-hello/`, identity (Rauthy chart), `platform/infra/`, `platform/charts/`, `platform/k8s/`. |
 | `substrate` | Spec spine itself: the bootstrap (spec 000), the relationship-graph mechanisms (130, 132, 133, 147, 152, 153, 154, 155, 156, 179), the constitutional invariants (131), the init protocol (103), and governance specs. |
 | `tooling`   | CLIs and lints under `tools/`: spec-compiler, registry-consumer, codebase-indexer, spec-lint, the OAP overlay binaries (`tools/oap/`), and shell lints (`tools/lint/`). |
 

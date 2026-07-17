@@ -11,7 +11,7 @@
 //!
 //! No model client is permitted — anything outside the deterministic
 //! predicate set surfaces `ExtractError::RequiresAgent` so the caller can
-//! yield to stagecraft's spec-115 worker. The lint at `tests/no_llm_deps.rs`
+//! yield to statecraft's spec-115 worker. The lint at `tests/no_llm_deps.rs`
 //! enforces FR-007.
 
 pub mod extractors;

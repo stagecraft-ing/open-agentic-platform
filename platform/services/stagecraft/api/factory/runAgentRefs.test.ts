@@ -82,7 +82,7 @@ describe("walkForAgentRefs — externally-tagged AgentReference shapes", () => {
   });
 
   it("matches a single-key envelope even when nested deep", () => {
-    // The realistic stagecraft case — a process definition has an
+    // The realistic statecraft case — a process definition has an
     // `agent_ref` field whose value is a single-key envelope. The walker
     // matches it exactly.
     const refs = walkForAgentRefs({

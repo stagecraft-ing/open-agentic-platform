@@ -36,13 +36,13 @@ output "secret_store_name" {
   value = "gcp-secret-manager"
 }
 
-output "stagecraft_identity_id" {
-  value = google_service_account.stagecraft.email
+output "statecraft_identity_id" {
+  value = google_service_account.statecraft.email
 }
 
 output "deployd_identity_id" {
   value = google_service_account.deployd.email
 }
 
-output "stagecraft_serviceaccount_name" { value = "stagecraft-api-sa" }
+output "statecraft_serviceaccount_name" { value = "statecraft-api-sa" }
 output "deployd_serviceaccount_name"    { value = "deployd-api-sa" }

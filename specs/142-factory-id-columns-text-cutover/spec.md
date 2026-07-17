@@ -18,10 +18,10 @@ establishes:
 extends:
   - spec: "139-factory-artifact-substrate"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/db/schema.ts }
   - spec: "139-factory-artifact-substrate"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+    unit: { kind: file, path: platform/services/statecraft/vite.config.ts }
 summary: >
   Spec 139 Phase 4 cut over to substrate-projected adapter/process records
   whose runtime IDs are deterministic synthetic strings of the form
@@ -148,7 +148,7 @@ synthetic IDs. The header documents the limitation.
   for all three variants (`single-public`, `single-internal`, `dual`)
   on `acme-vue-node @ e1de48c5e37a`.
 - `make ci` (warm) is green.
-- `npm test` in `platform/services/stagecraft/` passes, including the
+- `npm test` in `platform/services/statecraft/` passes, including the
   new migration 38 test.
 - The spec/code coupling gate accepts the change against this spec's
   `implements:` list (no spec 139 edit needed thanks to the spec 133
@@ -168,9 +168,9 @@ synthetic IDs. The header documents the limitation.
 ## 5. Provenance
 
 - Live error captured 2026-05-06T19:32:45Z from
-  `kubectl logs -n stagecraft-system stagecraft-api-677fb8665f-zv2s9`.
+  `kubectl logs -n statecraft-system statecraft-api-677fb8665f-zv2s9`.
 - User report 2026-05-06: Create form returns `an internal error
-  occurred` for all three variants on stagecraft.ing.
+  occurred` for all three variants on statecraft.ing.
 - Spec 139 §Phase 4 (T091) — substrate cutover that introduced the
   synthetic-id runtime convention.
 - Migration 34 — `drop_legacy_factory_tables.up.sql:38-48` — comment

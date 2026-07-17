@@ -101,7 +101,7 @@ function makeHttpClient(apiKey: string): AnthropicClientShape {
             "x-api-key": apiKey,
             "anthropic-version": ANTHROPIC_VERSION,
             // Prompt caching for the system block requires this beta header
-            // until Anthropic GAs it. Stagecraft tracks the GA migration in
+            // until Anthropic GAs it. Statecraft tracks the GA migration in
             // a follow-up task; if/when removal lands, the cache_control
             // field on the system block is silently ignored.
             "anthropic-beta": "prompt-caching-2024-07-31",
@@ -260,7 +260,7 @@ export async function runAgentMessage(
       {
         type: "text",
         text: args.prompt.system,
-        // Prompt caching for the system block. Stagecraft sees high
+        // Prompt caching for the system block. Statecraft sees high
         // repeat-rate on the system prompt across uploads in the same
         // workspace; the cache hit ratio dominates per-call cost.
         cache_control: { type: "ephemeral" },

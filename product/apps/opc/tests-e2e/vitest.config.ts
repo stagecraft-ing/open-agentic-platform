@@ -4,7 +4,7 @@ import { defineConfig } from "vitest/config";
 //
 // These run on a plain Node environment (no jsdom) and cover the
 // pure-Node harness primitives: process-tree introspection, the
-// mock-stagecraft duplex server, and the time-bounded wait helper.
+// mock-statecraft duplex server, and the time-bounded wait helper.
 //
 // The built-binary WebView driver (FR-T1) and the per-AC fixtures that
 // drive a real OPC binary do NOT run here — they run under WebdriverIO

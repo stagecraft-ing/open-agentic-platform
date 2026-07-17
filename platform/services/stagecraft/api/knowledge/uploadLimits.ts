@@ -15,7 +15,7 @@
 // resolves into api/knowledge/... via relative imports, the existing
 // pattern used by `web/app/lib/agents-api.server.ts` for shared
 // Encore types). The Helm chart's ingress annotation lives in
-// `platform/charts/stagecraft/values-hetzner.yaml`; that value MUST
+// `platform/charts/statecraft/values-hetzner.yaml`; that value MUST
 // be kept in sync with KNOWLEDGE_UPLOAD_MAX_BYTES below by the
 // implementation step that lands the ingress wiring (spec 143 §7
 // step 6). When the size cap changes, the change MUST traverse

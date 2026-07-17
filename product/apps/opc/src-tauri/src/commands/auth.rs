@@ -1,7 +1,7 @@
 //! Desktop PKCE OAuth flow — spec 080 Phase 1.
 //!
 //! Implements the full GitHub-backed PKCE authentication flow for the OPC
-//! desktop app. The stagecraft service provides desktop-specific endpoints:
+//! desktop app. The statecraft service provides desktop-specific endpoints:
 //!   GET  /auth/desktop/authorize  — initiates GitHub OAuth, accepts PKCE params
 //!   POST /auth/desktop/token      — exchanges code + code_verifier for tokens
 //!   POST /auth/desktop/org-select — multi-org selection
@@ -10,7 +10,7 @@
 //! Deep-link scheme: `opc://auth/callback?code=...&state=...`
 
 use super::result::AppResult;
-use super::stagecraft_client::{claim_str, decode_jwt_claims, StagecraftState};
+use super::statecraft_client::{claim_str, decode_jwt_claims, StatecraftState};
 use base64::Engine as _;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -108,7 +108,7 @@ pub struct AuthStatus {
 // Keychain helpers
 // ---------------------------------------------------------------------------
 
-const KEYCHAIN_SERVICE: &str = "dev.opc.stagecraft";
+const KEYCHAIN_SERVICE: &str = "dev.opc.statecraft";
 
 fn keychain_get(key: &str) -> Option<String> {
     keyring::Entry::new(KEYCHAIN_SERVICE, key)
@@ -129,7 +129,7 @@ fn keychain_delete(key: &str) {
 }
 
 // ---------------------------------------------------------------------------
-// Token response shapes (deserialized from stagecraft)
+// Token response shapes (deserialized from statecraft)
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Deserialize)]
@@ -288,7 +288,7 @@ fn expires_at_from_in(expires_in: i64) -> i64 {
 /// Start the desktop OAuth login flow.
 ///
 /// Generates a PKCE challenge, stores the flow in managed state, then opens
-/// the user's default browser pointing at the stagecraft authorize endpoint.
+/// the user's default browser pointing at the statecraft authorize endpoint.
 ///
 /// If `idp_hint` is provided (email address or OIDC provider ID), the flow
 /// routes through the enterprise OIDC path instead of GitHub OAuth.
@@ -296,13 +296,13 @@ fn expires_at_from_in(expires_in: i64) -> i64 {
 #[specta::specta]
 pub async fn auth_start_login(
     idp_hint: Option<String>,
-    stagecraft: State<'_, StagecraftState>,
+    statecraft: State<'_, StatecraftState>,
     flow: State<'_, AuthFlowState>,
     app: tauri::AppHandle,
 ) -> AppResult<()> {
-    let client = stagecraft
+    let client = statecraft
         .current()
-        .ok_or("Stagecraft server URL is not set. Click 'Server settings' to configure it.")?;
+        .ok_or("Statecraft server URL is not set. Click 'Server settings' to configure it.")?;
 
     // Generate PKCE materials
     let code_verifier = random_base64url(32);
@@ -352,7 +352,7 @@ pub async fn auth_start_login(
 #[specta::specta]
 pub async fn auth_handle_callback(
     url: String,
-    stagecraft: State<'_, StagecraftState>,
+    statecraft: State<'_, StatecraftState>,
     flow: State<'_, AuthFlowState>,
 ) -> AppResult<AuthResult> {
     log::info!("auth_handle_callback invoked for {url}");
@@ -407,9 +407,9 @@ pub async fn auth_handle_callback(
         pkce.code_verifier
     };
 
-    let client = stagecraft
+    let client = statecraft
         .current()
-        .ok_or("Stagecraft client not configured")?;
+        .ok_or("Statecraft client not configured")?;
 
     // Exchange code + verifier for tokens
     let body = serde_json::json!({
@@ -466,11 +466,11 @@ pub async fn auth_handle_callback(
 pub async fn auth_select_org(
     pending_id: String,
     org_id: String,
-    stagecraft: State<'_, StagecraftState>,
+    statecraft: State<'_, StatecraftState>,
 ) -> AppResult<AuthResult> {
-    let client = stagecraft
+    let client = statecraft
         .current()
-        .ok_or("Stagecraft client not configured")?;
+        .ok_or("Statecraft client not configured")?;
 
     let body = serde_json::json!({
         "pendingId": pending_id,
@@ -516,13 +516,13 @@ pub async fn auth_select_org(
 /// Returns the new `expires_at` Unix timestamp.
 #[tauri::command]
 #[specta::specta]
-pub async fn auth_refresh_token(stagecraft: State<'_, StagecraftState>) -> AppResult<i64> {
+pub async fn auth_refresh_token(statecraft: State<'_, StatecraftState>) -> AppResult<i64> {
     let refresh_token =
         keychain_get("refresh_token").ok_or("no refresh token stored in keychain")?;
 
-    let client = stagecraft
+    let client = statecraft
         .current()
-        .ok_or("Stagecraft client not configured")?;
+        .ok_or("Statecraft client not configured")?;
 
     let body = serde_json::json!({ "refreshToken": refresh_token });
 
@@ -559,7 +559,7 @@ pub async fn auth_refresh_token(stagecraft: State<'_, StagecraftState>) -> AppRe
 /// Return the current authentication status by reading the stored JWT.
 #[tauri::command]
 #[specta::specta]
-pub async fn auth_get_status(stagecraft: State<'_, StagecraftState>) -> AppResult<AuthStatus> {
+pub async fn auth_get_status(statecraft: State<'_, StatecraftState>) -> AppResult<AuthStatus> {
     let token = match keychain_get("session") {
         Some(t) => t,
         None => {
@@ -605,7 +605,7 @@ pub async fn auth_get_status(stagecraft: State<'_, StagecraftState>) -> AppResul
         // signed out. Only a genuinely failed refresh (no/invalid refresh
         // token) should surface as unauthenticated and re-prompt. `refresh_jwt`
         // rotates both the in-memory token and the keychain session on success.
-        let refreshed = match stagecraft.current() {
+        let refreshed = match statecraft.current() {
             Some(client) => client.refresh_jwt().await.is_ok(),
             None => false,
         };
@@ -661,7 +661,7 @@ pub async fn auth_get_status(stagecraft: State<'_, StagecraftState>) -> AppResul
     // client started empty (a warm path that never ran a fresh sign-in).
     // Idempotent — only adopts when `org_id` is currently empty, so it never
     // clobbers a live session.
-    if let Some(client) = stagecraft.current()
+    if let Some(client) = statecraft.current()
         && client.org_id().is_empty()
     {
         client.adopt_token(&token);
@@ -682,11 +682,11 @@ pub async fn auth_get_status(stagecraft: State<'_, StagecraftState>) -> AppResul
 #[specta::specta]
 pub async fn auth_switch_org(
     org_id: String,
-    stagecraft: State<'_, StagecraftState>,
+    statecraft: State<'_, StatecraftState>,
 ) -> AppResult<AuthResult> {
-    let client = stagecraft
+    let client = statecraft
         .current()
-        .ok_or("Stagecraft client not configured")?;
+        .ok_or("Statecraft client not configured")?;
 
     let body = serde_json::json!({ "orgId": org_id });
 
@@ -801,11 +801,11 @@ pub async fn auth_take_pending_callback(
 #[specta::specta]
 pub async fn auth_logout(
     app: tauri::AppHandle,
-    stagecraft: State<'_, StagecraftState>,
+    statecraft: State<'_, StatecraftState>,
 ) -> AppResult<()> {
     keychain_delete("session");
     keychain_delete("refresh_token");
-    if let Some(client) = stagecraft.current() {
+    if let Some(client) = statecraft.current() {
         client.clear_auth();
     }
     // Drop the org-scoped project catalog cache so a different user signing in
