@@ -4,7 +4,7 @@ The Spec Spine toolchain is the engine that converts human intent into machine-e
 
 ## The External Engine
 
-Crucially, the core spec engine is **not vendored** within the OAP repository. It is a published, Apache-2.0 licensed project maintained in its own repository (`stagecraft-ing/spec-spine`).
+Crucially, the core spec engine is **not vendored** within the OAP repository. It is a published, Apache-2.0 licensed project maintained in its own repository (`statecrafting/spec-spine`).
 
 The engine ships as the `spec-spine-cli` crate on crates.io. OAP pins a specific version (e.g., `0.10.0`) and installs it globally during the `make setup` process.
 

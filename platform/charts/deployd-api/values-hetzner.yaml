@@ -1,5 +1,5 @@
 image:
-  repository: ghcr.io/stagecraft-ing/open-agentic-platform/deployd-api
+  repository: ghcr.io/statecrafting/open-agentic-platform/deployd-api
   # tag is intentionally unset — CD owns the helm release and passes
   # --set image.tag=sha-${SHA} on every deploy. Pinning a value here
   # would clobber CD's authoritative tag. See spec 143 §12 L-003.
@@ -38,10 +38,10 @@ oidc:
   # honour for RFC 8707 resource= at token-time). DEPLOYD_AUDIENCE is the
   # validator: it MUST equal what Rauthy puts in the JWT's aud claim, which is
   # the client_id of whichever M2M client called the token endpoint
-  # (`stagecraft-m2m` today; future deployd-cli client would set this to
+  # (`statecraft-m2m` today; future deployd-cli client would set this to
   # itself). Spec 143 §12 L-006 captures the Default-Scopes-is-load-bearing
   # quirk; this is the audience-side companion to that lesson.
-  audience: "stagecraft-m2m"
+  audience: "statecraft-m2m"
 
 requiredScope: "deployd:deploy"
 

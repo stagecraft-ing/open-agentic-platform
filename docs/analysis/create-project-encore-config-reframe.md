@@ -12,8 +12,8 @@
 > (`227-create-project-infra-config-projection`) and factory-encore spec
 > 008 (`008-data-redis-promotion-dual-composition`). This record is their
 > design provenance. Implementation is handed to the working sessions in
-> `stagecraft-ing/factory-encore`, `stagecraft-ing/template-encore`, and
-> the stagecraft + deployd surfaces in this repo.
+> `statecrafting/factory-encore`, `statecrafting/template-encore`, and
+> the statecraft + deployd surfaces in this repo.
 
 ---
 
@@ -141,11 +141,11 @@ hand-mirroring.
 Today the catalog is hardcoded in two hand-maintained copies that
 already diverge and are stale against the 5-module adapter:
 
-- frontend `platform/services/stagecraft/web/app/routes/app.projects.new.tsx:65-111`
-- backend `platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts:26-84`
+- frontend `platform/services/statecraft/web/app/routes/app.projects.new.tsx:65-111`
+- backend `platform/services/statecraft/api/projects/scaffold/moduleCatalog.ts:26-84`
 
 Nothing reads a manifest at runtime, so the prose descriptions rot. The
-stagecraft Redis checkbox currently succeeds into the inert `data-redis`
+statecraft Redis checkbox currently succeeds into the inert `data-redis`
 knob (add-module does not error, because the module exists), producing a
 scaffold with a dead `REDIS_URL` and a false-labeled feature.
 
@@ -157,7 +157,7 @@ actual `infra.config.json`. Delete both hardcoded copies.
 
 The pattern to mirror already exists for Postgres:
 
-- stagecraft `deploy.ts:698-712` sets `previewDatabase` when
+- statecraft `deploy.ts:698-712` sets `previewDatabase` when
   `envKind==="development"` (else refuses).
 - deployd `DeployExtras` (`helm.rs:376-381`) carries the flag; the chart
   renders an in-namespace Postgres StatefulSet (`postgres.yaml`) and
@@ -186,7 +186,7 @@ that the infra config expansion generalizes past Postgres.
 
 ## Per-repo handoff
 
-- **stagecraft (this repo):** replace the two hardcoded `MODULE_CATALOG`
+- **statecraft (this repo):** replace the two hardcoded `MODULE_CATALOG`
   copies with a derived catalog; split the form into the three sections
   + two-axis selector; render `infra.config.json` read-only; author the
   Base-app config fields.
@@ -203,7 +203,7 @@ that the infra config expansion generalizes past Postgres.
 ## Contracts committed
 
 This record's direction is now committed as two coupled contracts: OAP
-spec `227-create-project-infra-config-projection` (the stagecraft surface
+spec `227-create-project-infra-config-projection` (the statecraft surface
 and the deployd `previewRedis` path) and factory-encore spec
 `008-data-redis-promotion-dual-composition` (the adapter-side data-redis
 promotion, dual composition, and CORS knob). Both are design-only draft
@@ -219,7 +219,7 @@ Redis, and how `encore.app` becomes a first-class config object.
 ### Belief-check: what OAP actually provisions for tenants today
 
 Local `encore run` gives a developer five backing primitives; the aim is
-to match them in the stagecraft-deployed dev environment. Verified against
+to match them in the statecraft-deployed dev environment. Verified against
 deployd-api-rs, the acme-vue-encore chart, the tenant baseline
 (`template-encore/apps/api/infra.config.json`), and the cluster charts:
 
@@ -227,13 +227,13 @@ deployd-api-rs, the acme-vue-encore chart, the tenant baseline
 |---|---|---|---|
 | SQL (Postgres) | `sql_servers` | yes (`previewDatabase` renders `postgres.yaml`) | real |
 | Redis / cache | `redis` | no | the work (this spec) |
-| Pub/Sub (NSQ) | `pubsub` (nsq) | no (cluster `nsqd` serves stagecraft's own app only) | not wired for tenants |
+| Pub/Sub (NSQ) | `pubsub` (nsq) | no (cluster `nsqd` serves statecraft's own app only) | not wired for tenants |
 | Cron | none (absent from the schema) | no; a no-op under self-host regardless | dropped (see below) |
 | Object storage | `object_storage` (s3/gcs) | no (no cluster MinIO/S3 backing) | not wired for tenants |
 
 Only SQL is real for tenants today. The "we already have NSQ / cron /
-object storage" reading came from stagecraft's *own* infra config
-(`platform/services/stagecraft/infra.config.json`, a mature 4-resource
+object storage" reading came from statecraft's *own* infra config
+(`platform/services/statecraft/infra.config.json`, a mature 4-resource
 file), which the tenant scaffold and deployd's per-tenant path share none
 of.
 
@@ -251,13 +251,13 @@ of.
 - **Cron: dropped.** It does not align with the rest. It is not an
   `infra.config.json` key, so the Infrastructure section cannot project it
   at all, and Encore's cron primitive is a no-op when self-hosted
-  (`platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml:12`:
+  (`platform/charts/statecraft/templates/cronjob-orphan-sweeper.yaml:12`:
   the Encore cron is "a no-op without Encore Cloud, so this K8s CronJob IS
-  the production scheduler" for stagecraft's own sweepers). Tenant cron
+  the production scheduler" for statecraft's own sweepers). Tenant cron
   parity would mean generating a per-schedule K8s CronJob from app
   metadata: a different mechanism, not this projection. Not pursued now.
 - Metrics (`metrics` pointing at the cluster Prometheus, mirroring
-  stagecraft's own config) is a cheap future add; low value for local-dev
+  statecraft's own config) is a cheap future add; low value for local-dev
   parity, left out.
 
 ### encore.app first-class config (resolves Open item #2, the CORS knob)

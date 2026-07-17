@@ -13,10 +13,10 @@ variable "oidc_m2m_client_secret" {
   default   = ""
 }
 
-variable "stagecraft_db_url" {
+variable "statecraft_db_url" {
   type      = string
   sensitive = true
-  default   = "postgres://user:pass@host:5432/stagecraft"
+  default   = "postgres://user:pass@host:5432/statecraft"
 }
 
 variable "deployd_db_url" {
@@ -51,37 +51,37 @@ variable "hiqlite_secret_api" {
 # audit are staged for FU-003 to inherit without re-deriving the
 # discipline.
 
-variable "stagecraft_knowledge_sweeper_client_id" {
+variable "statecraft_knowledge_sweeper_client_id" {
   type      = string
   sensitive = true
   default   = ""
 }
 
-variable "stagecraft_knowledge_sweeper_client_secret" {
+variable "statecraft_knowledge_sweeper_client_secret" {
   type      = string
   sensitive = true
   default   = ""
 }
 
-variable "stagecraft_factory_sweeper_client_id" {
+variable "statecraft_factory_sweeper_client_id" {
   type      = string
   sensitive = true
   default   = ""
 }
 
-variable "stagecraft_factory_sweeper_client_secret" {
+variable "statecraft_factory_sweeper_client_secret" {
   type      = string
   sensitive = true
   default   = ""
 }
 
-variable "stagecraft_audit_sweeper_client_id" {
+variable "statecraft_audit_sweeper_client_id" {
   type      = string
   sensitive = true
   default   = ""
 }
 
-variable "stagecraft_audit_sweeper_client_secret" {
+variable "statecraft_audit_sweeper_client_secret" {
   type      = string
   sensitive = true
   default   = ""

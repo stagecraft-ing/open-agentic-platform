@@ -61,7 +61,7 @@ Without a picker:
    remain visible read-only").
 4. The "Browse org agents" affordance spec 123 §6.3 calls out is
    un-implemented; the only path to seeing the org catalog is the
-   stagecraft web UI.
+   statecraft web UI.
 
 ## 2. Decision
 
@@ -211,7 +211,7 @@ A-4. `onSelect` emits an `AgentReference::ById` by default; the
      "always use latest" shortcut emits `AgentReference::ByNameLatest`.
 A-5. The picker auto-refreshes when a duplex `agent.catalog.updated`
      envelope arrives (spec 123 §7.1 v: 2).
-A-6. `Manage bindings →` deep-links to the stagecraft web UI at
+A-6. `Manage bindings →` deep-links to the statecraft web UI at
      `/app/project/{projectId}/agents` (uses `tauri-plugin-shell`
      opener).
 A-7. Storybook (or equivalent) story renders all four states: empty

@@ -33,7 +33,7 @@
     ],
     "specPath": "specs/088-factory-upstream-sync/spec.md",
     "status": "superseded",
-    "summary": "Defines the protocol, mapping manifest, and tooling for translating updates from upstream repositories (legacy-factory, template) into OAP's factory/ three-layer architecture. Superseded by spec 108: the translation protocol in §5 is retained and lifted into the spec 108 sync worker, but storage moves from the on-disk factory/ tree to PostgreSQL and the trigger moves from the /factory-sync CLI command to the stagecraft UI.\n",
+    "summary": "Defines the protocol, mapping manifest, and tooling for translating updates from upstream repositories (legacy-factory, template) into OAP's factory/ three-layer architecture. Superseded by spec 108: the translation protocol in §5 is retained and lifted into the spec 108 sync worker, but storage moves from the on-disk factory/ tree to PostgreSQL and the trigger moves from the /factory-sync CLI command to the statecraft UI.\n",
     "supersededBy": "108-factory-as-platform-feature",
     "title": "Factory Upstream Sync Protocol"
   },

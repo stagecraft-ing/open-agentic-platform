@@ -2,7 +2,7 @@
  * Tenant-repo artifact reference convention and existence checks.
  *
  * Spec 213 (tenant-repo-image-build). This module is the single owner of
- * the GHCR image-ref naming convention (FR-002 / FR-005): every stagecraft
+ * the GHCR image-ref naming convention (FR-002 / FR-005): every statecraft
  * call site that needs "the image for this commit" derives it here, so no
  * inline `ghcr.io/...` string construction survives elsewhere (SC-003).
  */

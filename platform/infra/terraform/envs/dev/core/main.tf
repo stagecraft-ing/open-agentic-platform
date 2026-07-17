@@ -27,7 +27,7 @@ module "keyvault_secrets" {
   secrets = {
     OIDC_M2M_CLIENT_ID     = var.oidc_m2m_client_id
     OIDC_M2M_CLIENT_SECRET = var.oidc_m2m_client_secret
-    STAGECRAFT_DB_URL      = var.stagecraft_db_url
+    STATECRAFT_DB_URL      = var.statecraft_db_url
     DEPLOYD_DB_URL         = var.deployd_db_url
     # Consumed via the deployd-api chart's secrets.keys (remoteKey
     # hiqlite-secret-raft / hiqlite-secret-api) through the
@@ -40,12 +40,12 @@ module "keyvault_secrets" {
     # (FU-001). Factory and audit pairs land here as the precedent
     # FU-003 inherits — one Rauthy client per sweeper purpose, one
     # Key Vault secret per credential, one K8s Secret per pod.
-    STAGECRAFT_KNOWLEDGE_SWEEPER_CLIENT_ID     = var.stagecraft_knowledge_sweeper_client_id
-    STAGECRAFT_KNOWLEDGE_SWEEPER_CLIENT_SECRET = var.stagecraft_knowledge_sweeper_client_secret
-    STAGECRAFT_FACTORY_SWEEPER_CLIENT_ID       = var.stagecraft_factory_sweeper_client_id
-    STAGECRAFT_FACTORY_SWEEPER_CLIENT_SECRET   = var.stagecraft_factory_sweeper_client_secret
-    STAGECRAFT_AUDIT_SWEEPER_CLIENT_ID         = var.stagecraft_audit_sweeper_client_id
-    STAGECRAFT_AUDIT_SWEEPER_CLIENT_SECRET     = var.stagecraft_audit_sweeper_client_secret
+    STATECRAFT_KNOWLEDGE_SWEEPER_CLIENT_ID     = var.statecraft_knowledge_sweeper_client_id
+    STATECRAFT_KNOWLEDGE_SWEEPER_CLIENT_SECRET = var.statecraft_knowledge_sweeper_client_secret
+    STATECRAFT_FACTORY_SWEEPER_CLIENT_ID       = var.statecraft_factory_sweeper_client_id
+    STATECRAFT_FACTORY_SWEEPER_CLIENT_SECRET   = var.statecraft_factory_sweeper_client_secret
+    STATECRAFT_AUDIT_SWEEPER_CLIENT_ID         = var.statecraft_audit_sweeper_client_id
+    STATECRAFT_AUDIT_SWEEPER_CLIENT_SECRET     = var.statecraft_audit_sweeper_client_secret
   }
 
   depends_on = [time_sleep.wait_for_kv_rbac]

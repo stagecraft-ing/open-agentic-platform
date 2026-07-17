@@ -74,7 +74,7 @@ references:
   - role: provenance-consumer
     unit: { kind: file, path: specs/161-knowledge-requirements-provenance-emission/spec.md }
   - role: target-renderer
-    unit: { kind: file, path: specs/163-stagecraft-requirements-view/spec.md }
+    unit: { kind: file, path: specs/163-statecraft-requirements-view/spec.md }
 compliance:
   - framework: owasp-asi-2026
     controls: ["ASI06"]
@@ -100,7 +100,7 @@ summary: >
   emission contract).
 
   Draft specs land in the project's repo under
-  `<project>/specs/` and surface in the stagecraft
+  `<project>/specs/` and surface in the statecraft
   Requirements view (spec 163). The developer reviews
   them there: edits, refinements, rejection of bad
   derivations, splitting of over-broad specs.
@@ -114,7 +114,7 @@ summary: >
 
 Two project shapes need spec spawning from OPC:
 
-1. **Reverse-engineering** — a project imported into stagecraft
+1. **Reverse-engineering** — a project imported into statecraft
    without a pre-existing spec spine (the agent-builder-console
    pattern per intent doc §6.5). Its working tree exists; its
    knowledge bundles may exist; its specs do not. A developer
@@ -138,15 +138,15 @@ The intent doc §6.5 names this explicitly:
 > knows what it scaffolded), but the synthesis stage and the
 > review/approve flow are identical."*
 
-OPC is the right home for the pipeline (not stagecraft) because:
+OPC is the right home for the pipeline (not statecraft) because:
 
 - The pipeline needs filesystem access to the project's working
-  tree — OPC has it; stagecraft doesn't.
+  tree — OPC has it; statecraft doesn't.
 - xray's structural fingerprinting and call graph live in
   `crates/xray`, consumed by OPC's panels today.
 - The synthesis step benefits from being near the developer
   (review, branch-of-thought, checkpoint) — all OPC capabilities.
-- Stagecraft is the *receiver* of the resulting draft specs
+- Statecraft is the *receiver* of the resulting draft specs
   (rendering them via spec 163's Requirements view), not the
   producer.
 
@@ -246,7 +246,7 @@ inputs by this synthesiser under this prompt."
 - **FR-001** OPC exposes a "Decompose project" action at the
   project workspace level. Triggering it runs the six-stage
   pipeline against the project's working tree and (if
-  available) the project's stagecraft knowledge bundle.
+  available) the project's statecraft knowledge bundle.
 - **FR-002** Stages 1–5 produce typed, content-addressed
   outputs persisted under `<project>/.opc/decomposition/<run-id>/`.
 - **FR-003** Stage 6 emits draft specs into the staging area

@@ -9,8 +9,8 @@
       },
       {
         "code": "W-002",
-        "message": "spec '121-claim-provenance-enforcement' file unit 'platform/services/stagecraft/api/governance/provenancePolicy.ts' does not exist",
-        "path": "platform/services/stagecraft/api/governance/provenancePolicy.ts"
+        "message": "spec '121-claim-provenance-enforcement' file unit 'platform/services/statecraft/api/governance/provenancePolicy.ts' does not exist",
+        "path": "platform/services/statecraft/api/governance/provenancePolicy.ts"
       },
       {
         "code": "W-002",
@@ -191,7 +191,7 @@
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/governance/provenancePolicy.ts"
+          "path": "platform/services/statecraft/api/governance/provenancePolicy.ts"
         }
       }
     ],

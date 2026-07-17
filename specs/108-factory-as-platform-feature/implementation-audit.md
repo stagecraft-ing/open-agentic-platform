@@ -31,7 +31,7 @@
 ## §3 Data Model — concrete location
 
 ```
-platform/services/stagecraft/api/db/schema.ts
+platform/services/statecraft/api/db/schema.ts
   751–767   factoryUpstreams       (org_id PK)
   769–783   factoryAdapters        (unique on org_id, name)
   785–799   factoryContracts       (unique on org_id, name, version)
@@ -39,7 +39,7 @@ platform/services/stagecraft/api/db/schema.ts
   858–877   factoryUpstreamPats    (spec 109 §6)
   900–921   factorySyncRuns        (spec 109 §5)
 
-platform/services/stagecraft/api/db/migrations/
+platform/services/statecraft/api/db/migrations/
   18_factory_platform_feature.up.sql       — 4 spec-108 tables
   19_factory_pat_and_sync_runs.up.sql      — spec-109 PAT + sync_runs
   20_factory_pipeline_source.up.sql        — downstream column adds
@@ -146,13 +146,13 @@ adds a `// TODO(spec-108-§7-punt)` note pointing at the follow-up.
 | `factory/contract/**` | present |
 | `factory/process/**` | present |
 | `factory/upstream-map.yaml` | present |
-| `factory/docs/**` | present (5 markdown files) — migrate to `platform/services/stagecraft/docs/factory/` |
+| `factory/docs/**` | present (5 markdown files) — migrate to `platform/services/statecraft/docs/factory/` |
 | `factory/README.md` | present — included in deletion |
 | `.claude/commands/factory-sync.md` | already removed |
 
 Steps to take:
 
-1. Migrate `factory/docs/*.md` → `platform/services/stagecraft/docs/factory/`,
+1. Migrate `factory/docs/*.md` → `platform/services/statecraft/docs/factory/`,
    adjusting any intra-doc links so relative paths still resolve.
 2. Delete the entire `factory/` directory (`adapters`, `contract`, `process`,
    `docs`, `upstream-map.yaml`, `README.md`, `.gitignore`, `.DS_Store`).
@@ -160,7 +160,7 @@ Steps to take:
    and `crates/agent-frontmatter/src/types.rs` so the doc no longer asserts an
    in-tree location for the factory.
 4. Run `make registry` to refresh `.derived/codebase-index/index.json` (paths
-   under `factory/` will drop out of the inventory) and `make ci-stagecraft`
+   under `factory/` will drop out of the inventory) and `make ci-statecraft`
    plus `make ci-rust` and `make ci-tools` to confirm no consumer regresses.
 
 ## Phase boundaries for implementation

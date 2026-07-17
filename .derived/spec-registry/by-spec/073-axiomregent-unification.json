@@ -70,7 +70,7 @@
       "ToolProvider Trait (Router Refactor)",
       "Hiqlite Schema",
       "GitHub Token Brokering Flow",
-      "Stagecraft GitHub Webhook Absorption",
+      "Statecraft GitHub Webhook Absorption",
       "deployd-api Rust Architecture",
       "Cross-Session Event Propagation",
       "Crate Elimination Plan",
@@ -89,7 +89,7 @@
     ],
     "specPath": "specs/073-axiomregent-unification/spec.md",
     "status": "approved",
-    "summary": "Consolidates five standalone crates and services (gitctx, blockoli, stackwalk, titor, github-app) into axiomregent and stagecraft. Migrates axiomregent from synchronous rusqlite to async hiqlite for unified storage, distributed coordination, and cross-session event propagation. Introduces GitHub organisation-level integration via a platform-brokered App installation token flow with per-tool scope narrowing. Rewrites deployd-api from Node.js/Express to Rust with hiqlite-backed persistent deployment state. Eliminates five standalone codebases and nine fragmented storage backends in favour of two unified layers: hiqlite (structured data + coordination) and filesystem (large binary blobs).\n",
+    "summary": "Consolidates five standalone crates and services (gitctx, blockoli, stackwalk, titor, github-app) into axiomregent and statecraft. Migrates axiomregent from synchronous rusqlite to async hiqlite for unified storage, distributed coordination, and cross-session event propagation. Introduces GitHub organisation-level integration via a platform-brokered App installation token flow with per-tool scope narrowing. Rewrites deployd-api from Node.js/Express to Rust with hiqlite-backed persistent deployment state. Eliminates five standalone codebases and nine fragmented storage backends in favour of two unified layers: hiqlite (structured data + coordination) and filesystem (large binary blobs).\n",
     "supersedes": [
       "038-titor-tauri-command-wiring",
       "040-blockoli-semantic-search-wiring"

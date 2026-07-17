@@ -23,31 +23,31 @@ references:
   # templateName alignment doctrine is partially superseded by 199 FR-009.
   # Historical pointers, non-owning.
   - role: historical
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/oapNativeAdapters.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/oapNativeAdapters.ts }
   - role: historical
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/projection.test.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/projection.test.ts }
 extends:
   - spec: "140-acme-vue-node-scaffold-source-id-cutover"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/translator.ts }
   - spec: "140-acme-vue-node-scaffold-source-id-cutover"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/substrateBrowser.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/substrateBrowser.ts }
   - spec: "140-acme-vue-node-scaffold-source-id-cutover"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.test.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/translator.test.ts }
   - spec: "140-acme-vue-node-scaffold-source-id-cutover"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/artifacts.test.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/artifacts.test.ts }
   - spec: "140-acme-vue-node-scaffold-source-id-cutover"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/scheduler.test.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/scheduler.test.ts }
   - spec: "140-acme-vue-node-scaffold-source-id-cutover"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/scaffold.test.ts }
   - spec: "140-acme-vue-node-scaffold-source-id-cutover"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+    unit: { kind: file, path: platform/services/statecraft/vite.config.ts }
 summary: >
   Spec 140 §2.1 fixed the canonical scaffold_source_id for acme-vue-node
   as `acme-vue-node-template`. The upstream's own
@@ -88,7 +88,7 @@ Two pieces of evidence post-dating §2.1's authoring make
 `acme-vue-node-template` the wrong choice:
 
 1. **The upstream declares its own name as `acme-vue-node`.** The
-   `template.json` at the root of `Stagecraft-ing/template`
+   `template.json` at the root of `statecrafting/template`
    carries `templateName: "acme-vue-node"`. The upstream is the
    authoritative source of its own identity; the inventoried
    `-template` suffix is a downstream invention.
@@ -152,11 +152,11 @@ the new sibling.
 
 Five test files assert on the literal `acme-vue-node-template`:
 
-- `platform/services/stagecraft/api/factory/translator.test.ts`
-- `platform/services/stagecraft/api/factory/projection.test.ts`
-- `platform/services/stagecraft/api/factory/artifacts.test.ts`
-- `platform/services/stagecraft/api/projects/scaffold/scheduler.test.ts`
-- `platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts`
+- `platform/services/statecraft/api/factory/translator.test.ts`
+- `platform/services/statecraft/api/factory/projection.test.ts`
+- `platform/services/statecraft/api/factory/artifacts.test.ts`
+- `platform/services/statecraft/api/projects/scaffold/scheduler.test.ts`
+- `platform/services/statecraft/api/projects/scaffold/scaffold.test.ts`
 
 Updated to assert `acme-vue-node`. Two jsdoc comment references
 (`translator.ts:701`, `translator.ts:725`, `substrateBrowser.ts:27`)
@@ -216,7 +216,7 @@ migration's body must not change. Migration 36 continues to insert
   source registered` banner on `/app/projects/new` immediately
   after migration 36 deployed.
 - **Upstream evidence** — `template.json::templateName =
-  "acme-vue-node"` in `Stagecraft-ing/template@main` (predates
+  "acme-vue-node"` in `statecrafting/template@main` (predates
   spec 140's authoring).
 - **CONST-005 framing** — Spec 140 was authored without sight of
   the upstream's `template.json`. Per

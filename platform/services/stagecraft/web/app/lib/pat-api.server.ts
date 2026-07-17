@@ -1,7 +1,7 @@
 /**
  * Server-side PAT API helpers (spec 106 FR-007).
  *
- * Calls the /auth/pat endpoints from /platform/services/stagecraft/api/auth/pat.ts
+ * Calls the /auth/pat endpoints from /platform/services/statecraft/api/auth/pat.ts
  * over direct fetch so the SSR loaders/actions can forward the session cookie.
  */
 

@@ -24,7 +24,7 @@ Phase 1 = PR-1 (`feat/205-identity-leg`); Phase 2 = PR-2
 
 ## Pre-implementation decisions (2026-06-12 codebase survey)
 
-The pre-task survey of the stagecraft auth/audit/sync surfaces and the
+The pre-task survey of the statecraft auth/audit/sync surfaces and the
 Rauthy source found five points where the plan's sketch meets different
 ground truth. Resolutions recorded here so no task silently re-decides
 them:
@@ -62,12 +62,12 @@ them:
   `DELETE /clients_dyn/{id}`** (`server.rs:553-555` routes only
   POST/GET/PUT): deletion uses the admin `DELETE /clients/{id}`
   (`API-Key` path). The custody rule is therefore: registration token
-  for register/rotate, admin key for delete — both stagecraft-only,
+  for register/rotate, admin key for delete — both statecraft-only,
   never OPC, never agents. An upstream symmetric-DELETE patch is on
   the plan's upstream track.
 - **PD-E — OPC keyless means token acquisition is platform-proxied.**
   The dyn-client `client_secret` and `registration_access_token` never
-  leave stagecraft — persisted on the delegation row encrypted
+  leave statecraft — persisted on the delegation row encrypted
   AES-256-GCM per the PAT precedent (`patCrypto.ts` /
   `PAT_ENCRYPTION_KEY`; dedicated key `NHI_SECRET_ENCRYPTION_KEY`).
   The agent session receives only short-TTL access tokens and grants,
@@ -113,11 +113,11 @@ them:
       doubles as the release-cadence hedge) — and pin it in
       `platform/charts/rauthy/values.yaml`; enable
       `ENABLE_DYN_CLIENT_REG` + `DYN_CLIENT_REG_TOKEN` (custody:
-      stagecraft only), `CLIENT_CREDENTIALS_MAP_SUB=true`,
+      statecraft only), `CLIENT_CREDENTIALS_MAP_SUB=true`,
       `DYN_CLIENT_ALLOWED_SCOPES` (defense-in-depth ceiling),
       `DYN_CLIENT_DEFAULT_TOKEN_LIFETIME` (grant-renewal cadence);
       leave `DYN_CLIENT_SECRET_AUTO_ROTATE` unset (it rotates the
-      RFC 7592 registration token, not the `client_secret`; stagecraft
+      RFC 7592 registration token, not the `client_secret`; statecraft
       manages rotation via PUT updates — plan.md §Flow decision);
       document secret wiring per `.claude/rules/platform-services.md`.
 - [ ] T006 `api/auth/rauthy.ts`: dyn-client management per PD-D —
@@ -162,8 +162,8 @@ them:
       inactive-cleanup scheduler **exits when a registration token is
       configured** (`rauthy src/schedulers/src/dyn_clients.rs:24-27`) —
       OAP's exact mode — so there is no Rauthy-side reaper, and the
-      T009 `finally` path is process-local (a stagecraft crash/restart
-      orphans live credentials). Add a stagecraft sweep (startup + a
+      T009 `finally` path is process-local (a statecraft crash/restart
+      orphans live credentials). Add a statecraft sweep (startup + a
       periodic job at grant-TTL cadence): delegation rows with
       `revoked_at IS NULL` whose session is absent from the live
       registry and whose `last_seen_at` exceeds the renewal window ⇒
@@ -212,7 +212,7 @@ them:
       the intersection — shrunk human scopes ⇒ PUT the narrower scope
       set or refuse (`scope-shrunk`); refusal reasons persisted
       (`revoked | scope-shrunk | expired | malformed`).
-- [ ] T017 Purpose binding enforcement: stagecraft endpoints that
+- [ ] T017 Purpose binding enforcement: statecraft endpoints that
       accept NHI calls verify token + grant together — a token
       presented outside its bound intent/audience is refused
       attributably; pin the enforcement-point list during

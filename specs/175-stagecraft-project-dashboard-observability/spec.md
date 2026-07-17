@@ -1,7 +1,7 @@
 ---
-id: "175-stagecraft-project-dashboard-observability"
-slug: stagecraft-project-dashboard-observability
-title: "Stagecraft project dashboard — observability refinement of `_index`"
+id: "175-statecraft-project-dashboard-observability"
+slug: statecraft-project-dashboard-observability
+title: "Statecraft project dashboard — observability refinement of `_index`"
 status: approved
 implementation: complete
 owner: bart
@@ -16,10 +16,10 @@ depends_on:
   - "124-opc-factory-run-platform-integration"  # opc-factory-run-platform-integration (factory_runs table feeds runs panel)
   - "127-spec-code-coupling-gate"  # spec-code-coupling-gate (gate-fire signals feed the risk banner)
   - "147-spec-kind-grammar"  # spec-kind-grammar (lifecycle counts use this grammar)
-  - "163-stagecraft-requirements-view"  # stagecraft-requirements-view (reuses specRegistry/registryReader)
-  - "164-stagecraft-development-lifecycle-board"  # stagecraft-development-lifecycle-board (pair surface; supplies lifecycle counts shape)
+  - "163-statecraft-requirements-view"  # statecraft-requirements-view (reuses specRegistry/registryReader)
+  - "164-statecraft-development-lifecycle-board"  # statecraft-development-lifecycle-board (pair surface; supplies lifecycle counts shape)
   - "168-per-project-governance-certificate"  # per-project-governance-certificate (the certificate this view surfaces)
-code_aliases: ["STAGECRAFT_PROJECT_DASHBOARD", "PROJECT_DETAIL_OBSERVABILITY"]
+code_aliases: ["STATECRAFT_PROJECT_DASHBOARD", "PROJECT_DETAIL_OBSERVABILITY"]
 amended: "2026-06-18"
 amendment_record: |
   175 (self): implementation-time `establishes:` and `extends:` fill-in.
@@ -29,26 +29,26 @@ amendment_record: |
   engine swap. The dashboard's observability contract is unchanged; only the
   reader-call argument shape moved.
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/projectDashboard/encore.service.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/projectDashboard/dashboard.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/projectDashboard/dashboardHelpers.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/projectDashboard/dashboard.test.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/projectDashboard/riskAssessor.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/projectDashboard/riskAssessor.test.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/projectDashboard/types.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/project-dashboard-api.server.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/components/ProjectDashboardLifecycle.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/components/ProjectDashboardCertificate.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/components/ProjectDashboardRuns.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/components/ProjectDashboardRiskBanner.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/components/ProjectDashboardAudit.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/api/projectDashboard/encore.service.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projectDashboard/dashboard.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projectDashboard/dashboardHelpers.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projectDashboard/dashboard.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projectDashboard/riskAssessor.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projectDashboard/riskAssessor.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projectDashboard/types.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/project-dashboard-api.server.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/components/ProjectDashboardLifecycle.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/components/ProjectDashboardCertificate.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/components/ProjectDashboardRuns.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/components/ProjectDashboardRiskBanner.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/components/ProjectDashboardAudit.tsx }
 refines:
   - aspect: project-dashboard-landing-surface
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId._index.tsx }
 extends:
-  - spec: "163-stagecraft-requirements-view"
+  - spec: "163-statecraft-requirements-view"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/audit/audit.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/audit/audit.ts }
   # Lifecycle-flip golden refresh: 175's lifecycle state is snapshotted in
   # the featuregraph golden, so flipping draft→approved + pending→complete
   # shifts the golden fingerprint. The additive edge declares that true
@@ -65,9 +65,9 @@ references:
   - role: aide-analogue
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-blueprint-spec.md }
   - role: pair-spec
-    unit: { kind: file, path: specs/163-stagecraft-requirements-view/spec.md }
+    unit: { kind: file, path: specs/163-statecraft-requirements-view/spec.md }
   - role: pair-spec
-    unit: { kind: file, path: specs/164-stagecraft-development-lifecycle-board/spec.md }
+    unit: { kind: file, path: specs/164-statecraft-development-lifecycle-board/spec.md }
   - role: governed-read-discipline
     unit: { kind: file, path: specs/103-init-protocol-governed-reads/spec.md }
 summary: >
@@ -77,7 +77,7 @@ summary: >
   AIDE-VELOCITY-OAP-INTENT.md §3.3 that was committed in intent
   but never scheduled in the §9 decomposition list.
 
-  Six concrete panels, all backed by data already in stagecraft
+  Six concrete panels, all backed by data already in statecraft
   (no new tables): (1) project identity rendered by the parent
   layout; (2) current lifecycle posture — counts by spec status
   + implementation state from the project's own spec spine,
@@ -106,11 +106,11 @@ summary: >
   ad-hoc `registry.json` parsing.
 ---
 
-# 175 — Stagecraft project dashboard — observability refinement of `_index`
+# 175 — Statecraft project dashboard — observability refinement of `_index`
 
 ## 1. Problem
 
-The stagecraft project page (`/app/project/:id`) today renders a
+The statecraft project page (`/app/project/:id`) today renders a
 six-tile navigation grid: Knowledge, Requirements, Imported agents,
 Development, Deploys, Settings. Each tile is a `<Link>` carrying a
 label and one-line hint. There is no project data on this surface
@@ -158,7 +158,7 @@ Concrete consequences of the unaddressed gap:
 - The factory-runs panel from spec 124 surfaces in the OPC desktop
   and via `GET /api/factory/runs` but has no project-page summary;
   recent activity is invisible from the dashboard.
-- The risk signals already in stagecraft (stale extraction runs per
+- The risk signals already in statecraft (stale extraction runs per
   spec 115, failed factory runs per spec 124, coupling-gate
   failures per spec 127) compose naturally into a project-level
   risk banner, but the composition is never performed because no
@@ -208,7 +208,7 @@ The six panels from the intent §3.3, made concrete:
 
 5. **Risk banner** — derived signal aggregator. Composes:
    - Stale extraction runs (`knowledge_objects` in `extracting`
-     state past `STAGECRAFT_EXTRACT_STALE_AFTER_SEC`)
+     state past `STATECRAFT_EXTRACT_STALE_AFTER_SEC`)
    - Failed factory runs in the last 24h (rows in `factory_runs`
      with `status = failed`)
    - Coupling-gate failures in the last 24h (audit_log rows with
@@ -281,7 +281,7 @@ post-implementation record, paired with the `establishes:` blocks in
 the frontmatter:
 
 ```
-platform/services/stagecraft/
+platform/services/statecraft/
   api/projectDashboard/
     encore.service.ts
     dashboard.ts                         (GET /api/projects/:id/dashboard)
@@ -313,7 +313,7 @@ downstream callers stay unchanged.
 ### 2.5.1 Certificate panel — surface-area gap (deferred follow-up)
 
 Spec 168's tenant-emit mode writes `governance-certificate.json` to
-the tenant's filesystem per factory run. There is no stagecraft-side
+the tenant's filesystem per factory run. There is no statecraft-side
 persistence path today for the certificate's SHA-256 hash or the
 auditor verifier's exit code. The dashboard's certificate panel
 therefore surfaces what is derivable from `factory_runs` only:
@@ -331,7 +331,7 @@ construction: the panel performs no synchronous verifier work.
 SC-002 ("displays the certificate hash prefix and a `clean`
 verifier badge") is only partially satisfiable until a follow-up
 spec adds a write path from tenant-side emission / verification to
-stagecraft. That follow-up is out of scope here per spec 175 §2's
+statecraft. That follow-up is out of scope here per spec 175 §2's
 "no new tables" constraint and the pair-spec depends_on chain
 (168 → tenant emission, 175 → reader-side surface).
 
@@ -409,7 +409,7 @@ out to the owning tab where the action lives:
   displays that row on the recent-runs panel within 5 seconds of
   page load.
 - **SC-004** A project with a `knowledge_object` stuck in
-  `extracting` past `STAGECRAFT_EXTRACT_STALE_AFTER_SEC` displays
+  `extracting` past `STATECRAFT_EXTRACT_STALE_AFTER_SEC` displays
   a `warning` severity risk banner naming "stale extraction
   runs" with the count.
 - **SC-005** A project with a `factory_runs` row in `failed`
@@ -454,7 +454,7 @@ out to the owning tab where the action lives:
   request-response. A realtime refinement is a future spec.
 - **Charts / time-series.** The dashboard surfaces current state,
   not historical trend lines. A trends/portfolio surface lives in
-  OPC (`PortfolioPanel`, spec 096) or a future stagecraft
+  OPC (`PortfolioPanel`, spec 096) or a future statecraft
   portfolio view, not on the per-project dashboard.
 - **Cross-project aggregates.** Per-project surface; portfolio
   aggregation is owned by future portfolio specs.
@@ -472,7 +472,7 @@ out to the owning tab where the action lives:
 - **Project membership lost mid-session** — the existing
   membership guard on `getProject` returns 403; the route returns
   the existing error response. No dashboard-specific handling.
-- **Stagecraft DB unreachable** — the route surfaces the standard
+- **Statecraft DB unreachable** — the route surfaces the standard
   Encore error envelope. No dashboard-specific fallback.
 - **Project belongs to a different org than the caller** — the
   existing org / project membership guard rejects.

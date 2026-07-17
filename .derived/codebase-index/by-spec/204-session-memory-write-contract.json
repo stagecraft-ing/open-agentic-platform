@@ -17,7 +17,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/overrideGate.ts",
+        "path": "platform/services/statecraft/api/factory/overrideGate.ts",
         "source": "spec-edge"
       },
       {
@@ -307,14 +307,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/overrideGate.ts"
+            "file": "platform/services/statecraft/api/factory/overrideGate.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/overrideGate.ts"
+          "path": "platform/services/statecraft/api/factory/overrideGate.ts"
         }
       },
       {

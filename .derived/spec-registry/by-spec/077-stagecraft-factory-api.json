@@ -4,7 +4,7 @@
       "open-agentic-platform"
     ],
     "codeAliases": [
-      "STAGECRAFT_FACTORY",
+      "STATECRAFT_FACTORY",
       "FACTORY_API"
     ],
     "created": "2026-04-04",
@@ -12,18 +12,18 @@
     "establishes": [
       {
         "kind": "directory",
-        "path": "platform/services/stagecraft/api/factory"
+        "path": "platform/services/statecraft/api/factory"
       }
     ],
     "extraFrontmatter": {
       "language": "en"
     },
-    "featureBranch": "feat/077-stagecraft-factory-api",
-    "id": "077-stagecraft-factory-api",
+    "featureBranch": "feat/077-statecraft-factory-api",
+    "id": "077-statecraft-factory-api",
     "implementation": "complete",
     "kind": "platform",
     "sectionHeadings": [
-      "Feature Specification: Stagecraft Factory Lifecycle API",
+      "Feature Specification: Statecraft Factory Lifecycle API",
       "Purpose",
       "Scope",
       "In scope",
@@ -44,10 +44,10 @@
       "Dependencies",
       "Risks"
     ],
-    "specPath": "specs/077-stagecraft-factory-api/spec.md",
+    "specPath": "specs/077-statecraft-factory-api/spec.md",
     "status": "approved",
-    "summary": "Extends the Stagecraft platform service with Factory-specific API endpoints for project initialization, adapter selection, stage confirmation/rejection, policy bundle compilation, audit trail capture, and deployment handoff.\n",
-    "title": "Stagecraft Factory Lifecycle API — Project Init, Stage Confirmation, Audit Trail"
+    "summary": "Extends the Statecraft platform service with Factory-specific API endpoints for project initialization, adapter selection, stage confirmation/rejection, policy bundle compilation, audit trail capture, and deployment handoff.\n",
+    "title": "Statecraft Factory Lifecycle API — Project Init, Stage Confirmation, Audit Trail"
   },
   "shardHash": "fd77b69c53fcca5dc82df4764f8d4b8833d35b2f10ee989b26efaeba5cc98387",
   "specVersion": "1.1.0"

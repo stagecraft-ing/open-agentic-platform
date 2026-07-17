@@ -27,7 +27,7 @@ refines:
   # even though the host manifests belong to their service specs, same
   # as deny.toml's triaged ignores (2026-06-12, GHSA-gv7w-rqvm-qjhr).
   - aspect: "advisory-response-overrides"
-    unit: { kind: file, path: platform/services/stagecraft/package.json }
+    unit: { kind: file, path: platform/services/statecraft/package.json }
   - aspect: "advisory-response-overrides"
     unit: { kind: file, path: product/pnpm-workspace.yaml }
 co_authority:
@@ -50,7 +50,7 @@ summary: >
   Add governed supply-chain gates to CI. cargo-deny enforces a policy bundle
   for advisories, licenses, and banned crates across every Rust manifest in
   the repo; pnpm/npm audit covers the JavaScript surface (product/apps/opc +
-  platform/services/stagecraft). Posture is blocking from day 0 (the 30-day
+  platform/services/statecraft). Posture is blocking from day 0 (the 30-day
   warn-only window planned in §9.1 was collapsed on 2026-05-02 after a clean
   dry-run; see §9 promotion record). The gate is mirrored in the Makefile
   under a new `ci-supply-chain` target, composed into `make ci`, and validated
@@ -79,7 +79,7 @@ contains zero dependency-level supply-chain enforcement:
 - No `cargo audit` or `cargo deny` step runs against any of the 30 Rust
   crates inventoried in `.derived/codebase-index/index.json`.
 - No `pnpm audit` or `npm audit` step runs against the 24 npm packages
-  (notably `@opc/desktop` and `platform/services/stagecraft`).
+  (notably `@opc/desktop` and `platform/services/statecraft`).
 - No license policy is asserted — a contributor can pull in a GPL-3.0 crate
   via transitive dependency without any signal in CI.
 - No banned-crate registry exists. If we standardise on, say, `tracing` over
@@ -105,7 +105,7 @@ Makefile per spec 104.
   manifest is silently excluded.
 - **JavaScript audit at the package-manager layer.** `pnpm audit` is run for
   the pnpm workspace (product/apps/opc + product/packages/) and `npm audit` for
-  `platform/services/stagecraft`. Both scoped to `--audit-level=high` (warn
+  `platform/services/statecraft`. Both scoped to `--audit-level=high` (warn
   on moderate, block on high/critical).
 - **Blocking from day 0.** A 30-day warn-only window was originally planned
   (see §9.1 for the historical design). It was collapsed on the day the spec
@@ -125,7 +125,7 @@ Makefile per spec 104.
 - `.github/workflows/ci-supply-chain.yml` (new) running:
   - `cargo deny check` per Rust manifest group.
   - `pnpm audit --audit-level=high` for the pnpm workspace.
-  - `npm audit --audit-level=high` for `platform/services/stagecraft`.
+  - `npm audit --audit-level=high` for `platform/services/statecraft`.
 - `Makefile`: `ci-supply-chain` target composing all three.
 - `make ci` (root composite): adds `ci-supply-chain` to the dependency chain.
 - Posture record (§9): the 30-day warn-only window planned in §9.1 was
@@ -215,7 +215,7 @@ values produce false positives on dual-licensed crates.
   `package.json`, `pnpm-lock.yaml`, `package-lock.json`, `deny.toml`, the
   workflow itself), `push` on main, `workflow_dispatch`, and a weekly cron
   (`0 12 * * 1`) so advisory-db updates surface even on a quiet week.
-- Three independent jobs (`cargo-deny`, `pnpm-audit`, `npm-audit-stagecraft`)
+- Three independent jobs (`cargo-deny`, `pnpm-audit`, `npm-audit-statecraft`)
   run in parallel.
 - Each audit step propagates non-zero exit codes. There is no
   `SUPPLY_CHAIN_BLOCKING` repo variable — the staged-enforcement plan in
@@ -262,10 +262,10 @@ ci-supply-chain-pnpm:
 	pnpm audit --audit-level=high
 
 ci-supply-chain-npm:
-	cd platform/services/stagecraft && npm audit --audit-level=high
+	cd platform/services/statecraft && npm audit --audit-level=high
 ```
 
-`ci` is updated to `ci: ci-rust ci-tools ci-desktop ci-stagecraft ci-supply-chain`.
+`ci` is updated to `ci: ci-rust ci-tools ci-desktop ci-statecraft ci-supply-chain`.
 
 `make help` gains a "Supply chain" section.
 
@@ -276,7 +276,7 @@ ci-supply-chain-npm:
 - **AC-2:** A PR adding a GPL-3.0 dependency (direct or transitive) triggers
   a red (blocking) license violation in `cargo-deny`.
 - **AC-3:** A PR introducing a known npm advisory at `--audit-level=high`
-  triggers the corresponding `pnpm-audit` or `npm-audit-stagecraft` job.
+  triggers the corresponding `pnpm-audit` or `npm-audit-statecraft` job.
 - **AC-4:** `make ci-supply-chain` runs all three checks locally with the
   same exit-code semantics as CI.
 - **AC-5:** `make ci-parity` (spec 104) confirms the workflow's `run:`
@@ -338,7 +338,7 @@ the soft-fail removed:
 ```
 cargo-deny: 13/13 manifests pass
 pnpm audit --audit-level=high: 0 highs (1 moderate, below threshold)
-npm audit --audit-level=high (stagecraft): 0 highs (4 moderates, below threshold)
+npm audit --audit-level=high (statecraft): 0 highs (4 moderates, below threshold)
 ```
 
 By the gate's own threshold the run is clean. The warn window had nothing
@@ -359,7 +359,7 @@ The day-0 dry-run surfaced 5 moderate advisories below the `high` threshold
 the gate enforces:
 
 - **pnpm workspace:** 1 moderate (transitive).
-- **stagecraft (npm):** 4 moderates in the `esbuild → @esbuild-kit/* →
+- **statecraft (npm):** 4 moderates in the `esbuild → @esbuild-kit/* →
   drizzle-kit` chain (`GHSA-67mh-4wv8-2f99`, esbuild dev-server CORS).
 
 These do not fire under `--audit-level=high` and do not block. They are
@@ -380,7 +380,7 @@ does not belong to this spec — open a follow-up if pursued.
 - **2026-06-12 — GHSA-gv7w-rqvm-qjhr (esbuild <0.28.1, high).** The
   advisory wave landed mid-day and turned both JS audit gates red on
   every open PR. Two-pronged response, each leg justified on its own
-  facts: (a) **stagecraft (npm)** — `"overrides": { "esbuild": "^0.28.1" }`
+  facts: (a) **statecraft (npm)** — `"overrides": { "esbuild": "^0.28.1" }`
   takes the patched release; validated by the full vitest lane (585
   green) and the react-router frontend build. (b) **product (pnpm)** —
   the patched 0.28.1 itself regresses down-level transforms against the

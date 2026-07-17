@@ -3,24 +3,24 @@
 # Factory Round-Trip Integration Test
 # ---------------------------------------------------------------------------
 #
-# Validates the full OPC → Stagecraft → deployd pipeline lifecycle.
+# Validates the full OPC → Statecraft → deployd pipeline lifecycle.
 #
 # Prerequisites:
-#   - Stagecraft running on localhost:4000
+#   - Statecraft running on localhost:4000
 #   - deployd-api-rs running on localhost:8080  (optional; test skips deploy step if unavailable)
-#   - A project must exist in the Stagecraft DB (seeded on first startup)
+#   - A project must exist in the Statecraft DB (seeded on first startup)
 #
 # Usage:
-#   ./platform/tests/integration/factory-round-trip.sh [stagecraft-url] [project-id]
+#   ./platform/tests/integration/factory-round-trip.sh [statecraft-url] [project-id]
 #
 # Defaults:
-#   stagecraft-url: http://localhost:4000
+#   statecraft-url: http://localhost:4000
 #   project-id:     auto-detected from GET /api/projects
 # ---------------------------------------------------------------------------
 
 set -euo pipefail
 
-STAGECRAFT="${1:-http://localhost:4000}"
+STATECRAFT="${1:-http://localhost:4000}"
 PROJECT_ID="${2:-}"
 DEPLOYD="${DEPLOYD_URL:-http://localhost:8080}"
 ACTOR="integration-test"
@@ -41,7 +41,7 @@ api() {
   shift 2
   curl -sf -X "$method" \
     -H "Content-Type: application/json" \
-    "${STAGECRAFT}${path}" \
+    "${STATECRAFT}${path}" \
     "$@"
 }
 
@@ -50,23 +50,23 @@ api_status() {
   shift 2
   curl -s -o /dev/null -w "%{http_code}" -X "$method" \
     -H "Content-Type: application/json" \
-    "${STAGECRAFT}${path}" \
+    "${STATECRAFT}${path}" \
     "$@"
 }
 
 # ---------------------------------------------------------------------------
-# 0. Check Stagecraft is reachable
+# 0. Check Statecraft is reachable
 # ---------------------------------------------------------------------------
 
 echo "=== Factory Round-Trip Integration Test ==="
-echo "Stagecraft: $STAGECRAFT"
+echo "Statecraft: $STATECRAFT"
 echo "Deployd:    $DEPLOYD"
 echo ""
 
-if ! curl -sf "${STAGECRAFT}/api/monitor/ping" > /dev/null 2>&1; then
-  fail "Stagecraft not reachable at ${STAGECRAFT}"
+if ! curl -sf "${STATECRAFT}/api/monitor/ping" > /dev/null 2>&1; then
+  fail "Statecraft not reachable at ${STATECRAFT}"
 fi
-pass "Stagecraft is reachable"
+pass "Statecraft is reachable"
 
 # ---------------------------------------------------------------------------
 # 1. Resolve project ID

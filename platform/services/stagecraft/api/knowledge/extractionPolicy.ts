@@ -72,11 +72,11 @@ type CacheEntry = {
 const cache = new Map<string, CacheEntry>();
 
 function getPolicyDir(): string {
-  if (process.env.STAGECRAFT_EXTRACT_POLICY_DIR) {
-    return process.env.STAGECRAFT_EXTRACT_POLICY_DIR;
+  if (process.env.statecraft_EXTRACT_POLICY_DIR) {
+    return process.env.statecraft_EXTRACT_POLICY_DIR;
   }
   // Default location matches the policy compiler output (spec 047): the
-  // monorepo `build/` directory, walked up from the stagecraft module.
+  // monorepo `build/` directory, walked up from the statecraft module.
   return path.resolve(process.cwd(), "build", "policy", "projects");
 }
 

@@ -151,7 +151,7 @@ export const AgentPickerView: React.FC<AgentPickerViewProps> = ({
 
   const handleManageBindings = useCallback(async () => {
     if (!projectId) return;
-    const baseUrl = await api.getStagecraftBaseUrl();
+    const baseUrl = await api.getStatecraftBaseUrl();
     const trimmed = baseUrl.replace(/\/+$/, "");
     await openShell(`${trimmed}/app/project/${projectId}/agents`);
   }, [projectId]);
@@ -166,7 +166,7 @@ export const AgentPickerView: React.FC<AgentPickerViewProps> = ({
           </DialogTitle>
           <DialogDescription>
             Pick an org agent to use for this project. Bindings are managed in
-            the stagecraft web UI.
+            the statecraft web UI.
           </DialogDescription>
         </DialogHeader>
 
@@ -274,7 +274,7 @@ const ActiveList: React.FC<{
     return (
       <div className="py-8 px-4 text-center flex flex-col items-center gap-3">
         <p className="text-sm text-muted-foreground">
-          No bindings yet — open the project's Agents tab in stagecraft to bind
+          No bindings yet — open the project's Agents tab in statecraft to bind
           one.
         </p>
         {projectId ? (

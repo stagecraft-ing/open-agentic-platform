@@ -6,7 +6,7 @@
  * Reads ~/.oap/control.port and ~/.oap/control.token, then calls the
  * control HTTP server exposed by the OAP desktop app.
  *
- * The `run factory` subcommand is the exception: it calls the stagecraft
+ * The `run factory` subcommand is the exception: it calls the statecraft
  * initPipeline endpoint directly so the web button and the CLI share a
  * single orchestration path (spec 110 §2.5).
  *
@@ -155,38 +155,38 @@ function unwrap(res, label) {
 }
 
 // ---------------------------------------------------------------------------
-// Stagecraft (run factory) helpers
+// Statecraft (run factory) helpers
 // ---------------------------------------------------------------------------
 
-const STAGECRAFT_URL_FILE = join(OAP_DIR, 'stagecraft.url')
-const STAGECRAFT_TOKEN_FILE = join(OAP_DIR, 'stagecraft.token')
+const STATECRAFT_URL_FILE = join(OAP_DIR, 'statecraft.url')
+const STATECRAFT_TOKEN_FILE = join(OAP_DIR, 'statecraft.token')
 
-function resolveStagecraft() {
-  const urlEnv = process.env.STAGECRAFT_URL
-  const tokenEnv = process.env.STAGECRAFT_TOKEN
+function resolveStatecraft() {
+  const urlEnv = process.env.statecraft_URL
+  const tokenEnv = process.env.statecraft_TOKEN
   const url = urlEnv && urlEnv.length > 0
     ? urlEnv
-    : existsSync(STAGECRAFT_URL_FILE)
-      ? readFileSync(STAGECRAFT_URL_FILE, 'utf8').trim()
+    : existsSync(STATECRAFT_URL_FILE)
+      ? readFileSync(STATECRAFT_URL_FILE, 'utf8').trim()
       : ''
   const token = tokenEnv && tokenEnv.length > 0
     ? tokenEnv
-    : existsSync(STAGECRAFT_TOKEN_FILE)
-      ? readFileSync(STAGECRAFT_TOKEN_FILE, 'utf8').trim()
+    : existsSync(STATECRAFT_TOKEN_FILE)
+      ? readFileSync(STATECRAFT_TOKEN_FILE, 'utf8').trim()
       : ''
 
   if (!url) {
-    console.error('stagecraft URL not set. Export STAGECRAFT_URL or write it to ~/.oap/stagecraft.url.')
+    console.error('statecraft URL not set. Export STATECRAFT_URL or write it to ~/.oap/statecraft.url.')
     process.exit(1)
   }
   if (!token) {
-    console.error('stagecraft token not set. Export STAGECRAFT_TOKEN or write it to ~/.oap/stagecraft.token.')
+    console.error('statecraft token not set. Export STATECRAFT_TOKEN or write it to ~/.oap/statecraft.token.')
     process.exit(1)
   }
   return { url: url.replace(/\/+$/, ''), token }
 }
 
-function stagecraftPost(baseUrl, token, path, body) {
+function statecraftPost(baseUrl, token, path, body) {
   return new Promise((resolve, reject) => {
     const u = new URL(path, baseUrl)
     const isHttps = u.protocol === 'https:'
@@ -217,7 +217,7 @@ function stagecraftPost(baseUrl, token, path, body) {
   })
 }
 
-function openStagecraftSse(baseUrl, token, path, onFrame, onClose) {
+function openStatecraftSse(baseUrl, token, path, onFrame, onClose) {
   const u = new URL(path, baseUrl)
   const isHttps = u.protocol === 'https:'
   const opts = {
@@ -281,7 +281,7 @@ function parseSseFrame(raw) {
 
 async function watchFactoryStream(baseUrl, token, projectId) {
   return new Promise((resolve, reject) => {
-    const req = openStagecraftSse(
+    const req = openStatecraftSse(
       baseUrl,
       token,
       `/api/projects/${encodeURIComponent(projectId)}/factory/stream`,
@@ -336,7 +336,7 @@ Commands:
   run factory <project-id> \\
       --adapter <name> \\
       [--knowledge <object-id>]... \\
-      [--watch]                              Trigger a Factory pipeline run on stagecraft
+      [--watch]                              Trigger a Factory pipeline run on statecraft
                                              (the request is dispatched to a connected
                                              OPC over the duplex channel). --watch
                                              subscribes to the project SSE stream and
@@ -346,10 +346,10 @@ Commands:
 Environment:
   ~/.oap/control.port       Port written by the desktop app at startup
   ~/.oap/control.token      Auth token written by the desktop app at startup
-  STAGECRAFT_URL            Required by 'run factory' (e.g. https://stagecraft.example)
-  STAGECRAFT_TOKEN          Bearer token used by 'run factory'
-  ~/.oap/stagecraft.url     Fallback when STAGECRAFT_URL is unset
-  ~/.oap/stagecraft.token   Fallback when STAGECRAFT_TOKEN is unset
+  STATECRAFT_URL            Required by 'run factory' (e.g. https://statecraft.example)
+  STATECRAFT_TOKEN          Bearer token used by 'run factory'
+  ~/.oap/statecraft.url     Fallback when STATECRAFT_URL is unset
+  ~/.oap/statecraft.token   Fallback when STATECRAFT_TOKEN is unset
 
 Examples:
   oap-ctl status
@@ -376,7 +376,7 @@ async function main() {
 
   // ---- run factory <project-id> ----
   // Short-circuits before readLockfiles(): this subcommand talks to
-  // stagecraft, not to the local OPC control server, so the absence of a
+  // statecraft, not to the local OPC control server, so the absence of a
   // running desktop app must not block it (spec 110 §2.5).
   if (cmd === 'run' && args.positional[0] === 'factory') {
     const projectId = args.positional[1]
@@ -389,15 +389,15 @@ async function main() {
       process.exit(1)
     }
 
-    const { url, token: sToken } = resolveStagecraft()
-    const initRes = await stagecraftPost(
+    const { url, token: sToken } = resolveStatecraft()
+    const initRes = await statecraftPost(
       url,
       sToken,
       `/api/projects/${encodeURIComponent(projectId)}/factory/init`,
       {
         adapter,
         knowledge_object_ids: knowledge,
-        source: 'stagecraft',
+        source: 'statecraft',
       },
     )
 

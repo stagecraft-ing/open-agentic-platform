@@ -15,47 +15,47 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db/schema.ts",
+        "path": "platform/services/statecraft/api/db/schema.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/admission.ts",
+        "path": "platform/services/statecraft/api/factory/admission.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/auditActions.ts",
+        "path": "platform/services/statecraft/api/factory/auditActions.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts",
+        "path": "platform/services/statecraft/api/factory/grantDuplexHandlers.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/orgHalt.test.ts",
+        "path": "platform/services/statecraft/api/factory/orgHalt.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/orgHalt.ts",
+        "path": "platform/services/statecraft/api/factory/orgHalt.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/revocations.ts",
+        "path": "platform/services/statecraft/api/factory/revocations.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/sync/duplex.ts",
+        "path": "platform/services/statecraft/api/sync/duplex.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/sync/service.ts",
+        "path": "platform/services/statecraft/api/sync/service.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/sync/types.ts",
+        "path": "platform/services/statecraft/api/sync/types.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/vite.config.ts",
+        "path": "platform/services/statecraft/vite.config.ts",
         "source": "spec-edge"
       },
       {
@@ -87,11 +87,11 @@
         "source": "spec-edge"
       },
       {
-        "path": "product/apps/opc/tests-e2e/harness/mock_stagecraft.test.ts",
+        "path": "product/apps/opc/tests-e2e/harness/mock_statecraft.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "product/apps/opc/tests-e2e/harness/mock_stagecraft.ts",
+        "path": "product/apps/opc/tests-e2e/harness/mock_statecraft.ts",
         "source": "spec-edge"
       }
     ],
@@ -99,27 +99,27 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/orgHalt.test.ts"
+            "file": "platform/services/statecraft/api/factory/orgHalt.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/orgHalt.test.ts"
+          "path": "platform/services/statecraft/api/factory/orgHalt.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/orgHalt.ts"
+            "file": "platform/services/statecraft/api/factory/orgHalt.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/orgHalt.ts"
+          "path": "platform/services/statecraft/api/factory/orgHalt.ts"
         }
       },
       {
@@ -151,14 +151,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/revocations.ts"
+            "file": "platform/services/statecraft/api/factory/revocations.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/revocations.ts"
+          "path": "platform/services/statecraft/api/factory/revocations.ts"
         }
       },
       {
@@ -203,131 +203,131 @@
       {
         "locations": [
           {
-            "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.test.ts"
+            "file": "product/apps/opc/tests-e2e/harness/mock_statecraft.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "product/apps/opc/tests-e2e/harness/mock_stagecraft.test.ts"
+          "path": "product/apps/opc/tests-e2e/harness/mock_statecraft.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.ts"
+            "file": "product/apps/opc/tests-e2e/harness/mock_statecraft.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "product/apps/opc/tests-e2e/harness/mock_stagecraft.ts"
+          "path": "product/apps/opc/tests-e2e/harness/mock_statecraft.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/db/schema.ts"
+            "file": "platform/services/statecraft/api/db/schema.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/admission.ts"
+            "file": "platform/services/statecraft/api/factory/admission.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/admission.ts"
+          "path": "platform/services/statecraft/api/factory/admission.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/auditActions.ts"
+            "file": "platform/services/statecraft/api/factory/auditActions.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+          "path": "platform/services/statecraft/api/factory/auditActions.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+            "file": "platform/services/statecraft/api/factory/grantDuplexHandlers.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+          "path": "platform/services/statecraft/api/factory/grantDuplexHandlers.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync/duplex.ts"
+            "file": "platform/services/statecraft/api/sync/duplex.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/duplex.ts"
+          "path": "platform/services/statecraft/api/sync/duplex.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync/service.ts"
+            "file": "platform/services/statecraft/api/sync/service.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/service.ts"
+          "path": "platform/services/statecraft/api/sync/service.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync/types.ts"
+            "file": "platform/services/statecraft/api/sync/types.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/types.ts"
+          "path": "platform/services/statecraft/api/sync/types.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/vite.config.ts"
+            "file": "platform/services/statecraft/vite.config.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       },
       {

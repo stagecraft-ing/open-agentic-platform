@@ -8,7 +8,7 @@
 //
 // Schema parity check.
 //
-// Compares the structural fingerprint of each stagecraft TS schema (the
+// Compares the structural fingerprint of each statecraft TS schema (the
 // source of truth) with the fingerprint emitted by the matching Rust
 // mirror in `crates/factory-contracts/` during `cargo test`. Drift on
 // either side fails CI before any runtime divergence can ship.
@@ -58,7 +58,7 @@ const REPO_ROOT = path.resolve(SCRIPT_DIR, "..", "..", "..");
 // repository root — e.g. a future relocation of this tool, the exact failure
 // mode that left the gate dark from #176 until this spec. Without it, a wrong
 // root surfaces only as a confusing "fingerprint not found" several checks in.
-for (const marker of ["crates/factory-contracts", "platform/services/stagecraft"]) {
+for (const marker of ["crates/factory-contracts", "platform/services/statecraft"]) {
   if (!fs.existsSync(path.join(REPO_ROOT, marker))) {
     fail(
       2,
@@ -76,7 +76,7 @@ for (const marker of ["crates/factory-contracts", "platform/services/stagecraft"
 // Protocol-wide duplex envelope schema-version parity (a scalar, not a
 // structural fingerprint). Runs FIRST and independently of the
 // structural-fingerprint checks below — it neither reads the Rust fingerprint
-// files nor imports any stagecraft TS, so it reports even when an unrelated
+// files nor imports any statecraft TS, so it reports even when an unrelated
 // structural check would later error. The desktop (Rust) and server (TS)
 // `ENVELOPE_SCHEMA_VERSION` constants are enforced with strict equality at
 // both wire boundaries, so a one-line skew silently breaks the whole duplex
@@ -88,7 +88,7 @@ const DESKTOP_ENVELOPE_PATH = path.join(
 );
 const SERVER_ENVELOPE_PATH = path.join(
   REPO_ROOT,
-  "platform/services/stagecraft/api/sync/types.ts",
+  "platform/services/statecraft/api/sync/types.ts",
 );
 {
   let envelopeResult;
@@ -122,7 +122,7 @@ const SERVER_ENVELOPE_PATH = path.join(
 
 const TS_SCHEMA_PATH = path.join(
   REPO_ROOT,
-  "platform/services/stagecraft/api/knowledge/extractionOutput.ts",
+  "platform/services/statecraft/api/knowledge/extractionOutput.ts",
 );
 const RUST_FINGERPRINT_PATH = path.join(
   REPO_ROOT,
@@ -135,7 +135,7 @@ const RUST_MIRROR_PATH = path.join(
 
 const TS_PROVENANCE_PATH = path.join(
   REPO_ROOT,
-  "platform/services/stagecraft/api/governance/provenancePolicy.ts",
+  "platform/services/statecraft/api/governance/provenancePolicy.ts",
 );
 const RUST_PROVENANCE_FINGERPRINT_PATH = path.join(
   REPO_ROOT,
@@ -149,7 +149,7 @@ const RUST_PROVENANCE_MIRROR_PATH = path.join(
 // Spec 122 — stakeholder-doc grammar.
 const TS_STAKEHOLDER_DOC_PATH = path.join(
   REPO_ROOT,
-  "platform/services/stagecraft/api/governance/stakeholderDocPolicy.ts",
+  "platform/services/statecraft/api/governance/stakeholderDocPolicy.ts",
 );
 const RUST_STAKEHOLDER_DOC_FINGERPRINT_PATH = path.join(
   REPO_ROOT,
@@ -189,7 +189,7 @@ if (!fs.existsSync(RUST_STAKEHOLDER_DOC_FINGERPRINT_PATH)) {
   );
 }
 
-const stagecraftDir = path.join(REPO_ROOT, "platform/services/stagecraft");
+const statecraftDir = path.join(REPO_ROOT, "platform/services/statecraft");
 let extractionOutputDescriptor;
 let tsSchemaVersion;
 try {
@@ -201,7 +201,7 @@ try {
     2,
     `schema-parity-check: failed to import ${path.relative(REPO_ROOT, TS_SCHEMA_PATH)}\n  ${e.message}\n` +
       `  Run from a runtime that handles .ts (e.g. \`node --experimental-strip-types\` 22+, or \`bun run\`).\n` +
-      `  Or run \`cd ${path.relative(REPO_ROOT, stagecraftDir)} && npm install\` then retry under bun.`,
+      `  Or run \`cd ${path.relative(REPO_ROOT, statecraftDir)} && npm install\` then retry under bun.`,
   );
 }
 

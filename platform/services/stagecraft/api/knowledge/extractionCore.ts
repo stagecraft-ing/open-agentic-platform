@@ -102,7 +102,7 @@ const MAXIMALLY_PERMISSIVE_POLICY_FOR_DISPATCH_PROBE: {
 const DEFAULT_MAX_AUTO_RETRIES = 2;
 
 function getMaxAutoRetries(): number {
-  const v = process.env.STAGECRAFT_EXTRACT_MAX_AUTO_RETRIES;
+  const v = process.env.statecraft_EXTRACT_MAX_AUTO_RETRIES;
   if (!v) return DEFAULT_MAX_AUTO_RETRIES;
   const n = Number.parseInt(v, 10);
   return Number.isFinite(n) && n >= 0 ? n : DEFAULT_MAX_AUTO_RETRIES;
@@ -114,7 +114,7 @@ function getMaxAutoRetries(): number {
 const DEFAULT_EAGER_BUFFER_BYTES = 4 * 1024 * 1024;
 
 function getEagerBufferThreshold(): number {
-  const v = process.env.STAGECRAFT_EXTRACT_EAGER_BUFFER_BYTES;
+  const v = process.env.statecraft_EXTRACT_EAGER_BUFFER_BYTES;
   if (!v) return DEFAULT_EAGER_BUFFER_BYTES;
   const n = Number.parseInt(v, 10);
   return Number.isFinite(n) && n > 0 ? n : DEFAULT_EAGER_BUFFER_BYTES;
@@ -863,7 +863,7 @@ export async function sweepStaleExtractionRuns(now: Date = new Date()): Promise<
   swept: number;
 }> {
   const staleAfterSec = (() => {
-    const v = process.env.STAGECRAFT_EXTRACT_STALE_AFTER_SEC;
+    const v = process.env.statecraft_EXTRACT_STALE_AFTER_SEC;
     if (!v) return 600;
     const n = Number.parseInt(v, 10);
     return Number.isFinite(n) && n > 0 ? n : 600;

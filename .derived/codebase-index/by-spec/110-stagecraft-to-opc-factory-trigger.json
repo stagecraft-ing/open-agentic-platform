@@ -3,7 +3,7 @@
     "dependsOn": [
       "075-factory-workflow-engine",
       "076-factory-desktop-panel",
-      "077-stagecraft-factory-api",
+      "077-statecraft-factory-api",
       "087-unified-workspace-architecture",
       "092-workspace-runtime-threading",
       "094-unified-artifact-store",
@@ -16,15 +16,15 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/factory.ts",
+        "path": "platform/services/statecraft/api/factory/factory.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/sync/relay.ts",
+        "path": "platform/services/statecraft/api/sync/relay.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/sync/types.ts",
+        "path": "platform/services/statecraft/api/sync/types.ts",
         "source": "spec-edge"
       },
       {
@@ -66,40 +66,40 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/factory.ts"
+            "file": "platform/services/statecraft/api/factory/factory.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/factory.ts"
+          "path": "platform/services/statecraft/api/factory/factory.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync/relay.ts"
+            "file": "platform/services/statecraft/api/sync/relay.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/relay.ts"
+          "path": "platform/services/statecraft/api/sync/relay.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync/types.ts"
+            "file": "platform/services/statecraft/api/sync/types.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/types.ts"
+          "path": "platform/services/statecraft/api/sync/types.ts"
         }
       },
       {
@@ -116,7 +116,7 @@
         }
       }
     ],
-    "specId": "110-stagecraft-to-opc-factory-trigger",
+    "specId": "110-statecraft-to-opc-factory-trigger",
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",

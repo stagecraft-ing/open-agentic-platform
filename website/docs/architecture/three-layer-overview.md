@@ -29,7 +29,7 @@ flowchart TD
     subgraph Platform
         Auth[Rauthy OIDC]
         Deploy[deployd-api]
-        SaaS[stagecraft]
+        SaaS[statecraft]
     end
 
     MCP -->|Reads Policy| JSON
@@ -40,8 +40,8 @@ flowchart TD
 ```
 
 1. **Spine constrains OPC**: The `axiomregent` MCP server running in the desktop reads policy bundles derived from the Spec Spine. An agent cannot execute a tool if the spec-derived policy forbids it.
-2. **Platform audits OPC**: Every action taken by an agent through the MCP server is streamed to the `stagecraft` SaaS audit log. The platform maintains an immutable record of what happened locally.
+2. **Platform audits OPC**: Every action taken by an agent through the MCP server is streamed to the `statecraft` SaaS audit log. The platform maintains an immutable record of what happened locally.
 3. **Spine constrains Platform**: The `deployd-api` will not orchestrate a deployment unless the artifacts are accompanied by a valid Governance Certificate, which itself is tied back to the processes defined in the Spec Spine.
-4. **Platform empowers OPC**: The `stagecraft` service issues project-scoped grants and identity tokens that the OPC desktop uses to authorize agent sessions.
+4. **Platform empowers OPC**: The `statecraft` service issues project-scoped grants and identity tokens that the OPC desktop uses to authorize agent sessions.
 
 This tripartite architecture ensures that no single component can unilaterally bypass governance. The rules are written in the Spine, executed in the OPC, and verified by the Platform.

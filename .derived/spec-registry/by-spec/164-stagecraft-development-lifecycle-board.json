@@ -1,32 +1,32 @@
 {
   "record": {
     "codeAliases": [
-      "STAGECRAFT_DEVELOPMENT_BOARD",
+      "STATECRAFT_DEVELOPMENT_BOARD",
       "LIFECYCLE_STATE_BOARD"
     ],
     "created": "2026-05-22",
     "dependsOn": [
       "075-factory-workflow-engine",
-      "077-stagecraft-factory-api",
+      "077-statecraft-factory-api",
       "102-governed-excellence",
       "127-spec-code-coupling-gate",
       "133-amends-aware-coupling-gate",
       "147-spec-kind-grammar",
-      "163-stagecraft-requirements-view"
+      "163-statecraft-requirements-view"
     ],
     "domain": "platform",
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.development.tsx"
+        "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.development.tsx"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/web/app/lib/spec-registry-board.ts"
+        "path": "platform/services/statecraft/web/app/lib/spec-registry-board.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/web/app/lib/spec-registry-board.test.ts"
+        "path": "platform/services/statecraft/web/app/lib/spec-registry-board.test.ts"
       }
     ],
     "extends": [
@@ -35,7 +35,7 @@
         "spec": "087-unified-workspace-architecture",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes.ts"
+          "path": "platform/services/statecraft/web/app/routes.ts"
         }
       },
       {
@@ -43,7 +43,7 @@
         "spec": "087-unified-workspace-architecture",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.tsx"
         }
       },
       {
@@ -51,38 +51,38 @@
         "spec": "087-unified-workspace-architecture",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId._index.tsx"
         }
       },
       {
         "nature": "additive",
-        "spec": "163-stagecraft-requirements-view",
+        "spec": "163-statecraft-requirements-view",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/specRegistry/types.ts"
+          "path": "platform/services/statecraft/api/specRegistry/types.ts"
         }
       },
       {
         "nature": "additive",
-        "spec": "163-stagecraft-requirements-view",
+        "spec": "163-statecraft-requirements-view",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/specRegistry/registryReader.ts"
+          "path": "platform/services/statecraft/api/specRegistry/registryReader.ts"
         }
       },
       {
         "nature": "additive",
-        "spec": "163-stagecraft-requirements-view",
+        "spec": "163-statecraft-requirements-view",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.test.ts"
+          "path": "platform/services/statecraft/web/app/lib/spec-registry-grouping.test.ts"
         }
       }
     ],
     "extraFrontmatter": {
-      "slug": "stagecraft-development-lifecycle-board"
+      "slug": "statecraft-development-lifecycle-board"
     },
-    "id": "164-stagecraft-development-lifecycle-board",
+    "id": "164-statecraft-development-lifecycle-board",
     "implementation": "complete",
     "kind": "platform",
     "owner": "bart",
@@ -105,14 +105,14 @@
         "role": "precedent-route",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.pipelines.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.pipelines.tsx"
         }
       },
       {
         "role": "pair-spec",
         "unit": {
           "kind": "file",
-          "path": "specs/163-stagecraft-requirements-view/spec.md"
+          "path": "specs/163-statecraft-requirements-view/spec.md"
         }
       }
     ],
@@ -121,14 +121,14 @@
         "aspect": "project-lifecycle-board",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.development.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.development.tsx"
         }
       },
       {
         "aspect": "pipelines-redirect-to-development",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.pipelines.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.pipelines.tsx"
         }
       }
     ],
@@ -148,7 +148,7 @@
       "Out of scope (deferred)",
       "6. Cross-references"
     ],
-    "specPath": "specs/164-stagecraft-development-lifecycle-board/spec.md",
+    "specPath": "specs/164-statecraft-development-lifecycle-board/spec.md",
     "status": "approved",
     "summary": "Rename the existing `app.project.$projectId.pipelines.tsx` route to `app.project.$projectId.development.tsx`, replace its backing model (today: factory-engine pipeline activity) with a **lifecycle-state board** whose columns are spec-spine lifecycle states from spec 147 grammar: `draft → approved → implementation:pending → implementation:in-progress → implementation:complete`, with separate visual lanes for `superseded` and `amended`.\nCards on the board are individual specs (or grouped clusters when grouping is active from spec 163's projection). Governance-certificate emissions (spec 102), factory run completions (spec 075), and coupling-gate fires (spec 127/133) overlay as *execution evidence* on the cards — visualising the link between authored intent (spec lifecycle) and realised execution (run history).\nThis is the **honest** AIDE-VelocityView analogue. It surfaces the same lifecycle visibility AIDE provides via its 8 chess-clock steps, without imposing AIDE's \"all features go through exactly these 8 states in this order or stall\" rigidity. The intent doc §5.4 explicitly rejects the chess-clock primitives; spec 164 is the structural alternative.\n",
     "title": "Pipelines → Development rename, lifecycle-state board over spec-spine states"

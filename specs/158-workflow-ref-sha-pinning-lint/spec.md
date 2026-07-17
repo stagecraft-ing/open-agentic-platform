@@ -196,7 +196,7 @@ correct" claim, verified by script.
 
 `.github/workflows/ci-supply-chain.yml` adds a `workflow-pins`
 job alongside `cargo-deny`, `pnpm-audit`, and
-`npm-audit-stagecraft`. Job name follows the existing
+`npm-audit-statecraft`. Job name follows the existing
 convention (`<job> / <descriptor>`). Path triggers expanded
 to include `.github/workflows/**`, `.github/actions/**`, and
 `tools/lint/**`.

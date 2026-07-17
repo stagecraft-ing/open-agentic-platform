@@ -23,6 +23,6 @@ The following table summarizes the OWASP Agentic Top 10 and how OAP mitigates ea
 | **ASI07** | Insecure Inter-Agent Communication | Agents communicate via file-based artifact passing managed by the Orchestrator, rather than raw, spoofable message streams. |
 | **ASI08** | Cascading Failures | Zero-trust, fail-closed composition. The orchestrator halts on failure and requires human-in-the-loop checkpoints for recovery. |
 | **ASI09** | Human-Agent Trust Exploitation | High-impact actions require explicit confirmation (GateDialog) with plain-language risk summaries, not model-generated rationales. |
-| **ASI10** | Rogue Agents | Continuous observability via the `stagecraft` audit log. The Coupling Gate ensures behavior cannot diverge from the specification. |
+| **ASI10** | Rogue Agents | Continuous observability via the `statecraft` audit log. The Coupling Gate ensures behavior cannot diverge from the specification. |
 
 For a complete mapping of which OAP specs satisfy which controls, run the compliance report CLI tool in the repository.

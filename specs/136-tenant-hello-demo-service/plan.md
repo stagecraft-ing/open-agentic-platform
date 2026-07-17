@@ -5,19 +5,19 @@
 ## Summary
 
 Lock the existing `platform/services/tenant-hello` express service in as the
-canonical fixture for stagecraft's tenant-deploy contract (C-001…C-005),
-then close the gap between "tenant codebase exists" and "stagecraft can
+canonical fixture for statecraft's tenant-deploy contract (C-001…C-005),
+then close the gap between "tenant codebase exists" and "statecraft can
 deploy it end-to-end." The codebase contract is already authored in `spec.md`;
 this plan covers the deferred deliverables and the order they land in.
 
 ## Technical context
 
 - **Language/Stack:** Express 4 on Node 20 (tenant-hello), Helm/Kubernetes (the
-  missing chart), Encore.ts (stagecraft-side wiring), `deployd-api-rs`
+  missing chart), Encore.ts (statecraft-side wiring), `deployd-api-rs`
   (axum + hiqlite, the deploy orchestrator).
 - **Repo footprint:** `platform/services/tenant-hello/`, future
-  `platform/charts/tenant-hello/`, stagecraft API surface for chart selection.
-- **Out-of-band dependencies:** existing `platform/charts/stagecraft/` and
+  `platform/charts/tenant-hello/`, statecraft API surface for chart selection.
+- **Out-of-band dependencies:** existing `platform/charts/statecraft/` and
   `platform/charts/deployd-api/` baselines (security context, ingress
   conventions) are the reference for chart shape.
 
@@ -28,7 +28,7 @@ this plan covers the deferred deliverables and the order they land in.
   (Helm is tooling output, not authored OAP truth).
 - **Principle II (compiler-owned JSON machine truth):** This spec adds
   no JSON authoring; only the spec compiler emits machine truth.
-- **Principle III (spec-first):** The Helm chart and stagecraft wiring
+- **Principle III (spec-first):** The Helm chart and statecraft wiring
   are blocked behind this spec's approval. No code added under FR-004
   before `status: approved`.
 - **CONST-005:** Authoring this spec is forward documentation, not
@@ -54,7 +54,7 @@ this plan covers the deferred deliverables and the order they land in.
 
 - `platform/charts/tenant-hello/Chart.yaml`, `values.yaml`,
   `templates/{deployment,service,ingress,serviceaccount}.yaml`.
-- Modelled after `platform/charts/stagecraft/`'s baseline: non-root
+- Modelled after `platform/charts/statecraft/`'s baseline: non-root
   `runAsUser`, readiness probe pointing at `/healthz` (the
   contract clause C-002), `PORT` env injection (C-003), no PVC mounts
   (C-004 stateless).
@@ -62,14 +62,14 @@ this plan covers the deferred deliverables and the order they land in.
   default values into `charts/tenant-hello/test-render.yaml` for golden
   comparison.
 
-### Phase 2 — stagecraft chart-per-tenant wiring
+### Phase 2 — statecraft chart-per-tenant wiring
 
-- `services/stagecraft/api/projects/` gains a `chartSelector` rule that
+- `services/statecraft/api/projects/` gains a `chartSelector` rule that
   resolves a chart for a registered project. For projects bound to the
   tenant-hello reference shape, this resolves to `tenant-hello`.
 - `deployd-api-rs` invocation path accepts the resolved chart name from
-  stagecraft and applies it via Helm.
-- One end-to-end happy-path: stagecraft "deploy" UI button on a project
+  statecraft and applies it via Helm.
+- One end-to-end happy-path: statecraft "deploy" UI button on a project
   pointing at this codebase → pod live behind the cluster's ingress →
   `/healthz` returns 200 from the running pod.
 
@@ -91,15 +91,15 @@ this plan covers the deferred deliverables and the order they land in.
 ## Gating order
 
 Phase 0 → 1 → 2 → 3 → 4. Phases 1 and 2 are not parallelisable: the
-chart shape is the input to the stagecraft selector. Phase 3 depends on
+chart shape is the input to the statecraft selector. Phase 3 depends on
 both. Phase 4 is the lifecycle bookkeeping after the deliverables land.
 
 ## Risk register
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| Helm chart drifts from `stagecraft`/`deployd-api` baseline | medium | Treat existing charts as the reference; review chart values against their `_helpers.tpl` and `values.yaml`. |
-| stagecraft `chartSelector` becomes a bespoke per-tenant switch statement | medium | Selector takes a project's manifest descriptor (image name + chart shape) as input; tenant-hello is the single shape this spec governs. Multi-shape support is a separate spec. |
+| Helm chart drifts from `statecraft`/`deployd-api` baseline | medium | Treat existing charts as the reference; review chart values against their `_helpers.tpl` and `values.yaml`. |
+| statecraft `chartSelector` becomes a bespoke per-tenant switch statement | medium | Selector takes a project's manifest descriptor (image name + chart shape) as input; tenant-hello is the single shape this spec governs. Multi-shape support is a separate spec. |
 | Negative-path fixture explodes in scope | low | Phase 3 picks one C-clause violation per pass; SC-002 needs *evidence*, not exhaustive coverage. |
 | FR-004 status flip is taken before evidence lands | medium | The spec/code coupling gate (specs 127, 130, 133) blocks status flips that are not supported by code change. Phase 4 is the *only* PR that touches the lifecycle frontmatter. |
 

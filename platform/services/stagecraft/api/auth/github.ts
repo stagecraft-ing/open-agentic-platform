@@ -27,7 +27,7 @@ import {
 import { errorForLog } from "./errorLog";
 
 // Base URL for constructing callback URLs (consumed by rauthyCallback).
-export const appBaseUrl = secret("APP_BASE_URL"); // e.g. https://stagecraft.localdev.online
+export const appBaseUrl = secret("APP_BASE_URL"); // e.g. https://statecraft.localdev.online
 
 // ---------------------------------------------------------------------------
 // GET /auth/pending-orgs — resolve pending org data for org-select page

@@ -1,6 +1,6 @@
 // Spec 112 §6.3 — OAP project bundle types.
 //
-// Resolved on the OPC side from state stagecraft already maintains
+// Resolved on the OPC side from state statecraft already maintains
 // (factory_adapters, factory_contracts, factory_processes, agent
 // catalog). The bundle does not travel as a payload on the deep link;
 // it is fetched via `fetch_project_opc_bundle` after handoff.
@@ -62,7 +62,7 @@ export interface OpcBundleAgent {
  *
  * `expiresAt` is set for `github_installation` (~1h TTL) and null for
  * `project_github_pat`. The bundle returns `cloneToken: null` for
- * public-anonymous repos. A hard-resolution failure on the stagecraft
+ * public-anonymous repos. A hard-resolution failure on the statecraft
  * side surfaces as a 503 instead — never as a null clone token here.
  */
 export interface OpcBundleCloneToken {

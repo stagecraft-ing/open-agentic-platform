@@ -28,7 +28,7 @@
         "spec": "119-project-as-unit-of-governance",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/agents/catalog.ts"
+          "path": "platform/services/statecraft/api/agents/catalog.ts"
         }
       },
       {
@@ -36,7 +36,7 @@
         "spec": "119-project-as-unit-of-governance",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/agents/relay.ts"
+          "path": "platform/services/statecraft/api/agents/relay.ts"
         }
       },
       {
@@ -44,7 +44,7 @@
         "spec": "119-project-as-unit-of-governance",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/agents/bindings.ts"
+          "path": "platform/services/statecraft/api/agents/bindings.ts"
         }
       },
       {
@@ -52,7 +52,7 @@
         "spec": "119-project-as-unit-of-governance",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/duplex.ts"
+          "path": "platform/services/statecraft/api/sync/duplex.ts"
         }
       },
       {
@@ -60,7 +60,7 @@
         "spec": "119-project-as-unit-of-governance",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.agents._index.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.agents._index.tsx"
         }
       },
       {
@@ -68,7 +68,7 @@
         "spec": "119-project-as-unit-of-governance",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.agents.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.agents.tsx"
         }
       },
       {
@@ -76,7 +76,7 @@
         "spec": "119-project-as-unit-of-governance",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.agents.new.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.agents.new.tsx"
         }
       },
       {
@@ -84,7 +84,7 @@
         "spec": "119-project-as-unit-of-governance",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.agents.$agentId.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.agents.$agentId.tsx"
         }
       },
       {
@@ -92,7 +92,7 @@
         "spec": "119-project-as-unit-of-governance",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.agents.$agentId.publish.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.agents.$agentId.publish.tsx"
         }
       },
       {
@@ -100,7 +100,7 @@
         "spec": "119-project-as-unit-of-governance",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.agents.$agentId.history.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.agents.$agentId.history.tsx"
         }
       },
       {
@@ -108,7 +108,7 @@
         "spec": "119-project-as-unit-of-governance",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.agents._index.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.agents._index.tsx"
         }
       },
       {
@@ -116,7 +116,7 @@
         "spec": "119-project-as-unit-of-governance",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.agents.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.agents.tsx"
         }
       },
       {
@@ -172,7 +172,7 @@
       "7.2 New: project-binding envelopes",
       "7.3 Schema-version handling",
       "8. Code Surface",
-      "8.1 Stagecraft API",
+      "8.1 Statecraft API",
       "8.2 Factory engine",
       "8.3 Desktop",
       "9. Migration",

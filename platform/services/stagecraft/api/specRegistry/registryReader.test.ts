@@ -1,10 +1,10 @@
 // Spec 163 FR-002 / spec 103 / spec 217: spec-spine registry subprocess wrapper.
 //
-// The reader is the only path through which stagecraft consumes the
+// The reader is the only path through which statecraft consumes the
 // registry. These tests exercise the pure JSON relationship parser, plus
 // an integration suite against the OAP repo's own committed
 // .derived/spec-registry/by-spec shards via the `spec-spine` CLI (skipped
-// when the CLI or the shards are absent, e.g. the ci-stagecraft lane).
+// when the CLI or the shards are absent, e.g. the ci-statecraft lane).
 // Paths resolve relative to this file so the tests do not depend on cwd.
 
 import { execFileSync } from "node:child_process";
@@ -20,7 +20,7 @@ import {
 } from "./registryReader";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-// platform/services/stagecraft/api/specRegistry/ -> repo root is 5 levels up.
+// platform/services/statecraft/api/specRegistry/ -> repo root is 5 levels up.
 const REPO_ROOT = resolve(__dirname, "..", "..", "..", "..", "..");
 const REGISTRY_SHARDS = resolve(REPO_ROOT, ".derived/spec-registry/by-spec");
 
@@ -43,7 +43,7 @@ const haveFixture = existsSync(REGISTRY_SHARDS) && SPEC_SPINE_BIN !== null;
 describe("parseRelationshipsJson (pure parser)", () => {
   test("projects outgoing + incoming spec-to-spec edges", () => {
     const json = JSON.stringify({
-      id: "163-stagecraft-requirements-view",
+      id: "163-statecraft-requirements-view",
       dependsOn: [
         "087-unified-workspace-architecture",
         "130-spec-coupling-primary-owner",
@@ -54,8 +54,8 @@ describe("parseRelationshipsJson (pure parser)", () => {
       supersededBy: [],
       amendedBy: ["201-some-amender"],
     });
-    const r = parseRelationshipsJson("163-stagecraft-requirements-view", json);
-    expect(r.id).toBe("163-stagecraft-requirements-view");
+    const r = parseRelationshipsJson("163-statecraft-requirements-view", json);
+    expect(r.id).toBe("163-statecraft-requirements-view");
     expect(r.outgoing).toEqual([
       { kind: "depends_on", otherSpec: "087-unified-workspace-architecture" },
       { kind: "depends_on", otherSpec: "130-spec-coupling-primary-owner" },
@@ -98,12 +98,12 @@ describe.skipIf(!haveFixture)("registryReader against OAP's own registry", () =>
 
   test("getSpecDetail attaches the markdown body (FR-006)", async () => {
     const detail = await getSpecDetail(
-      "163-stagecraft-requirements-view",
+      "163-statecraft-requirements-view",
       REPO_ROOT,
       REPO_ROOT,
       opts
     );
-    expect(detail.id).toBe("163-stagecraft-requirements-view");
+    expect(detail.id).toBe("163-statecraft-requirements-view");
     expect(detail.body.length).toBeGreaterThan(0);
     // Frontmatter must be stripped: the body must not start with `---`.
     expect(detail.body.startsWith("---")).toBe(false);

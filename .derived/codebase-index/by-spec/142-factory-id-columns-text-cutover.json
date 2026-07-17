@@ -8,11 +8,11 @@
     ],
     "implementingPaths": [
       {
-        "path": "platform/services/stagecraft/api/db/schema.ts",
+        "path": "platform/services/statecraft/api/db/schema.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/vite.config.ts",
+        "path": "platform/services/statecraft/vite.config.ts",
         "source": "spec-edge"
       }
     ],
@@ -20,27 +20,27 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/db/schema.ts"
+            "file": "platform/services/statecraft/api/db/schema.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/vite.config.ts"
+            "file": "platform/services/statecraft/vite.config.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       }
     ],

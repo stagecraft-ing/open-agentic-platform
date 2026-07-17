@@ -104,7 +104,7 @@ describe('inferGateImpact (FR-003)', () => {
       'a1',
     );
     const a2 = codeEdit(
-      'platform/services/stagecraft/api/auth/137-tenant-environment-access-gates.ts',
+      'platform/services/statecraft/api/auth/137-tenant-environment-access-gates.ts',
       'a2',
     );
     const plan = planFrom([a1, a2]);

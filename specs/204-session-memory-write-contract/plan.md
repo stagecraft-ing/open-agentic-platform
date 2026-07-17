@@ -11,13 +11,13 @@ FR-001 requires the carrier-class rule set to be "shared with, not copied
 from, `overrideGate.ts`" (spec 198). The two consumers sit in disjoint
 package trees:
 
-- `overrideGate.ts` lives in **stagecraft** (`platform/services/stagecraft/`),
+- `overrideGate.ts` lives in **statecraft** (`platform/services/statecraft/`),
   an Encore.ts service on **npm**, deliberately excluded from the `product/`
   pnpm workspace.
 - The session-memory write path lives in **`product/packages/session-memory`**,
   inside the `product/` pnpm workspace.
 
-There is no in-tree precedent for stagecraft consuming a `product/` package.
+There is no in-tree precedent for statecraft consuming a `product/` package.
 Three options were weighed (fixture-parity only; shared package now with a
 later repoint; true single source now). The chosen resolution is **true
 single source now**:
@@ -37,7 +37,7 @@ canonical home for the carrier-class + secret + UTF-8 rule set, and route
   step and no committed `dist` (which is globally gitignored anyway).
 - **session-memory** consumes it as a normal workspace dependency
   (`"@opc/carrier-gate": "workspace:*"`).
-- **stagecraft** consumes it via a relative `file:` dep
+- **statecraft** consumes it via a relative `file:` dep
   (`"@opc/carrier-gate": "file:../../../product/packages/carrier-gate"`);
   npm symlinks the package and `overrideGate.ts` imports the shared rules.
   Because the entry is already `.js`, no build is required at install time.
@@ -78,7 +78,7 @@ consumer-specific checks and composes them around the shared carrier core.
   to a `refines:` edge (it is no longer merely an analog; 204 now shapes it).
 - The existing `extends: 034` featuregraph-golden edge and the three
   `refines:` edges on session-memory files are retained.
-- `platform/services/stagecraft/package.json` + `package-lock.json` change
+- `platform/services/statecraft/package.json` + `package-lock.json` change
   only to add the `@opc/carrier-gate` `file:` dependency (the mechanical
   FR-001 wiring). They are co-owned by specs 116/160, not 204, and adding a
   third-party-style dependency to a generated lockfile is not a spec-authored
@@ -90,7 +90,7 @@ consumer-specific checks and composes them around the shared carrier core.
   isolated carrier-gate edits) is a workflow-governance change deferred to a
   focused follow-on PR (PR-A2), since ci.yml is section-co-authored by
   several CI specs. PR-A itself exercises every affected job because it
-  touches both `platform/services/stagecraft/**` and `product/packages/**`.
+  touches both `platform/services/statecraft/**` and `product/packages/**`.
 
 ## Decision 2: FR refinements (sketch to contract)
 
@@ -145,10 +145,10 @@ before the next branches, so rebases stay clean.
 
 ## Risk: Encore boundary (halt-if-fails)
 
-The one novel mechanism is stagecraft consuming a `product/` package across
+The one novel mechanism is statecraft consuming a `product/` package across
 the pnpm/npm + Encore bundler boundary. PR-A verifies it locally before the
 sequence proceeds: build `@opc/carrier-gate`, `file:`-install it into
-stagecraft, typecheck stagecraft, run the `overrideGate` vitest suite green,
+statecraft, typecheck statecraft, run the `overrideGate` vitest suite green,
 and run `encore check`/build. If the boundary cannot be made to work
 cleanly, PR-A halts and the packaging decision is re-surfaced to the user
 rather than forcing a broken design (orchestrator Rule 4).

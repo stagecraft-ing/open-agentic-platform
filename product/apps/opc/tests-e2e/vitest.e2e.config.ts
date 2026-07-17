@@ -3,7 +3,7 @@ import { defineConfig } from "vitest/config";
 // Spec 187 — e2e run model (FR-T1/FR-T5). These specs drive a *built* OPC
 // binary via standalone WebdriverIO (webdriverio.remote()) + tauri-driver under
 // xvfb. Standalone (not the wdio testrunner) is deliberate: each fixture
-// launches its own OPC instance with its own mock-stagecraft mode and env, so
+// launches its own OPC instance with its own mock-statecraft mode and env, so
 // AC-7 (unreachable) and AC-8 (healthy) don't fight over a single shared
 // session.
 //

@@ -4,12 +4,12 @@
 //
 //   * Persists the bundle's initial token to the OS keychain so a
 //     subsequent factory run can read it without round-tripping
-//     stagecraft. Storage is delegated to the Tauri keychain commands;
+//     statecraft. Storage is delegated to the Tauri keychain commands;
 //     this hook never holds the long-lived secret in component memory
 //     beyond the in-flight refresh window.
 //   * Schedules a single timer 5 minutes before an installation token's
 //     `expiresAt`. When it fires, the hook calls `refreshCloneToken`,
-//     which atomically re-fetches from stagecraft and writes the new
+//     which atomically re-fetches from statecraft and writes the new
 //     blob to the keychain.
 //   * Exposes `invalidate()` so callers that observe a 401 from a
 //     GitHub-using subprocess can force an out-of-band refresh. PATs
@@ -22,11 +22,11 @@
 //
 // Status state machine:
 //   uninitialized → fresh ─┬─→ refreshing → fresh
-//                          ├─→ refreshing → expired (Stagecraft 503)
+//                          ├─→ refreshing → expired (Statecraft 503)
 //                          ├─→ refreshing → pat_invalid (PAT 401 reported by caller)
 //                          └─→ anonymous (clone_token == null)
 //
-// The hook does not poll Stagecraft for new tokens; it only fires once
+// The hook does not poll Statecraft for new tokens; it only fires once
 // per scheduled expiry plus any explicit invalidate() calls.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -65,12 +65,12 @@ export interface UseCloneTokenRefreshArgs {
 }
 
 export interface UseCloneTokenRefresh extends CloneTokenState {
-  /** Manually fetch a fresh token from Stagecraft and persist. */
+  /** Manually fetch a fresh token from Statecraft and persist. */
   refresh: () => Promise<void>;
   /**
    * Mark the current token as invalid (e.g. caller saw a 401). Drops
    * the keychain entry, then re-fetches. PAT-source invalidations
-   * land in `pat_invalid` so the UI can point the user at Stagecraft's
+   * land in `pat_invalid` so the UI can point the user at Statecraft's
    * settings page. Installation-token invalidations cycle through
    * `refreshing → fresh` cleanly because the broker can mint a new
    * token on demand.
@@ -118,10 +118,10 @@ const PAT_SETTINGS_PATH = (projectId: string) =>
   `/app/project/${encodeURIComponent(projectId)}/settings/github-pat`;
 
 export function patSettingsUrl(
-  stagecraftBaseUrl: string,
+  statecraftBaseUrl: string,
   projectId: string
 ): string {
-  const trimmed = stagecraftBaseUrl.replace(/\/+$/, '');
+  const trimmed = statecraftBaseUrl.replace(/\/+$/, '');
   return `${trimmed}${PAT_SETTINGS_PATH(projectId)}`;
 }
 
@@ -166,7 +166,7 @@ export function useCloneTokenRefresh(
         return;
       }
       if (!resp.token) {
-        // Stagecraft says: anonymous-public path, no credential available.
+        // Statecraft says: anonymous-public path, no credential available.
         setState({
           token: null,
           status: 'anonymous',
@@ -208,14 +208,14 @@ export function useCloneTokenRefresh(
         err
       );
     }
-    // Capture the token source *before* the refresh because if Stagecraft
+    // Capture the token source *before* the refresh because if Statecraft
     // re-resolves the same broken PAT we want to mark it pat_invalid.
     const previousSource = state.token?.source;
     await refresh();
     setState((s) => {
       // After invalidate + refresh, if the resolver still returned a PAT
       // (same long-lived secret), surface pat_invalid so the cockpit
-      // tells the user to rotate it on stagecraft instead of cycling
+      // tells the user to rotate it on statecraft instead of cycling
       // forever. Installation tokens have already been re-minted at
       // this point, so they are simply 'fresh'.
       if (
@@ -227,7 +227,7 @@ export function useCloneTokenRefresh(
           ...s,
           status: 'pat_invalid',
           error:
-            'GitHub rejected this project PAT. Rotate it on Stagecraft and try again.',
+            'GitHub rejected this project PAT. Rotate it on Statecraft and try again.',
         };
       }
       return s;

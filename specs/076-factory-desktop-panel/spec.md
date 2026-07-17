@@ -273,7 +273,7 @@ listen('factory:token_update', (event) => { ... });
 // Invoke Tauri commands
 invoke('start_factory_pipeline', {
   projectPath, adapterName, businessDocPaths,
-  stagecraftProjectId,  // org/project binding for the platform reservation
+  statecraftProjectId,  // org/project binding for the platform reservation
   processName,          // see "Process name forwarding" below
 });
 invoke('confirm_factory_stage', { runId, stageId });
@@ -367,7 +367,7 @@ means a rename or addition on the platform needs no desktop rebuild.
 
 Two robustness fixes to the desktop factory panel's duplex wiring:
 
-- **`factory.event` handler registration** (`product/apps/opc/src-tauri/src/lib.rs`). Registered the desktop `factory.event` dispatch handler alongside `factory.run.request`, so a gate approved on the stagecraft web surface reaches the local run. The routing and gate-resolution behaviour is owned by spec 124; the registration site (mirroring `register_factory_run_handler`) is here.
+- **`factory.event` handler registration** (`product/apps/opc/src-tauri/src/lib.rs`). Registered the desktop `factory.event` dispatch handler alongside `factory.run.request`, so a gate approved on the statecraft web surface reaches the local run. The routing and gate-resolution behaviour is owned by spec 124; the registration site (mirroring `register_factory_run_handler`) is here.
 - **Governance handshake fail-loud** (`product/apps/opc/src-tauri/src/commands/sync_client.rs`). `send_and_await_reply` bounded only the reply wait, not the outbound send on the bounded duplex channel. A stalled WebSocket writer (a dead-but-undetected connection) could block the send indefinitely, wedging a run before governance completed with no signal which phase blocked (the "Waiting for agent output" silent stall). The outbound send is now bounded (10s), so the run-grant handshake (spec 198) fails closed with an actionable error instead of hanging.
 
 Couples these fixes in the paths this spec authors to their owning spec per the spec 127 coupling gate.

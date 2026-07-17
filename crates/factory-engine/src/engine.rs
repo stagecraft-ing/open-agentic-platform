@@ -21,7 +21,7 @@ use crate::inter_stage_manifest::{InterStageManifest, StageHandoffSigner};
 use crate::manifest_gen::{generate_process_manifest, generate_scaffold_manifest};
 use crate::pipeline_state::{FactoryPipelineState, FailedFeature};
 use crate::policy_shard::generate_factory_policy_shard;
-use crate::stagecraft_client::StagecraftClient;
+use crate::statecraft_client::StatecraftClient;
 use crate::stages::s_minus_1_extract::{
     ExtractionStageConfig, ExtractionStageReport, KnowledgeBundleRef, render_s1_context_md,
     run_extraction_stage,
@@ -238,13 +238,13 @@ impl FactoryEngine {
     ///
     /// The `client` argument provides the yield-back transport. Pass
     /// `None` for environments where `RequiresAgent` should hard-fail
-    /// (CLI standalone with no stagecraft reachable).
+    /// (CLI standalone with no statecraft reachable).
     pub async fn start_pipeline_extracting(
         &self,
         adapter_name: &str,
         bundles: &[KnowledgeBundleRef],
         store: &LocalArtifactStore,
-        client: Option<Arc<dyn StagecraftClient>>,
+        client: Option<Arc<dyn StatecraftClient>>,
         project_id: Option<String>,
         cancel: CancellationToken,
     ) -> Result<ExtractingPipelineStartResult, FactoryError> {

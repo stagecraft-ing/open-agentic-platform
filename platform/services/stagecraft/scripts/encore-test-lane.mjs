@@ -2,8 +2,8 @@
 // Spec: 211-encore-test-ci-job
 //
 // Lane-coverage guard for the encore-test CI lane (FR-003: skip-as-pass
-// forbidden). The stagecraft suite is partitioned by vite.config.ts into
-// two lanes: pure suites run under bare vitest (npm test / ci-stagecraft),
+// forbidden). The statecraft suite is partitioned by vite.config.ts into
+// two lanes: pure suites run under bare vitest (npm test / ci-statecraft),
 // DB-bound suites — excluded under bare vitest — run only under
 // `encore test`. This script makes that partition mechanically checkable:
 //

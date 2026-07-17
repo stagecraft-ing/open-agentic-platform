@@ -1,5 +1,5 @@
 image:
-  repository: stagecraftdevacr.azurecr.io/deployd-api
+  repository: statecraftdevacr.azurecr.io/deployd-api
 
 serviceAccount:
   annotations:

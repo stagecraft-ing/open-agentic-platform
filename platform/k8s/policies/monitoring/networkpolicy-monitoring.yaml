@@ -8,10 +8,10 @@
 # The flows below are the complete named allow set; anything else in
 # or out of `monitoring` is dropped.
 #
-# The security-critical rule is `allow-remote-write-from-stagecraft`:
+# The security-critical rule is `allow-remote-write-from-statecraft`:
 # Encore's prometheus exporter has no auth field, so the remote_write
 # receiver is UNAUTHENTICATED — its inbound surface must be reachable
-# from `stagecraft-system` (and Grafana/operator pods inside
+# from `statecraft-system` (and Grafana/operator pods inside
 # `monitoring`) ONLY. SC-008's negative probes (generic namespace +
 # each scrape-target namespace) verify exactly this. There is
 # deliberately NO ingress-to-Prometheus allow from the scrape-target
@@ -55,12 +55,12 @@ spec:
     - to:
         - podSelector: {}
 ---
-# FR-006 (a) — the push half: stagecraft's Encore remote_write may
+# FR-006 (a) — the push half: statecraft's Encore remote_write may
 # reach the receiver port. No other namespace gets this (SC-008).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-remote-write-from-stagecraft
+  name: allow-remote-write-from-statecraft
   namespace: monitoring
 spec:
   podSelector:
@@ -72,7 +72,7 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: stagecraft-system
+              kubernetes.io/metadata.name: statecraft-system
       ports:
         - port: 9090
           protocol: TCP

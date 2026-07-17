@@ -36,20 +36,20 @@ Phase 4, after a release-soak with the substrate as primary read.
 
 ## Technical Context
 
-**Languages**: TypeScript 5.x (stagecraft Encore.ts), Rust 1.95.0
+**Languages**: TypeScript 5.x (statecraft Encore.ts), Rust 1.95.0
 (factory-engine, factory-contracts, OPC desktop), React Router v7
-(stagecraft web).
+(statecraft web).
 **Primary Dependencies**: Drizzle ORM (PostgreSQL), Encore.ts PubSub,
 existing `factory-engine` / `factory-contracts` crates, axiomregent
 policy kernel (no version bump expected). New: a CodeMirror merge-view
 component for the conflict resolution UI in Phase 1 (or shipped
 without merge-view in Phase 1, added in Phase 2).
-**Storage**: PostgreSQL (stagecraft). New tables:
+**Storage**: PostgreSQL (statecraft). New tables:
 `factory_artifact_substrate`, `factory_artifact_substrate_audit`, `factory_bindings`.
 Generalised: `factory_upstreams`. Migrated and dropped: `agent_catalog`,
 `agent_catalog_audit`, `project_agent_bindings`, `factory_adapters`,
 `factory_contracts`, `factory_processes`.
-**Testing**: `encore test` for stagecraft API and DB tests; `cargo test`
+**Testing**: `encore test` for statecraft API and DB tests; `cargo test`
 for the factory-engine `VirtualRoot`; integration tests for the OPC
 desktop `factory.rs` migration.
 **Target Platform**: Encore.ts service in production AKS; OPC desktop on
@@ -79,7 +79,7 @@ growth and 100× org count without restructuring.
   rows are not compiler artifacts — they are runtime DB rows in a
   governed table. The factory-contracts schemas under
   `standards/schemas/factory/` remain compile-time-canonical
-  per spec 112 §3.2 (with `SCHEMA_VERSION` const). Stagecraft
+  per spec 112 §3.2 (with `SCHEMA_VERSION` const). Statecraft
   continues to mirror them per-org for runtime policy lookup, now via
   the substrate (`origin='oap-self'`, `kind='contract-schema'`). ✅
 - **CONST-005 — spec/code coherence.** This spec amends three live
@@ -117,7 +117,7 @@ specs/139-factory-artifact-substrate/
 ### Source code touched (anticipated)
 
 ```text
-platform/services/stagecraft/
+platform/services/statecraft/
 ├── api/db/schema.ts                            # add factory_artifact_substrate, factory_artifact_substrate_audit, factory_bindings; generalise factory_upstreams
 ├── api/db/migrations/
 │   ├── NN_factory_artifact_substrate.up.sql    # Phase 1 migration
@@ -163,8 +163,8 @@ The new files are scoped to existing module boundaries.
 migration ordering.
 
 P0.1 **Walk the upstream end-to-end.** Clone
-`Stagecraft-ing/legacy-factory@<latest>` and
-`Stagecraft-ing/template@<latest>` into a scratch dir. For every
+`statecrafting/legacy-factory@<latest>` and
+`statecrafting/template@<latest>` into a scratch dir. For every
 file:
 - Compute `kind` per the §4.2 predicates from the spec.
 - Record any file that does not classify into a kind (the spec
@@ -446,7 +446,7 @@ Order:
    (`factory_source`, `template_source`).
 4. **Documentation sweep.** Spec 108 implementation-audit gets a
    section noting "§3 superseded by 139". Spec 111 / 123 get the
-   same. CLAUDE.md (root, platform, stagecraft) updated.
+   same. CLAUDE.md (root, platform, statecraft) updated.
 
 **Test strategy:**
 

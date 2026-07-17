@@ -15,27 +15,27 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+        "path": "platform/services/statecraft/api/factory/approvalSummary.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/approvalSummary-pure.ts"
+        "path": "platform/services/statecraft/api/factory/approvalSummary-pure.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/approvalSummary.test.ts"
+        "path": "platform/services/statecraft/api/factory/approvalSummary.test.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/approvalSummaryEndpoint.test.ts"
+        "path": "platform/services/statecraft/api/factory/approvalSummaryEndpoint.test.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/web/app/lib/approval-basis-helpers.ts"
+        "path": "platform/services/statecraft/web/app/lib/approval-basis-helpers.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/web/app/lib/approval-basis-helpers.test.ts"
+        "path": "platform/services/statecraft/web/app/lib/approval-basis-helpers.test.ts"
       }
     ],
     "extends": [
@@ -74,14 +74,14 @@
         "role": "override-trust-class",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/overrideGate.ts"
+          "path": "platform/services/statecraft/api/factory/overrideGate.ts"
         }
       },
       {
         "role": "run-schema",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       }
     ],
@@ -90,49 +90,49 @@
         "aspect": "hitl-approval-presentation",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.factory.runs.$runId.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.factory.runs.$runId.tsx"
         }
       },
       {
         "aspect": "hitl-approval-presentation",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.factory.artifacts.tsx"
         }
       },
       {
         "aspect": "hitl-approval-presentation",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/factory-api.server.ts"
+          "path": "platform/services/statecraft/web/app/lib/factory-api.server.ts"
         }
       },
       {
         "aspect": "encore-test-gating",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       },
       {
         "aspect": "hitl-approval-policy-read",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/factory.ts"
+          "path": "platform/services/statecraft/api/factory/factory.ts"
         }
       },
       {
         "aspect": "hitl-approval-audit",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+          "path": "platform/services/statecraft/api/factory/auditActions.ts"
         }
       },
       {
         "aspect": "hitl-approval-audit",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/artifacts.ts"
+          "path": "platform/services/statecraft/api/factory/artifacts.ts"
         }
       }
     ],

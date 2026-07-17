@@ -9,7 +9,7 @@
 //! Rust extractor, writes typed `ExtractionOutput` JSON to the unified
 //! artifact store, and indexes by `(object_id, content_hash) →
 //! artifact_content_hash`. On `RequiresAgent`, posts a yield-extraction
-//! request to stagecraft and awaits the duplex notification under a
+//! request to statecraft and awaits the duplex notification under a
 //! configurable timeout (default 600s, env
 //! `OAP_FACTORY_S1EXTRACT_YIELD_TIMEOUT_SEC`).
 //!
@@ -18,7 +18,7 @@
 //! the orchestrator and keeps the LLM dispatch path intact for s0–s5.
 
 use crate::artifact_store::LocalArtifactStore;
-use crate::stagecraft_client::{StagecraftClient, StagecraftClientError, YieldSubscription};
+use crate::statecraft_client::{StatecraftClient, StatecraftClientError, YieldSubscription};
 use artifact_extract::{ExtractError, extract_deterministic};
 use factory_contracts::knowledge::ExtractionOutput;
 use std::path::{Path, PathBuf};
@@ -62,7 +62,7 @@ pub struct ExtractionStageReport {
     pub failed: Vec<FailedObject>,
     pub deterministic_count: u32,
     pub agent_yielded_count: u32,
-    /// Spec 120 FR-026 — per-object ids whose write-back POST to stagecraft
+    /// Spec 120 FR-026 — per-object ids whose write-back POST to statecraft
     /// failed (or was not attempted, e.g. no client). The local artifact
     /// remains valid; a future `s-write-back-sync` job is expected to drain
     /// these on the next factory run.
@@ -85,14 +85,14 @@ pub enum ExtractStageError {
     },
     #[error("yield-extraction returned malformed payload for object {object_id}: {reason}")]
     YieldReturnedMalformed { object_id: String, reason: String },
-    #[error("stagecraft client error for object {object_id}: {source}")]
-    Stagecraft {
+    #[error("statecraft client error for object {object_id}: {source}")]
+    Statecraft {
         object_id: String,
         #[source]
-        source: StagecraftClientError,
+        source: StatecraftClientError,
     },
-    #[error("yield was requested but no stagecraft client is configured")]
-    NoStagecraftClient,
+    #[error("yield was requested but no statecraft client is configured")]
+    NoStatecraftClient,
     #[error("extraction failed for {object_id}: {reason}")]
     PerObject { object_id: String, reason: String },
     #[error("io error: {0}")]
@@ -133,12 +133,12 @@ impl ExtractionStageConfig {
 
 /// Run the extraction stage against a slice of bundle refs. The caller
 /// owns the `LocalArtifactStore` (lifetime-of-pipeline) and the
-/// `StagecraftClient` (`None` means no yield support — `RequiresAgent`
+/// `StatecraftClient` (`None` means no yield support — `RequiresAgent`
 /// becomes a hard failure).
 pub async fn run_extraction_stage(
     bundles: &[KnowledgeBundleRef],
     store: &LocalArtifactStore,
-    client: Option<Arc<dyn StagecraftClient>>,
+    client: Option<Arc<dyn StatecraftClient>>,
     config: &ExtractionStageConfig,
     cancel: CancellationToken,
 ) -> Result<ExtractionStageReport, ExtractStageError> {
@@ -195,7 +195,7 @@ pub async fn run_extraction_stage(
             }) => {
                 let client_ref = client
                     .as_ref()
-                    .ok_or(ExtractStageError::NoStagecraftClient)?;
+                    .ok_or(ExtractStageError::NoStatecraftClient)?;
                 match yield_and_wait(
                     client_ref.as_ref(),
                     bundle,
@@ -262,12 +262,12 @@ fn persist_extraction(
     })
 }
 
-/// Spec 120 FR-026 — POST the typed `ExtractionOutput` back to stagecraft so
+/// Spec 120 FR-026 — POST the typed `ExtractionOutput` back to statecraft so
 /// the server has a versioned record. Failure is non-fatal; the bundle's
 /// object id is recorded in `write_back_pending` and a future
 /// `s-write-back-sync` job drains them on the next factory run.
 async fn attempt_write_back(
-    client: Option<&dyn StagecraftClient>,
+    client: Option<&dyn StatecraftClient>,
     config: &ExtractionStageConfig,
     bundle: &KnowledgeBundleRef,
     output: &ExtractionOutput,
@@ -286,7 +286,7 @@ async fn attempt_write_back(
 }
 
 async fn yield_and_wait(
-    client: &dyn StagecraftClient,
+    client: &dyn StatecraftClient,
     bundle: &KnowledgeBundleRef,
     suggested_kind: &str,
     reason: &str,
@@ -306,7 +306,7 @@ async fn yield_and_wait(
             reason,
         )
         .await
-        .map_err(|e| ExtractStageError::Stagecraft {
+        .map_err(|e| ExtractStageError::Statecraft {
             object_id: bundle.object_id.clone(),
             source: e,
         })?;
@@ -320,7 +320,7 @@ async fn yield_and_wait(
             }),
             res = completion => match res {
                 Ok(Ok(output)) => Ok(output),
-                Ok(Err(e)) => Err(ExtractStageError::Stagecraft {
+                Ok(Err(e)) => Err(ExtractStageError::Statecraft {
                     object_id: bundle.object_id.clone(),
                     source: e,
                 }),
@@ -514,11 +514,11 @@ mod tests {
             tolerate_partial: false,
             concurrency: 1,
         };
-        let mock = Arc::new(crate::stagecraft_client::MockStagecraftClient::default());
+        let mock = Arc::new(crate::statecraft_client::MockStatecraftClient::default());
         let err = run_extraction_stage(
             &bundles,
             &store,
-            Some(mock as Arc<dyn StagecraftClient>),
+            Some(mock as Arc<dyn StatecraftClient>),
             &cfg,
             CancellationToken::new(),
         )
@@ -614,7 +614,7 @@ mod tests {
             tolerate_partial: false,
             concurrency: 1,
         };
-        let mock = Arc::new(crate::stagecraft_client::MockStagecraftClient::default());
+        let mock = Arc::new(crate::statecraft_client::MockStatecraftClient::default());
         let mock_for_resolver = mock.clone();
         let resolver = tokio::spawn(async move {
             tokio::time::sleep(Duration::from_millis(50)).await;
@@ -623,7 +623,7 @@ mod tests {
         let report = run_extraction_stage(
             &bundles,
             &store,
-            Some(mock as Arc<dyn StagecraftClient>),
+            Some(mock as Arc<dyn StatecraftClient>),
             &cfg,
             CancellationToken::new(),
         )

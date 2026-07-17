@@ -1,7 +1,7 @@
 ---
-id: "077-stagecraft-factory-api"
-title: "Stagecraft Factory Lifecycle API — Project Init, Stage Confirmation, Audit Trail"
-feature_branch: "feat/077-stagecraft-factory-api"
+id: "077-statecraft-factory-api"
+title: "Statecraft Factory Lifecycle API — Project Init, Stage Confirmation, Audit Trail"
+feature_branch: "feat/077-statecraft-factory-api"
 status: approved
 implementation: complete
 kind: platform
@@ -10,21 +10,21 @@ created: "2026-04-04"
 authors: ["open-agentic-platform"]
 language: en
 summary: >
-  Extends the Stagecraft platform service with Factory-specific API endpoints for
+  Extends the Statecraft platform service with Factory-specific API endpoints for
   project initialization, adapter selection, stage confirmation/rejection, policy
   bundle compilation, audit trail capture, and deployment handoff.
-code_aliases: ["STAGECRAFT_FACTORY", "FACTORY_API"]
+code_aliases: ["STATECRAFT_FACTORY", "FACTORY_API"]
 establishes:
-  - unit: { kind: directory, path: platform/services/stagecraft/api/factory }
+  - unit: { kind: directory, path: platform/services/statecraft/api/factory }
 ---
 
-# Feature Specification: Stagecraft Factory Lifecycle API
+# Feature Specification: Statecraft Factory Lifecycle API
 
 ## Purpose
 
-Stagecraft is OAP's organizational control plane — it manages identity, projects, policies, and audit trails. Factory pipelines are executed locally by OPC desktop, but the organizational lifecycle (who created the project, which adapter, who approved which stage, total token spend, deployment readiness) must be tracked centrally.
+Statecraft is OAP's organizational control plane — it manages identity, projects, policies, and audit trails. Factory pipelines are executed locally by OPC desktop, but the organizational lifecycle (who created the project, which adapter, who approved which stage, total token spend, deployment readiness) must be tracked centrally.
 
-This spec adds Factory-specific endpoints to Stagecraft for:
+This spec adds Factory-specific endpoints to Statecraft for:
 1. Project initialization with adapter selection and business document references
 2. Policy bundle compilation with Factory-specific shards
 3. Stage confirmation/rejection with approver identity
@@ -35,7 +35,7 @@ This spec adds Factory-specific endpoints to Stagecraft for:
 
 ### In scope
 
-- Stagecraft REST API endpoints for Factory project lifecycle
+- Statecraft REST API endpoints for Factory project lifecycle
 - Database schema extensions (Drizzle ORM migrations)
 - Policy bundle compilation with Factory adapter shards
 - Audit trail integration (every gate decision, token spend, error)
@@ -114,9 +114,9 @@ GET /api/projects/:id/factory/status
 ```
 
 **FR-003: Policy Bundle Compilation**
-Stagecraft SHALL compile an Factory-specific policy bundle combining:
+Statecraft SHALL compile an Factory-specific policy bundle combining:
 
-1. **Organization defaults** — from org's policy settings in Stagecraft DB
+1. **Organization defaults** — from org's policy settings in Statecraft DB
 2. **Adapter-specific shard** — generated from adapter manifest (allowed paths, commands, invariants)
 3. **Project overrides** — from `policy_overrides` in init request
 
@@ -284,7 +284,7 @@ Authorization: Bearer <internal-service-token>
 → 204 No Content
 ```
 
-OPC desktop reports token spend per-step to Stagecraft for centralized tracking and billing.
+OPC desktop reports token spend per-step to Statecraft for centralized tracking and billing.
 
 ### Non-Functional Requirements
 
@@ -390,7 +390,7 @@ CREATE TABLE factory_policy_bundles (
 ### Encore.ts Service Structure
 
 ```
-platform/services/stagecraft/
+platform/services/statecraft/
   factory/
     factory.service.ts       — Encore service definition
     factory.controller.ts    — API endpoint handlers
@@ -405,11 +405,11 @@ platform/services/stagecraft/
 ### Integration Points
 
 ```
-OPC Desktop ──POST /token-spend──→ Stagecraft (audit tracking)
-OPC Desktop ──GET /status──→ Stagecraft (policy bundle, confirmations)
-OPC Desktop ──WebSocket──→ Stagecraft (gate release notifications)
-Stagecraft ──POST /deploy──→ deployd-api-rs (deployment handoff)
-Stagecraft ──webhook──→ Slack/GitHub (pipeline notifications)
+OPC Desktop ──POST /token-spend──→ Statecraft (audit tracking)
+OPC Desktop ──GET /status──→ Statecraft (policy bundle, confirmations)
+OPC Desktop ──WebSocket──→ Statecraft (gate release notifications)
+Statecraft ──POST /deploy──→ deployd-api-rs (deployment handoff)
+Statecraft ──webhook──→ Slack/GitHub (pipeline notifications)
 ```
 
 ## Implementation Approach
@@ -462,6 +462,6 @@ Stagecraft ──webhook──→ Slack/GitHub (pipeline notifications)
 
 | Risk | Mitigation |
 |------|-----------|
-| OPC ↔ Stagecraft sync lag | OPC is source of truth for execution; Stagecraft is source of truth for governance. Async sync with eventual consistency. |
+| OPC ↔ Statecraft sync lag | OPC is source of truth for execution; Statecraft is source of truth for governance. Async sync with eventual consistency. |
 | Token spend double-counting | Idempotent token-spend endpoint keyed on (run_id, stage_id, step_id) |
 | Audit log growth | Partition by pipeline_id; retention policy per org |

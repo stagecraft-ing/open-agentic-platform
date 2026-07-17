@@ -138,7 +138,7 @@ pub(crate) fn is_valid_tenant_namespace(ns: &str) -> bool {
         "default",
         "deployd-system",
         "rauthy-system",
-        "stagecraft-system",
+        "statecraft-system",
         "monitoring",
         "ingress-nginx",
         "flux-system",
@@ -451,7 +451,7 @@ mod tests {
         // A deploy-scope holder must not be able to target the platform's
         // own namespaces by setting `namespace` on the request body.
         assert!(!is_valid_tenant_namespace("rauthy-system"));
-        assert!(!is_valid_tenant_namespace("stagecraft-system"));
+        assert!(!is_valid_tenant_namespace("statecraft-system"));
         assert!(!is_valid_tenant_namespace("monitoring"));
         assert!(!is_valid_tenant_namespace("ingress-nginx"));
         assert!(!is_valid_tenant_namespace("flux-system"));

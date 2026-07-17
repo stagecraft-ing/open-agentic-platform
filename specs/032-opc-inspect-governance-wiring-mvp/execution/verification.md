@@ -113,7 +113,7 @@ Record **before** any Feature 032 product wiring (T003+). Goal: prove imported t
 
 **Touchpoints:** `apps/desktop/src-tauri/src/commands/mcp.rs`, `packages/mcp-client/src/index.ts`, `apps/desktop/src/features/git/useGitCtxEnrichment.ts`, `GitContextSurface.tsx`, `sidecars.rs` (gitctx port removed), `execution/t006-checklist.md`, `tasks.md`.
 
-**Merge:** [PR #4](https://github.com/stagecraft-ing/open-agentic-platform/pull/4) to `main` (2026-03-26).
+**Merge:** [PR #4](https://github.com/statecrafting/open-agentic-platform/pull/4) to `main` (2026-03-26).
 
 ---
 

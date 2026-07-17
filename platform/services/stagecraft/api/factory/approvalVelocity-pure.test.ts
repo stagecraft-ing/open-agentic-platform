@@ -74,13 +74,13 @@ describe("computeApprovalVelocity (FR-004)", () => {
 });
 
 describe("approval-velocity env knobs", () => {
-  const savedWindow = process.env.STAGECRAFT_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC;
+  const savedWindow = process.env.statecraft_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC;
   const savedThreshold =
-    process.env.STAGECRAFT_FACTORY_APPROVAL_VELOCITY_THRESHOLD;
+    process.env.statecraft_FACTORY_APPROVAL_VELOCITY_THRESHOLD;
 
   afterEach(() => {
-    restore("STAGECRAFT_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC", savedWindow);
-    restore("STAGECRAFT_FACTORY_APPROVAL_VELOCITY_THRESHOLD", savedThreshold);
+    restore("STATECRAFT_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC", savedWindow);
+    restore("STATECRAFT_FACTORY_APPROVAL_VELOCITY_THRESHOLD", savedThreshold);
   });
 
   function restore(name: string, value: string | undefined): void {
@@ -89,22 +89,22 @@ describe("approval-velocity env knobs", () => {
   }
 
   it("defaults to 60s / 10 approvals when unset", () => {
-    delete process.env.STAGECRAFT_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC;
-    delete process.env.STAGECRAFT_FACTORY_APPROVAL_VELOCITY_THRESHOLD;
+    delete process.env.statecraft_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC;
+    delete process.env.statecraft_FACTORY_APPROVAL_VELOCITY_THRESHOLD;
     expect(approvalVelocityWindowSecs()).toBe(60);
     expect(approvalVelocityThreshold()).toBe(10);
   });
 
   it("honours a valid positive override", () => {
-    process.env.STAGECRAFT_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC = "120";
-    process.env.STAGECRAFT_FACTORY_APPROVAL_VELOCITY_THRESHOLD = "5";
+    process.env.statecraft_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC = "120";
+    process.env.statecraft_FACTORY_APPROVAL_VELOCITY_THRESHOLD = "5";
     expect(approvalVelocityWindowSecs()).toBe(120);
     expect(approvalVelocityThreshold()).toBe(5);
   });
 
   it("falls back on a non-positive or non-numeric override", () => {
-    process.env.STAGECRAFT_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC = "0";
-    process.env.STAGECRAFT_FACTORY_APPROVAL_VELOCITY_THRESHOLD = "nope";
+    process.env.statecraft_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC = "0";
+    process.env.statecraft_FACTORY_APPROVAL_VELOCITY_THRESHOLD = "nope";
     expect(approvalVelocityWindowSecs()).toBe(60);
     expect(approvalVelocityThreshold()).toBe(10);
   });

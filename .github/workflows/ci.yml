@@ -59,8 +59,8 @@ jobs:
       parity: ${{ steps.f.outputs.parity == 'true' || github.event_name == 'merge_group' }}
       policy_kernel: ${{ steps.f.outputs.policy_kernel == 'true' || github.event_name == 'merge_group' }}
       schema_parity: ${{ steps.f.outputs.schema_parity == 'true' || github.event_name == 'merge_group' }}
-      stagecraft: ${{ steps.f.outputs.stagecraft == 'true' || github.event_name == 'merge_group' }}
-      stagecraft_encore: ${{ steps.f.outputs.stagecraft_encore == 'true' || github.event_name == 'merge_group' }}
+      statecraft: ${{ steps.f.outputs.statecraft == 'true' || github.event_name == 'merge_group' }}
+      statecraft_encore: ${{ steps.f.outputs.statecraft_encore == 'true' || github.event_name == 'merge_group' }}
       tenant_app: ${{ steps.f.outputs.tenant_app == 'true' || github.event_name == 'merge_group' }}
       tenant_hello: ${{ steps.f.outputs.tenant_hello == 'true' || github.event_name == 'merge_group' }}
     steps:
@@ -126,20 +126,20 @@ jobs:
               - '.github/workflows/ci-policy-kernel.yml'
             schema_parity:
               - 'crates/factory-contracts/**'
-              - 'platform/services/stagecraft/api/knowledge/**'
-              - 'platform/services/stagecraft/api/governance/**'
-              - 'platform/services/stagecraft/api/sync/**'
+              - 'platform/services/statecraft/api/knowledge/**'
+              - 'platform/services/statecraft/api/governance/**'
+              - 'platform/services/statecraft/api/sync/**'
               - 'product/apps/opc/src-tauri/src/commands/sync_client.rs'
               - 'tools/oap/schema-parity-check/**'
               - '.github/workflows/ci-schema-parity.yml'
-            stagecraft:
-              - 'platform/services/stagecraft/**'
-              - '.github/workflows/ci-stagecraft.yml'
-            stagecraft_encore:
+            statecraft:
+              - 'platform/services/statecraft/**'
+              - '.github/workflows/ci-statecraft.yml'
+            statecraft_encore:
               # The DB-bound encore-test lane (spec 211): same service
-              # surface as `stagecraft`, plus its own workflow file.
-              - 'platform/services/stagecraft/**'
-              - '.github/workflows/ci-stagecraft-encore.yml'
+              # surface as `statecraft`, plus its own workflow file.
+              - 'platform/services/statecraft/**'
+              - '.github/workflows/ci-statecraft-encore.yml'
             tenant_app:
               - 'platform/charts/acme-vue-encore/**'
               - '.github/workflows/ci-tenant-app.yml'
@@ -215,15 +215,15 @@ jobs:
     if: github.event_name != 'push' && needs.changes.outputs.schema_parity == 'true'
     uses: ./.github/workflows/ci-schema-parity.yml
 
-  stagecraft:
+  statecraft:
     needs: changes
-    if: github.event_name != 'push' && needs.changes.outputs.stagecraft == 'true'
-    uses: ./.github/workflows/ci-stagecraft.yml
+    if: github.event_name != 'push' && needs.changes.outputs.statecraft == 'true'
+    uses: ./.github/workflows/ci-statecraft.yml
 
-  stagecraft-encore:
+  statecraft-encore:
     needs: changes
-    if: github.event_name != 'push' && needs.changes.outputs.stagecraft_encore == 'true'
-    uses: ./.github/workflows/ci-stagecraft-encore.yml
+    if: github.event_name != 'push' && needs.changes.outputs.statecraft_encore == 'true'
+    uses: ./.github/workflows/ci-statecraft-encore.yml
 
   tenant-app:
     needs: changes
@@ -289,8 +289,8 @@ jobs:
       - parity
       - policy-kernel
       - schema-parity
-      - stagecraft
-      - stagecraft-encore
+      - statecraft
+      - statecraft-encore
       - tenant-app
       - spec-conformance
       - spec-code-coupling

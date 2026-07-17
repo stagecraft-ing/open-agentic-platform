@@ -84,7 +84,7 @@ tool's warnings log; non-exhaustive — re-derive from the index):
   when they land).
 - **121-claim-provenance-enforcement** — 5 paths spanning
   factory-engine skills, provenance-validator crate, governance
-  policy in stagecraft (aspirational future work).
+  policy in statecraft (aspirational future work).
 - **122-stakeholder-doc-inversion** — 2 factory-engine skill paths.
 - **148-auth-driver-registry** (draft) — `crates/auth-driver/`.
 - **149-saml-auth-driver** (draft) — `crates/auth-driver-saml/`.
@@ -106,10 +106,10 @@ tool's warnings log; non-exhaustive — re-derive from the index):
   **088-factory-upstream-sync (superseded)** — factory tree paths.
 - **087-unified-workspace-architecture** — product/packages/project-sdk.
 - **106-rauthy-native-oidc-and-membership** —
-  platform/services/stagecraft/api/auth/rauthySeed.ts.
-- **111-org-agent-catalog-sync** — stagecraft web route.
-- **113-stagecraft-projects-rename-and-clone** — clone.test.ts.
-- **119-project-as-unit-of-governance** — stagecraft workspaces dir.
+  platform/services/statecraft/api/auth/rauthySeed.ts.
+- **111-org-agent-catalog-sync** — statecraft web route.
+- **113-statecraft-projects-rename-and-clone** — clone.test.ts.
+- **119-project-as-unit-of-governance** — statecraft workspaces dir.
 - **137-tenant-environment-access-gates** — 3 orphan section anchors
   on YAML manifests (`access-gate`, `reflector-annotations`,
   `reflector-install`) plus shell-script anchors.

@@ -150,7 +150,7 @@ const PHASES: BootstrapPhase[] = [
     details: [
       "Deploys Rauthy via Helm chart",
       "Creates admin user with encrypted credentials",
-      "Registers OIDC clients for deployd-api and stagecraft",
+      "Registers OIDC clients for deployd-api and statecraft",
       "Generates RS256 signing keypair",
       "Configures token lifetimes and scopes",
     ],
@@ -162,12 +162,12 @@ const PHASES: BootstrapPhase[] = [
     title: "Deploy Platform Services",
     command: "oap-bootstrap platform --deploy-all",
     description:
-      "Deploys the full platform stack: deployd-api (scope enforcement), stagecraft (orchestration), and the OPC desktop distribution. Each service is configured with its OIDC client and connected to the spec-spine registry.",
+      "Deploys the full platform stack: deployd-api (scope enforcement), statecraft (orchestration), and the OPC desktop distribution. Each service is configured with its OIDC client and connected to the spec-spine registry.",
     governingSpec: { id: "102-governed-excellence", title: "Governed excellence" },
     relatedPaper: { slug: "factory-pipeline", title: "The Factory Pipeline" },
     details: [
       "Deploys deployd-api with scope enforcement",
-      "Deploys stagecraft orchestration service",
+      "Deploys statecraft orchestration service",
       "Configures service-to-service authentication",
       "Binds each service to its governing spec",
       "Runs spec-spine compile to verify registry integrity",
@@ -251,7 +251,7 @@ export default function GetStarted() {
           Install
         </span>
         <code className="font-mono text-sm text-primary">
-          $ go install github.com/stagecraft-ing/oap-bootstrap/cmd/oap-bootstrap@latest
+          $ go install github.com/statecrafting/oap-bootstrap/cmd/oap-bootstrap@latest
         </code>
       </div>
 

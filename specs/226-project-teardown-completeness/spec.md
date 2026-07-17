@@ -3,7 +3,7 @@ id: "226-project-teardown-completeness"
 title: "Complete Project Teardown (opt-in repo delete, deployment teardown, namespace deletion)"
 feature_branch: "226-project-teardown-completeness"
 status: approved
-implementation: pending  # Design spec. No code lands in this PR; the contract is captured so the follow-on implementation PRs (stagecraft deleteProject flags + deployd namespace deletion) can promote the referenced paths to authoritative relationships and satisfy the coupling gate one subsystem at a time. This spec establishes no code path yet: its only in-PR code change is the featuregraph golden node (extends 034), matching the 214/222/223/224/225 new-spec precedent.
+implementation: pending  # Design spec. No code lands in this PR; the contract is captured so the follow-on implementation PRs (statecraft deleteProject flags + deployd namespace deletion) can promote the referenced paths to authoritative relationships and satisfy the coupling gate one subsystem at a time. This spec establishes no code path yet: its only in-PR code change is the featuregraph golden node (extends 034), matching the 214/222/223/224/225 new-spec precedent.
 kind: platform
 domain: platform
 created: "2026-07-04"
@@ -28,11 +28,11 @@ code_aliases: ["deleteRepo", "destroyDeployments", "deleteNamespaces"]
 depends_on:
   - "119-project-as-unit-of-governance"  # owns `deleteProject` and the project/repo/environment hierarchy this teardown completes
   - "225-deployd-selfprovision-rbac"  # owns deployd's teardown path (`delete_deployment`) and the deferred "Namespace deletion on teardown" item toggle (3) promotes
-  - "215-stagecraft-deploy-trigger-ux"  # owns `deploydClient.ts` (`destroyPreviewDeployment`), the stagecraft->deployd teardown trigger toggle (2) reuses
+  - "215-statecraft-deploy-trigger-ux"  # owns `deploydClient.ts` (`destroyPreviewDeployment`), the statecraft->deployd teardown trigger toggle (2) reuses
   - "214-tenant-app-chart-supersession"  # owns the forwarded `environments.k8sNamespace` the teardown resolves per env
   - "136-tenant-hello-demo-service"  # owns deployd's helm uninstall path (`uninstall_with_gate`)
   - "137-tenant-environment-access-gates"  # co-authors `uninstall_with_gate` (the universal teardown FR-006 routes through) with 073/136; the implementation PR promoting `routes.rs` needs this edge
-  - "113-stagecraft-projects-rename-and-clone"  # established `deleteGithubRepo` (clone rollback), the helper toggle (1) reuses; also the provenance rollback precedent
+  - "113-statecraft-projects-rename-and-clone"  # established `deleteGithubRepo` (clone rollback), the helper toggle (1) reuses; also the provenance rollback precedent
   - "080-github-identity-onboarding"  # owns `createProjectWithRepo` (the repo-provenance origin: a repo OAP created vs an imported one)
 extends:
   # A new spec adds a node to the featuregraph golden (same precedent as
@@ -49,17 +49,17 @@ references:
   # The follow-on implementation PRs promote them (see the Implementation
   # staging section).
   - role: teardown-entry-point
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/projects.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/projects.ts }
   - role: repo-delete-helper
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/cloneHelpers.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/cloneHelpers.ts }
   - role: deployment-teardown-trigger
-    unit: { kind: file, path: platform/services/stagecraft/api/deploy/deploydClient.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/deploy/deploydClient.ts }
   - role: deployd-teardown-handler
     unit: { kind: file, path: platform/services/deployd-api-rs/src/routes.rs }
   - role: deployd-namespace-capability
     unit: { kind: file, path: platform/services/deployd-api-rs/src/rbac.rs }
   - role: repo-provenance-schema
-    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/db/schema.ts }
 ---
 
 # Feature Specification: Complete Project Teardown
@@ -71,7 +71,7 @@ references:
 
 ## Context
 
-`deleteProject` (`platform/services/stagecraft/api/projects/projects.ts`, the
+`deleteProject` (`platform/services/statecraft/api/projects/projects.ts`, the
 `DELETE /api/projects/:id` handler) is a **DB + object-storage delete only**.
 It:
 
@@ -256,7 +256,7 @@ uninstalled and `N` still exists. Repeat with `deleteNamespaces=true`; assert
   `is_valid_tenant_namespace` inside the deployd capability (the same
   defense-in-depth entry-point guard spec 225 FR-007 applies to the
   RoleBinding write), so a legacy `environments.k8sNamespace` resolving to
-  `kube-system`, `rauthy-system`, `stagecraft-system`, ... is never deleted
+  `kube-system`, `rauthy-system`, `statecraft-system`, ... is never deleted
   regardless of the request.
 - **Multiple environments.** A project may have several environments
   (development / preview / production) each with its own release and
@@ -374,7 +374,7 @@ uninstalled and `N` still exists. Repeat with `deleteNamespaces=true`; assert
   caller, matching spec 225 FR-007); (c) treat an already-absent namespace as
   success and never recreate it; and (d) be best-effort (a failure is logged and
   recorded, the teardown proceeds).
-- **FR-008**: When `deleteNamespaces=true`, stagecraft MUST set the FR-007 flag
+- **FR-008**: When `deleteNamespaces=true`, statecraft MUST set the FR-007 flag
   on **every** deployd teardown call it issues for the project; it MUST NOT try
   to compute which release is "last". deployd's empty-namespace check (FR-007a)
   is the single arbiter: whichever teardown leaves the namespace with no
@@ -512,7 +512,7 @@ naturally two independent PRs, each promoting the relevant `references:` paths
 to authoritative relationships so the coupling gate is satisfied one subsystem
 at a time:
 
-- **PR A (stagecraft)**: the three request flags on `deleteProject`, the
+- **PR A (statecraft)**: the three request flags on `deleteProject`, the
   pre-transaction snapshot of teardown targets (FR-003), the
   `project_repos.origin` migration + provenance wiring, the `deleteRepo` and
   `destroyDeployments` legs (reusing `deleteGithubRepo` and
@@ -565,11 +565,11 @@ mirroring how spec 225 recorded its own review follow-ups. Dispositions:
 **Resolved by architectural decision (delegated on this PR):**
 
 - **Namespace-delete ordering owner -> deployd-side empty-namespace check**
-  (FR-007a / FR-008). deployd, not stagecraft, decides a namespace is safe to
+  (FR-007a / FR-008). deployd, not statecraft, decides a namespace is safe to
   delete (no remaining deployd-managed release in it). This dissolves the
   "who is last?" race the review flagged and makes partial failure correct: a
   failed or concurrent sibling teardown leaves the namespace non-empty, so it is
-  not deleted. stagecraft just sets the flag on every teardown; deployd deletes
+  not deleted. statecraft just sets the flag on every teardown; deployd deletes
   it idempotently (a racing double-delete is benign).
 - **Teardown execution shape -> synchronous, bounded-concurrent** (FR-006). A
   project has few environments, so a bounded synchronous fan-out (matching the

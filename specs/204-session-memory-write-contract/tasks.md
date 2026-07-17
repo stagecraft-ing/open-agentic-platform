@@ -25,7 +25,7 @@ decomposition and the packaging decision).
   `checkCarriers` / `checkSecrets` around its local `size-ceiling` +
   `kind-stability` checks; keep declaration-order and every `ruleId`. Keep
   `overrideGate.test.ts` green unchanged.
-- T-A6 Add the `file:` dep to stagecraft `package.json` + refresh
+- T-A6 Add the `file:` dep to statecraft `package.json` + refresh
   `package-lock.json` (npm symlink, `"link": true`). The manifest + lock
   change is the mechanical FR-001 wiring; it rides a `Spec-Drift-Waiver`
   (plan.md Coupling graph changes).
@@ -39,7 +39,7 @@ decomposition and the packaging decision).
 
 ## PR-A2: carrier-gate CI/CD coverage (follow-on to PR-A)
 
-- T-A2-1 Extend ci.yml `stagecraft` / `stagecraft_encore` path filters to
+- T-A2-1 Extend ci.yml `statecraft` / `statecraft_encore` path filters to
   include `product/packages/carrier-gate/**` so `overrideGate.test.ts` runs
   when the shared rules change; handle the workflow-section coupling.
 - T-A2-2 Make `@opc/carrier-gate`'s own `vitest` / `tsc` run in CI (the AC-1

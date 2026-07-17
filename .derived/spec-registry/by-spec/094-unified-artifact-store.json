@@ -59,7 +59,7 @@
       "Slice 2: Consolidate artifact stores (ephemeral -> CAS)",
       "Slice 3: Add artifact metadata (SQLite artifact_records)",
       "Slice 4: Add provenance lineage (produced_by / consumed_by)",
-      "Slice 5: Platform artifact recording (Stagecraft endpoint)",
+      "Slice 5: Platform artifact recording (Statecraft endpoint)",
       "Acceptance Criteria"
     ],
     "specPath": "specs/094-unified-artifact-store/spec.md",

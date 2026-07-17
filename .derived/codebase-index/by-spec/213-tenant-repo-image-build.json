@@ -13,7 +13,7 @@
     "dependsOn": [
       "112-factory-project-lifecycle",
       "136-tenant-hello-demo-service",
-      "138-stagecraft-create-realised-scaffold"
+      "138-statecraft-create-realised-scaffold"
     ],
     "implementingPaths": [
       {
@@ -21,43 +21,43 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db/schema.ts",
+        "path": "platform/services/statecraft/api/db/schema.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/deploy/artifacts.test.ts",
+        "path": "platform/services/statecraft/api/deploy/artifacts.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/deploy/artifacts.ts",
+        "path": "platform/services/statecraft/api/deploy/artifacts.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/deploy/deploydClient.ts",
+        "path": "platform/services/statecraft/api/deploy/deploydClient.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/github/repoInit.ts",
+        "path": "platform/services/statecraft/api/github/repoInit.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/github/webhook.test.ts",
+        "path": "platform/services/statecraft/api/github/webhook.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/github/webhook.ts",
+        "path": "platform/services/statecraft/api/github/webhook.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/projects.ts",
+        "path": "platform/services/statecraft/api/projects/projects.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/vite.config.ts",
+        "path": "platform/services/statecraft/vite.config.ts",
         "source": "spec-edge"
       }
     ],
@@ -65,40 +65,40 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/artifacts.test.ts"
+            "file": "platform/services/statecraft/api/deploy/artifacts.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/artifacts.test.ts"
+          "path": "platform/services/statecraft/api/deploy/artifacts.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/artifacts.ts"
+            "file": "platform/services/statecraft/api/deploy/artifacts.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/artifacts.ts"
+          "path": "platform/services/statecraft/api/deploy/artifacts.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/github/webhook.test.ts"
+            "file": "platform/services/statecraft/api/github/webhook.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/github/webhook.test.ts"
+          "path": "platform/services/statecraft/api/github/webhook.test.ts"
         }
       },
       {
@@ -117,79 +117,79 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/db/schema.ts"
+            "file": "platform/services/statecraft/api/db/schema.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/github/repoInit.ts"
+            "file": "platform/services/statecraft/api/github/repoInit.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/github/repoInit.ts"
+          "path": "platform/services/statecraft/api/github/repoInit.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/github/webhook.ts"
+            "file": "platform/services/statecraft/api/github/webhook.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/github/webhook.ts"
+          "path": "platform/services/statecraft/api/github/webhook.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/projects.ts"
+            "file": "platform/services/statecraft/api/projects/projects.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/projects.ts"
+          "path": "platform/services/statecraft/api/projects/projects.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/vite.config.ts"
+            "file": "platform/services/statecraft/vite.config.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       },
       {
@@ -204,27 +204,27 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/deploydClient.ts"
+            "file": "platform/services/statecraft/api/deploy/deploydClient.ts"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deploydClient.ts"
+          "path": "platform/services/statecraft/api/deploy/deploydClient.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/github/repoInit.ts"
+            "file": "platform/services/statecraft/api/github/repoInit.ts"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/github/repoInit.ts"
+          "path": "platform/services/statecraft/api/github/repoInit.ts"
         }
       }
     ],

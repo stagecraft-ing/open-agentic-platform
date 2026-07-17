@@ -18,7 +18,7 @@
       "092-workspace-runtime-threading",
       "094-unified-artifact-store",
       "099-workspace-scoped-persistence",
-      "113-stagecraft-projects-rename-and-clone",
+      "113-statecraft-projects-rename-and-clone",
       "114-async-project-clone-pipeline",
       "115-knowledge-extraction-pipeline"
     ],
@@ -26,19 +26,19 @@
     "establishes": [
       {
         "kind": "directory",
-        "path": "platform/services/stagecraft/api/db"
+        "path": "platform/services/statecraft/api/db"
       },
       {
         "kind": "directory",
-        "path": "platform/services/stagecraft/api/projects"
+        "path": "platform/services/statecraft/api/projects"
       },
       {
         "kind": "directory",
-        "path": "platform/services/stagecraft/api/knowledge"
+        "path": "platform/services/statecraft/api/knowledge"
       },
       {
         "kind": "directory",
-        "path": "platform/services/stagecraft/api/sync"
+        "path": "platform/services/statecraft/api/sync"
       },
       {
         "kind": "file",
@@ -117,7 +117,7 @@
         "role": "historical",
         "unit": {
           "kind": "directory",
-          "path": "platform/services/stagecraft/api/workspaces"
+          "path": "platform/services/statecraft/api/workspaces"
         }
       }
     ],

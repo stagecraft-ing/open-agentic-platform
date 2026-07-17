@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { launchOpc, type OpcSession } from "../_session";
 
 // Spec 183 AC-7 (migrated; spec 187 AC-9 / FR-T7). Sidecar present but
-// stagecraft unreachable: the boot screen renders and STAYS; the cockpit MUST
+// statecraft unreachable: the boot screen renders and STAYS; the cockpit MUST
 // NOT appear. The mock runs in handshake-rejects so the local sidecar liveness
 // probe passes (a real axiomregent is spawned) while sync.hello never arrives,
 // so org-session-ready never flips. This is the load-bearing assertion for the
@@ -11,7 +11,7 @@ import { launchOpc, type OpcSession } from "../_session";
 // Co-authority (FR-T7): shape governed by spec 187, content (this assertion)
 // by spec 183.
 
-describe("183 AC-7 — boot stays sticky when stagecraft is unreachable", () => {
+describe("183 AC-7 — boot stays sticky when statecraft is unreachable", () => {
   let session: OpcSession | undefined;
   afterEach(async () => {
     await session?.teardown();

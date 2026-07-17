@@ -128,8 +128,8 @@ describe("spec 200 — override scan run lifecycle (encore test)", () => {
       );
     }
     policyDir = mkdtempSync(path.join(tmpdir(), "spec200-policy-"));
-    savedPolicyDirEnv = process.env.STAGECRAFT_OVERRIDE_SCAN_POLICY_DIR;
-    process.env.STAGECRAFT_OVERRIDE_SCAN_POLICY_DIR = policyDir;
+    savedPolicyDirEnv = process.env.statecraft_OVERRIDE_SCAN_POLICY_DIR;
+    process.env.statecraft_OVERRIDE_SCAN_POLICY_DIR = policyDir;
     writeFileSync(
       path.join(policyDir, `${ORG_POLICY}.json`),
       JSON.stringify({
@@ -143,9 +143,9 @@ describe("spec 200 — override scan run lifecycle (encore test)", () => {
 
   afterAll(async () => {
     if (savedPolicyDirEnv === undefined) {
-      delete process.env.STAGECRAFT_OVERRIDE_SCAN_POLICY_DIR;
+      delete process.env.statecraft_OVERRIDE_SCAN_POLICY_DIR;
     } else {
-      process.env.STAGECRAFT_OVERRIDE_SCAN_POLICY_DIR = savedPolicyDirEnv;
+      process.env.statecraft_OVERRIDE_SCAN_POLICY_DIR = savedPolicyDirEnv;
     }
     _resetOverrideScanPolicyCacheForTesting();
     rmSync(policyDir, { recursive: true, force: true });

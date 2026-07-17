@@ -15,15 +15,15 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/signing.ts",
+        "path": "platform/services/statecraft/api/factory/signing.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/sync/service.ts",
+        "path": "platform/services/statecraft/api/sync/service.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/sync/types.ts",
+        "path": "platform/services/statecraft/api/sync/types.ts",
         "source": "spec-edge"
       },
       {
@@ -52,27 +52,27 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync/types.ts"
+            "file": "platform/services/statecraft/api/sync/types.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/types.ts"
+          "path": "platform/services/statecraft/api/sync/types.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync/service.ts"
+            "file": "platform/services/statecraft/api/sync/service.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/service.ts"
+          "path": "platform/services/statecraft/api/sync/service.ts"
         }
       },
       {
@@ -104,14 +104,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/signing.ts"
+            "file": "platform/services/statecraft/api/factory/signing.ts"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/signing.ts"
+          "path": "platform/services/statecraft/api/factory/signing.ts"
         }
       },
       {

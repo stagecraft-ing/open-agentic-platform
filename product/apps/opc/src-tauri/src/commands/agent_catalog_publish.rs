@@ -6,7 +6,7 @@
 //! workspace catalog without retyping it into the web UI.
 //!
 //! The command *creates a draft*. Promoting the draft to `published` still
-//! flows through stagecraft's RBAC-gated publish endpoint (catalog.ts
+//! flows through statecraft's RBAC-gated publish endpoint (catalog.ts
 //! `publishAgent`) so the governance boundary stays intact — a non-admin
 //! desktop user can seed the content but cannot force publication.
 //!
@@ -20,11 +20,11 @@ use serde_json::{Value as JsonValue, json};
 use tauri::State;
 
 use crate::commands::agents::{Agent, AgentDb};
-use crate::commands::stagecraft_client::StagecraftState;
+use crate::commands::statecraft_client::StatecraftState;
 
 /// Slug normalisation for local agent names.
 ///
-/// Stagecraft enforces `^[a-z][a-z0-9]*(-[a-z0-9]+)*$` on `/api/agents`
+/// Statecraft enforces `^[a-z][a-z0-9]*(-[a-z0-9]+)*$` on `/api/agents`
 /// (catalog.ts `KEBAB_CASE`). Local agents carry free-form display names, so
 /// we slugify before hitting the wire. Rules:
 ///
@@ -64,7 +64,7 @@ pub fn slugify_agent_name(raw: &str) -> Result<String, String> {
     Ok(out)
 }
 
-/// Payload derived from a local [`Agent`] row, ready for stagecraft.
+/// Payload derived from a local [`Agent`] row, ready for statecraft.
 ///
 /// Keeping this as a plain struct (rather than inlining into the HTTP call)
 /// lets the mapping be unit-tested without a network. The field order mirrors
@@ -144,7 +144,7 @@ pub fn map_local_agent_to_payload(agent: &Agent) -> Result<CatalogDraftPayload, 
 
 /// Response surface for the Tauri frontend.
 ///
-/// `web_path` is the deep link the UI should open in the stagecraft web app
+/// `web_path` is the deep link the UI should open in the statecraft web app
 /// to finish the publish flow. Constructed from the returned `agent_id` so
 /// the desktop doesn't hardcode the route outside one place.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -162,7 +162,7 @@ pub struct PublishLocalAgentResult {
 /// Publish a local SQLite agent into the workspace catalog as a draft.
 ///
 /// Preconditions:
-/// - Stagecraft client configured + a JWT loaded (spec 087 Phase 5).
+/// - Statecraft client configured + a JWT loaded (spec 087 Phase 5).
 /// - Local agent row exists and carries `source = 'local'`.
 ///
 /// The command does **not** touch the local row's `source` column — the local
@@ -173,23 +173,23 @@ pub struct PublishLocalAgentResult {
 #[tauri::command]
 pub async fn publish_local_agent_to_workspace(
     db: State<'_, AgentDb>,
-    stagecraft: State<'_, StagecraftState>,
+    statecraft: State<'_, StatecraftState>,
     agent_id: i64,
 ) -> Result<PublishLocalAgentResult, String> {
     let agent = load_local_agent(&db, agent_id)?;
     let payload = map_local_agent_to_payload(&agent)?;
 
-    let client = stagecraft
+    let client = statecraft
         .current()
-        .ok_or_else(|| "stagecraft client not configured; set a base URL first".to_string())?;
+        .ok_or_else(|| "statecraft client not configured; set a base URL first".to_string())?;
     if client.auth_token().is_none() {
-        return Err("not signed in to stagecraft; sign in before publishing".into());
+        return Err("not signed in to statecraft; sign in before publishing".into());
     }
 
     let created = client
         .create_agent_draft(&payload.name, payload.frontmatter, &payload.body_markdown)
         .await
-        .map_err(|e| format!("stagecraft create_agent_draft failed: {e}"))?;
+        .map_err(|e| format!("statecraft create_agent_draft failed: {e}"))?;
 
     let a = created.agent;
     Ok(PublishLocalAgentResult {
@@ -290,7 +290,7 @@ mod tests {
 
     #[test]
     fn slugify_prefixes_leading_digit() {
-        // Stagecraft's KEBAB_CASE demands a leading letter; a digit-first
+        // Statecraft's KEBAB_CASE demands a leading letter; a digit-first
         // slug would be rejected with invalidArgument at the API edge.
         assert_eq!(slugify_agent_name("42 things").unwrap(), "a-42-things");
     }

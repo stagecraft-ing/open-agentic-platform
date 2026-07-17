@@ -6,7 +6,7 @@
 //
 // Maps a `SchemaNode` (the plain-data structural type co-located with each
 // hand-rolled validator — see
-// `platform/services/stagecraft/api/knowledge/extractionOutput.ts`) to the
+// `platform/services/statecraft/api/knowledge/extractionOutput.ts`) to the
 // fingerprint shape consumed by `tools/schema-parity-check/index.mjs` and
 // emitted by the Rust mirror in `crates/factory-contracts/`. This is the
 // only walker the parity tool carries — the zod walker that once lived

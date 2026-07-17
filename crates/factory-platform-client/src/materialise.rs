@@ -179,7 +179,7 @@ impl PlatformClient {
 /// Walk a process definition's JSON for embedded `AgentReference`
 /// instances. Externally-tagged: `{"by_id": …}`, `{"by_name": …}`,
 /// `{"by_name_latest": …}`. Mirrors the TypeScript walker in
-/// `platform/services/stagecraft/api/factory/agentRefWalker.ts`.
+/// `platform/services/statecraft/api/factory/agentRefWalker.ts`.
 pub fn walk_process_for_agent_refs(node: &serde_json::Value) -> Vec<AgentReference> {
     let mut out = Vec::new();
     walk(node, &mut out);
@@ -375,7 +375,7 @@ fn write_adapter(
     // `schema_version`) that would otherwise be cached verbatim and fail later
     // in engine startup with a cryptic `missing field 'schema_version'`. This
     // cheap top-level guard catches that case early, attributably, and is
-    // symmetric with the stagecraft `getAdapter` guard; the engine still does
+    // symmetric with the statecraft `getAdapter` guard; the engine still does
     // full `AdapterManifest` validation when it reads the cache.
     let has_schema_version = adapter
         .manifest
@@ -384,7 +384,7 @@ fn write_adapter(
         .is_some();
     if !has_schema_version {
         return Err(FactoryClientError::CacheIo(format!(
-            "stagecraft served a non-spec-074 adapter manifest for '{adapter_name}' \
+            "statecraft served a non-spec-074 adapter manifest for '{adapter_name}' \
              (no string `schema_version`): the org's factory substrate is missing a valid \
              AdapterManifest for this adapter; trigger an upstream sync or seed the adapter \
              manifest on the platform."

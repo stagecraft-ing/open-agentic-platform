@@ -19,19 +19,19 @@ function priceFromEnv(name: string, fallback: number): number {
 export function getPricingUsdPerMtok() {
   return {
     input: priceFromEnv(
-      "STAGECRAFT_EXTRACT_PRICE_INPUT_USD_PER_MTOK",
+      "STATECRAFT_EXTRACT_PRICE_INPUT_USD_PER_MTOK",
       DEFAULT_PRICE_INPUT_USD_PER_MTOK,
     ),
     output: priceFromEnv(
-      "STAGECRAFT_EXTRACT_PRICE_OUTPUT_USD_PER_MTOK",
+      "STATECRAFT_EXTRACT_PRICE_OUTPUT_USD_PER_MTOK",
       DEFAULT_PRICE_OUTPUT_USD_PER_MTOK,
     ),
     cacheWrite: priceFromEnv(
-      "STAGECRAFT_EXTRACT_PRICE_CACHE_WRITE_USD_PER_MTOK",
+      "STATECRAFT_EXTRACT_PRICE_CACHE_WRITE_USD_PER_MTOK",
       DEFAULT_PRICE_CACHE_WRITE_USD_PER_MTOK,
     ),
     cacheRead: priceFromEnv(
-      "STAGECRAFT_EXTRACT_PRICE_CACHE_READ_USD_PER_MTOK",
+      "STATECRAFT_EXTRACT_PRICE_CACHE_READ_USD_PER_MTOK",
       DEFAULT_PRICE_CACHE_READ_USD_PER_MTOK,
     ),
   };

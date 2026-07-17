@@ -21,12 +21,12 @@ Invoke `make ci` from the repo root. The `Makefile` is the **single source of tr
 - **`ci-fast-rust`** — `cargo clippy --workspace -- -D warnings` + `cargo test --workspace` (or `nextest run --workspace` if installed) on `crates/Cargo.toml` (all 18 workspace members per spec 135 FR-01) and `platform/services/deployd-api-rs/Cargo.toml`. Mirrors `ci-axiomregent.yml`, `ci-crates.yml`, `ci-deployd-api-rs.yml`, `ci-orchestrator.yml`, `ci-policy-kernel.yml`.
 - **`ci-fast-tools`**: parallel xargs fan-out across tool manifests with shared `CARGO_TARGET_DIR`; `cargo test -- --list` post-pass asserting each `CI_REGISTRY_CONSUMER_CONTRACTS` prefix has ≥1 match; `spec-lint --fail-on-warn` smoke; `spec-spine index` smoke (broad staleness gate retired per spec 188 Phase 4b). Mirrors `spec-conformance.yml`.
 - **`ci-fast-desktop`** — `apps/opc/src-tauri` Rust (custom clippy flags: `-A dead_code -D warnings`) concurrent with `pnpm install --frozen-lockfile`; `tsc --noEmit` and vitest concurrent; `Cargo.toml` ↔ `package.json` version alignment. Mirrors `ci-desktop.yml`.
-- **`ci-fast-stagecraft`** — `platform/services/stagecraft`: `npm ci`, then `tsc --noEmit` and `npm test` concurrent. Mirrors `ci-stagecraft.yml`.
+- **`ci-fast-statecraft`** — `platform/services/statecraft`: `npm ci`, then `tsc --noEmit` and `npm test` concurrent. Mirrors `ci-statecraft.yml`.
 - **`ci-fast-schema-parity`** — Rust factory-contracts fingerprints + `bun run tools/oap/schema-parity-check/index.mjs`. Mirrors `ci-schema-parity.yml` (spec 120/125).
 - **`ci-fast-spec-coupling`** — PR-time spec/code coupling gate. Mirrors `ci-spec-code-coupling.yml` (spec 127).
 - **`ci-fast-supply-chain`** — `cargo-deny` parallel xargs over Rust manifests + `pnpm audit` + `npm audit` concurrent. Mirrors `ci-supply-chain.yml` (spec 116).
 
-`make ci-strict` composes the same gate set via the canonical sequential targets (`ci-rust`, `ci-tools`, `ci-desktop`, `ci-stagecraft`, `ci-schema-parity`, `ci-spec-code-coupling`, `ci-supply-chain`) — token-equivalent to the workflows but ~90 min on M1 Pro.
+`make ci-strict` composes the same gate set via the canonical sequential targets (`ci-rust`, `ci-tools`, `ci-desktop`, `ci-statecraft`, `ci-schema-parity`, `ci-spec-code-coupling`, `ci-supply-chain`) — token-equivalent to the workflows but ~90 min on M1 Pro.
 
 Not in either `make ci` or `make ci-strict` (run on demand):
 - `make ci-cross` — axiomregent cross-target matrix (requires `rustup target add` per triple). Mirrors `build-axiomregent.yml`.

@@ -11,7 +11,7 @@
 // All four FR-T affordances are wired here:
 //   • Precondition status rows (FR-T3)
 //   • Retry sidecar → respawn_axiomregent Tauri command (FR-T4)
-//   • Sign in to stagecraft → AuthContext.login (FR-T2 via FR-T3)
+//   • Sign in to statecraft → AuthContext.login (FR-T2 via FR-T3)
 //   • Open logs → open_logs_folder Tauri command (FR-T3)
 //   • Quit OPC → quit_opc with deterministic child kill (FR-T6)
 // Mid-session precondition-loss restore (FR-T5) is owned by App.tsx,
@@ -121,7 +121,7 @@ export const BootGate: React.FC<BootGateProps> = ({ onReady }) => {
     return () => { mounted = false; };
   }, [onReady, pollOnce]);
 
-  // AC-7 load-bearing test surface: if the sidecar is alive but stagecraft
+  // AC-7 load-bearing test surface: if the sidecar is alive but statecraft
   // is unreachable (no sync.hello yet), the BootGate stays mounted with an
   // accurate per-precondition state. The cockpit cannot render.
 
@@ -158,7 +158,7 @@ export const BootGate: React.FC<BootGateProps> = ({ onReady }) => {
   }, [auth]);
 
   // Spec 183 — explicit duplex reconnect. Re-spawns the Rust sync consumer
-  // (`reconnect_stagecraft_duplex`), which resets the per-outage refresh
+  // (`reconnect_statecraft_duplex`), which resets the per-outage refresh
   // budget + consecutive-failure counter to zero and forces an immediate
   // connect with the current bearer instead of waiting out the backoff. This
   // is the load-bearing recovery for the wedged-handshake / burned-refresh-
@@ -168,7 +168,7 @@ export const BootGate: React.FC<BootGateProps> = ({ onReady }) => {
   const handleReconnect = useCallback(async () => {
     if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
       try {
-        await api.reconnectStagecraftDuplex();
+        await api.reconnectStatecraftDuplex();
       } catch (e) {
         console.warn('Reconnect duplex failed:', e);
       }
@@ -177,7 +177,7 @@ export const BootGate: React.FC<BootGateProps> = ({ onReady }) => {
   }, [pollOnce]);
 
   // FR-T3 sign-out affordance. `auth.logout()` calls `auth_logout`, which
-  // runs `StagecraftClient::clear_auth()` — clearing the in-memory token AND
+  // runs `StatecraftClient::clear_auth()` — clearing the in-memory token AND
   // the OS-keychain session entry. This is the load-bearing recovery for a
   // session that authenticated but never materialised an org_id (the gate's
   // `has_org` term never flips): signing out clears the stale keychain token
@@ -238,7 +238,7 @@ export const BootGate: React.FC<BootGateProps> = ({ onReady }) => {
         <header className="space-y-1">
           <h1 className="text-xl font-semibold">Preparing OPC</h1>
           <p className="text-xs text-muted-foreground">
-            OPC requires its bundled agent sidecar and a signed-in stagecraft
+            OPC requires its bundled agent sidecar and a signed-in statecraft
             session before the cockpit will open.
           </p>
         </header>
@@ -283,7 +283,7 @@ export const BootGate: React.FC<BootGateProps> = ({ onReady }) => {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <ShieldCheck className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="text-sm font-medium">Stagecraft</span>
+              <span className="text-sm font-medium">Statecraft</span>
               <span className="text-xs text-muted-foreground">
                 {auth.status === 'authenticated'
                   ? auth.org?.org_slug
@@ -311,7 +311,7 @@ export const BootGate: React.FC<BootGateProps> = ({ onReady }) => {
               // a wedged consumer) where re-spawning the loop is the recovery.
               <div className="space-y-2">
                 <p className="text-[11px] text-muted-foreground/80">
-                  Waiting for stagecraft duplex handshake (sync.hello)…
+                  Waiting for statecraft duplex handshake (sync.hello)…
                 </p>
                 <Button
                   size="sm"
@@ -342,7 +342,7 @@ export const BootGate: React.FC<BootGateProps> = ({ onReady }) => {
               onClick={handleSignIn}
             >
               <LogIn className="h-3 w-3" />
-              Sign in to stagecraft
+              Sign in to statecraft
             </Button>
           )}
           {/* FR-T3 — while a session exists but the gate is still closed (incl.

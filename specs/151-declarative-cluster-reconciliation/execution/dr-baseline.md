@@ -288,7 +288,7 @@ worker is Ready BEFORE running `flux bootstrap`". A `kubectl wait
 post-Phase-1 operational landing).** `flux bootstrap github` against
 a non-personal repository creates a repo-scoped deploy key on first
 invocation (so `source-controller` can pull from the gitops path).
-The `stagecraft-ing` organisation default-disables deploy keys at
+The `statecrafting` organisation default-disables deploy keys at
 the org level (Settings → Repository policies → Deploy keys), so the
 first-time bootstrap against any repo under the org fails with HTTP
 422 `Deploy keys are disabled` at the deploy-key creation step. Two
@@ -301,7 +301,7 @@ window:
    the operator can re-run the same invocation after the org-level
    toggle flips and bootstrap completes cleanly. This is the path
    taken on 2026-05-18; the toggle was enabled to unblock and left
-   enabled (durable note in agent memory `stagecraft-ing-org-policies`).
+   enabled (durable note in agent memory `statecrafting-org-policies`).
 2. **`flux bootstrap --token-auth`.** Bypasses deploy-key creation
    by storing the operator's PAT as a Kubernetes Secret in
    `flux-system`. Trade-off: the PAT lives in-cluster as
@@ -387,7 +387,7 @@ findings F1–F5 for plan.md / Phase-1 implementation pickup.
   (worker pool present) this is invisible. DR runbook MUST gate the
   `flux bootstrap` step on `kubectl wait` for at least one
   non-master node Ready.
-- **F6** (added 2026-05-18) — `stagecraft-ing` org default-disables
+- **F6** (added 2026-05-18) — `statecrafting` org default-disables
   deploy keys at the org level. First-time `flux bootstrap github`
   against any repo under the org fails 422 at deploy-key creation.
   Resolutions: (a) org-admin enables Settings → Repository policies

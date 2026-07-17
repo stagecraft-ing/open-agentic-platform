@@ -5,7 +5,7 @@
  * below exist specifically so durable Postgres-backed storage can be swapped
  * in without touching the streaming endpoint or the service layer.
  *
- * NOTE: none of the methods here persist across stagecraft restarts.
+ * NOTE: none of the methods here persist across statecraft restarts.
  *
  * Spec 119: scope key is `orgId`.
  */

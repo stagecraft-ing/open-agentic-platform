@@ -21,8 +21,8 @@ specs.**
 | Provisional ID | Scope | Closes |
 |---|---|---|
 | **151** (this spec, narrowed) | Flux v2 bootstrap + operational-chart migration (reflector, cert-manager, ingress-nginx, rauthy) + SOPS-age cluster runtime (Flux's `sops-age` Secret bootstrap, NOT per-purpose Secret migration) + drift detection + DR runbook | Unblocks spec 137 Phase 6 evidence collection. Lands FR-001/002/003 (narrowed scope)/006/007/008/009/010. |
-| **152** (provisional — "declarative-cluster-app-charts") | Clarification #5's eight sub-pins: chart-contract `cd-managed-images.yaml`, failure-mode ordering, first-image-deploy baseline, per-service migration atomicity, break-glass rollback semantics, CD-bot commit-signing out-of-scope rationale, CI/CD CODEOWNERS permissions, rationale-over-driftDetection.ignore. Migrates stagecraft, deployd-api, tenant-hello HelmReleases + corresponding CD workflows. | Lands FR-004 (M-001 image-rollout migration) end-to-end. |
-| **153** (provisional — "declarative-cluster-secrets") | SOPS per-purpose Secret migration for the FU-008 / FU-003 family (stagecraft-knowledge-sweeper, stagecraft-audit-sweeper, stagecraft-factory-sweeper, extraction-staleness-sweeper, connector-sync-scheduler, factory-runs-staleness-sweeper credentials). Setup.sh's `kubectl create secret` calls retire structurally. | Lands FR-005 + SC-006. Closes spec 143 FU-008 + FU-003 by reference. |
+| **152** (provisional — "declarative-cluster-app-charts") | Clarification #5's eight sub-pins: chart-contract `cd-managed-images.yaml`, failure-mode ordering, first-image-deploy baseline, per-service migration atomicity, break-glass rollback semantics, CD-bot commit-signing out-of-scope rationale, CI/CD CODEOWNERS permissions, rationale-over-driftDetection.ignore. Migrates statecraft, deployd-api, tenant-hello HelmReleases + corresponding CD workflows. | Lands FR-004 (M-001 image-rollout migration) end-to-end. |
+| **153** (provisional — "declarative-cluster-secrets") | SOPS per-purpose Secret migration for the FU-008 / FU-003 family (statecraft-knowledge-sweeper, statecraft-audit-sweeper, statecraft-factory-sweeper, extraction-staleness-sweeper, connector-sync-scheduler, factory-runs-staleness-sweeper credentials). Setup.sh's `kubectl create secret` calls retire structurally. | Lands FR-005 + SC-006. Closes spec 143 FU-008 + FU-003 by reference. |
 
 Sequencing across siblings is **151 → 152 → 153**, with explicit
 gates so 152/153 are not started until their dependencies hold.
@@ -91,7 +91,7 @@ monolith.
   first migrations. Unblocks spec 137 Phase 6 evidence.
 - **FR-009:** Incremental migration order, per §Clarification 8:
   reflector → cert-manager → ingress-nginx → rauthy.
-  Application charts (stagecraft, deployd-api, tenant-hello) defer
+  Application charts (statecraft, deployd-api, tenant-hello) defer
   to spec 152.
 - **FR-010:** Flat single-cluster tree, kustomize-compatible naming
   for future overlay extraction.
@@ -114,13 +114,13 @@ per-purpose Secret application of M-002 is 153.
 
 **Files to migrate:**
 
-- `cd-stagecraft.yml`, `cd-deployd-api-rs.yml`, `cd-tenant-hello.yml`
+- `cd-statecraft.yml`, `cd-deployd-api-rs.yml`, `cd-tenant-hello.yml`
   → CD writes image tag commits to gitops tree, no cluster mutation.
-- `platform/charts/stagecraft/`, `platform/charts/deployd-api/`,
+- `platform/charts/statecraft/`, `platform/charts/deployd-api/`,
   `platform/charts/tenant-hello/` → each adds
   `cd-managed-images.yaml` chart-root file (the schema pinned in 151
   spec.md §Clarification 5 sub-pin i).
-- `platform/gitops/clusters/hetzner-prod/{stagecraft,deployd-api,
+- `platform/gitops/clusters/hetzner-prod/{statecraft,deployd-api,
   tenant-hello}-helmrelease.yaml` → new HelmReleases per service,
   Flux-owned `image.tag`.
 
@@ -143,12 +143,12 @@ origin.
 **Files to migrate** (each becomes a SOPS-encrypted manifest under
 `platform/gitops/clusters/hetzner-prod/secrets/`):
 
-- `stagecraft-knowledge-sweeper-credentials` (spec 143 FU-008's
+- `statecraft-knowledge-sweeper-credentials` (spec 143 FU-008's
   named pattern).
 - Three sibling sweepers per spec 143 §12 FU-003:
   `extraction-staleness-sweeper`, `connector-sync-scheduler`,
   `factory-runs-staleness-sweeper`.
-- `stagecraft-audit-sweeper`, `stagecraft-factory-sweeper` (M2M
+- `statecraft-audit-sweeper`, `statecraft-factory-sweeper` (M2M
   client credentials currently in `.env`).
 - `rauthy-secrets`, `deployd-api-secrets`, `ghcr-pull-secret`,
   `cloudflare-dns-secret` (today materialised by `kubectl create
@@ -202,7 +202,7 @@ Gates between siblings (each gate is a hard prerequisite, not a
 courtesy):
 
 - **151 → 152 gate:** Flux is reconciling at least one HelmRelease
-  in production (stagecraft 137-prod evidence is the demonstrable
+  in production (statecraft 137-prod evidence is the demonstrable
   proof). SC-001 verified. setup.sh under 200 lines (final target
   100, but 200 is enough to start 152). dr-baseline Stage 2
   measurement complete.
@@ -282,7 +282,7 @@ index.
 - **Spec 102 FU-001** — `single-author-self-pinned` cert-pipeline
   surfacing, filed 2026-05-17. Independent of 151 implementation;
   closure path is spec 102's own.
-- **Spec 087** — stagecraft as single operator surface. Unchanged by
+- **Spec 087** — statecraft as single operator surface. Unchanged by
   the split; all three siblings respect the constitutional reason
   for Flux over Argo CD (no competing operator dashboard).
 - **Spec 089** — governance non-optionality. All three siblings

@@ -314,8 +314,8 @@ relocated into `release-desktop.yml` per §2.1.
   Sigstore under the hood; a separate cosign workflow is unnecessary for
   v1.
 - Reproducible builds (bit-for-bit identical rebuilds). A future spec.
-- Container image attestations. Stagecraft and deployd-api images already
-  flow through `cd-{stagecraft,deployd-api-rs}.yml`; image attestations are
+- Container image attestations. Statecraft and deployd-api images already
+  flow through `cd-{statecraft,deployd-api-rs}.yml`; image attestations are
   a candidate follow-up but out of scope here (this spec covers release
   binaries only).
 - Distribution-time trust anchors (Homebrew, winget). Out of scope.
@@ -491,7 +491,7 @@ release notes template, documents:
 ```bash
 # Verify provenance (desktop installer — the single attested release subject)
 gh attestation verify path/to/opc_<version>_aarch64.dmg \
-  --repo stagecraft-ing/open-agentic-platform
+  --repo statecrafting/open-agentic-platform
 
 # Inspect the installer SBOM, then the co-attached bundled-sidecar SBOM it BOM-Links to
 jq '.components | length' sbom-desktop-aarch64-apple-darwin.cdx.json

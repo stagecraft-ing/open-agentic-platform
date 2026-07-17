@@ -47,21 +47,21 @@ fn main() -> ExitCode {
         }
     };
 
-    let stagecraft_path = repo
+    let statecraft_path = repo
         .join("platform")
         .join("services")
-        .join("stagecraft")
+        .join("statecraft")
         .join("api")
         .join("factory")
         .join("adapter-scopes.json");
-    if let Err(e) = std::fs::write(&stagecraft_path, &json) {
+    if let Err(e) = std::fs::write(&statecraft_path, &json) {
         eprintln!(
             "adapter-scopes-compiler: write {}: {e}",
-            stagecraft_path.display()
+            statecraft_path.display()
         );
         return ExitCode::from(1);
     }
-    println!("wrote {}", stagecraft_path.display());
+    println!("wrote {}", statecraft_path.display());
 
     for (name, scope) in &compiled.adapters {
         println!("  {name}:");

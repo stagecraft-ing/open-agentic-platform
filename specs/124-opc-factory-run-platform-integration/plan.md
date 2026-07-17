@@ -10,7 +10,7 @@
 Close the spec 108 §7.1 punt and §7.4 deferral. Replace OPC's
 `resolve_factory_root()` walk-up-from-`CARGO_MANIFEST_DIR` with an
 authenticated `/api/factory/*` fetch into a per-run, content-addressed
-cache. Persist runs in a new `factory_runs` table on stagecraft, stream
+cache. Persist runs in a new `factory_runs` table on statecraft, stream
 lifecycle events from the desktop over the existing duplex channel
 (spec 087 §5.3), and surface a Runs tab + detail view at `/app/factory`
 that live-updates while a run is in flight. Agent bodies for each
@@ -26,7 +26,7 @@ process bodies only. Migration is `31_create_factory_runs.up.sql`
 |-------|-------|---------------|
 | **0** | Foundations: shared TS / Rust types for `factory.run.*` envelopes (`v: 1`); compile-time schema-version constant; cache-root layout helper crate; OIDC desktop-client wiring confirmed | §3, §6.1 |
 | **1** | Schema migration `31_create_factory_runs.up.sql` — `factory_runs` table + indexes; Drizzle schema additions; in-DB tests for FK cascades against `factory_adapters` / `factory_processes` / `projects` | §3, §10 A-3 / A-7 |
-| **2** | Stagecraft API: `api/factory/runs.ts` with `POST /api/factory/runs` (reservation), `GET /api/factory/runs`, `GET /api/factory/runs/:id`; org-scoped reads; idempotent `client_run_id` handling | §4 |
+| **2** | Statecraft API: `api/factory/runs.ts` with `POST /api/factory/runs` (reservation), `GET /api/factory/runs`, `GET /api/factory/runs/:id`; org-scoped reads; idempotent `client_run_id` handling | §4 |
 | **3** | Duplex handlers: register `factory.run.*` envelope kinds in `api/sync/duplex.ts`; idempotent `(run_id, stage_id, status)` write path; reject events for runs the caller does not own | §6, §6.1 |
 | **4** | Run-level platform client (`crates/factory-platform-client`, new lib crate) — typed `/api/factory/*` client, OIDC token plumbing, content-addressed cache I/O, retry/backoff. No factory-specific business logic | §5 |
 | **5** | OPC migration: rewrite `product/apps/opc/src-tauri/src/commands/factory.rs` against the platform client + `agent_resolver`; delete `resolve_factory_root` and the `// TODO(spec-108-§7-punt)` marker; the local `state.json` write path becomes a duplex emit | §4.1, §5, §6 |
@@ -35,7 +35,7 @@ process bodies only. Migration is `31_create_factory_runs.up.sql`
 | **8** | Acceptance closure: A-1..A-9 verified; spec 108 §7.1 marker removed in code; `make ci` green on the post-migration branch; spec 124 frontmatter flips to `status: approved` / `implementation: complete` | §10 |
 
 Phase 0 unblocks 1, 2, 3, and 4 in parallel-by-file (types are shared).
-Phases 1, 2, 3 are platform-side and run sequentially within stagecraft.
+Phases 1, 2, 3 are platform-side and run sequentially within statecraft.
 Phase 4 (platform client) and Phase 6 (sweeper) can run in parallel
 once Phase 0 is in. Phase 5 depends on 1, 2, 3, 4. Phase 7 depends on
 2, 3 only (UI consumes the API + duplex). Phase 8 is closure.
@@ -176,13 +176,13 @@ once Phase 0 is in. Phase 5 depends on 1, 2, 3, 4. Phase 7 depends on
 - Existing primitives this spec touches:
   - `product/apps/opc/src-tauri/src/commands/factory.rs` — rewritten,
     `resolve_factory_root` deleted
-  - `platform/services/stagecraft/api/factory/` — new `runs.ts` and
+  - `platform/services/statecraft/api/factory/` — new `runs.ts` and
     `runsScheduler.ts`
-  - `platform/services/stagecraft/api/sync/duplex.ts` — register
+  - `platform/services/statecraft/api/sync/duplex.ts` — register
     `factory.run.*` envelope kinds
-  - `platform/services/stagecraft/api/db/schema.ts` — `factoryRuns`
+  - `platform/services/statecraft/api/db/schema.ts` — `factoryRuns`
     table addition
-  - `platform/services/stagecraft/web/app/routes/app.factory.runs*` —
+  - `platform/services/statecraft/web/app/routes/app.factory.runs*` —
     new Runs tab + detail
   - `crates/factory-engine` — accepts the materialised cache root via
     its existing `factory_root` config (no API change)

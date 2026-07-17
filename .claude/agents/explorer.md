@@ -33,7 +33,7 @@ mutation: read-only
 | Rust Tools | `tools/{spec-lint,policy-compiler,oap-registry-enrich}/` + spec-spine CLI (published) | Rust binaries |
 | Factory | `factory/{contract,process,adapters,docs}/` | Pipeline stages, schemas, tech adapters |
 | Desktop App | `apps/opc/` | Tauri v2 + React + TypeScript |
-| Platform | `platform/{services,infra,charts}/` | Encore.ts (stagecraft), Rust (deployd-api-rs), Terraform, Helm |
+| Platform | `platform/{services,infra,charts}/` | Encore.ts (statecraft), Rust (deployd-api-rs), Terraform, Helm |
 | Build Output | `.derived/` | spec-registry and codebase-index shards, `build-meta.json` |
 
 Key files: `CLAUDE.md` (conventions), `AGENTS.md` (session protocol), `.claude/rules/orchestrator-rules.md` (behavioral rules).

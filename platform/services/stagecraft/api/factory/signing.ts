@@ -1,7 +1,7 @@
 /**
  * Factory signing authority — secret-bound wrapper (spec 198 FR-014).
  *
- * Stagecraft holds the only signing keys in the trust fabric: OPC and every
+ * Statecraft holds the only signing keys in the trust fabric: OPC and every
  * agent are keyless, categorically (ASI10 m6 — the orchestrator mediates
  * signing). Keys live platform-side as Encore secrets; HSM/KMS custody is a
  * deployment-profile obligation (K8s Secret on Hetzner, KeyVault-backed on

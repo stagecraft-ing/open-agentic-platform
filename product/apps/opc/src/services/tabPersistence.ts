@@ -21,7 +21,7 @@ interface SerializedTab {
   initialProjectPath?: string;
   projectPath?: string;
   // Spec 112 §6.3 — surviving the bundle across reloads keeps factory tabs
-  // bound to their stagecraft context (org id, slug, adapter, contracts).
+  // bound to their statecraft context (org id, slug, adapter, contracts).
   // Dropping it stranded the panel in a half-resolved state where the header
   // still showed the adapter badge but `projectPath` was effectively empty.
   factoryBundle?: OpcBundle;

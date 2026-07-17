@@ -25,27 +25,27 @@
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/admission.ts"
+        "path": "platform/services/statecraft/api/factory/admission.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/revocations.ts"
+        "path": "platform/services/statecraft/api/factory/revocations.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/signing-pure.ts"
+        "path": "platform/services/statecraft/api/factory/signing-pure.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/signing.ts"
+        "path": "platform/services/statecraft/api/factory/signing.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/jwks.ts"
+        "path": "platform/services/statecraft/api/factory/jwks.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+        "path": "platform/services/statecraft/api/factory/grantDuplexHandlers.ts"
       },
       {
         "kind": "file",
@@ -61,23 +61,23 @@
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/signing.test.ts"
+        "path": "platform/services/statecraft/api/factory/signing.test.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.test.ts"
+        "path": "platform/services/statecraft/api/factory/grantDuplexHandlers.test.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/overrideGate.ts"
+        "path": "platform/services/statecraft/api/factory/overrideGate.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/overrideGate.test.ts"
+        "path": "platform/services/statecraft/api/factory/overrideGate.test.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/overrideTrustClass.test.ts"
+        "path": "platform/services/statecraft/api/factory/overrideTrustClass.test.ts"
       }
     ],
     "extends": [
@@ -156,7 +156,7 @@
         "role": "context",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/substrateBrowser.ts"
+          "path": "platform/services/statecraft/api/factory/substrateBrowser.ts"
         }
       }
     ],
@@ -165,14 +165,14 @@
         "aspect": "admission-time-governance",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/syncPipeline.ts"
+          "path": "platform/services/statecraft/api/factory/syncPipeline.ts"
         }
       },
       {
         "aspect": "adapter-scopes-fail-closed",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/factory.ts"
+          "path": "platform/services/statecraft/api/factory/factory.ts"
         }
       },
       {
@@ -186,35 +186,35 @@
         "aspect": "run-grant-envelope-family",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/types.ts"
+          "path": "platform/services/statecraft/api/sync/types.ts"
         }
       },
       {
         "aspect": "run-grant-envelope-family",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/service.ts"
+          "path": "platform/services/statecraft/api/sync/service.ts"
         }
       },
       {
         "aspect": "certificate-countersign-on-completion",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/runDuplexHandlers.ts"
+          "path": "platform/services/statecraft/api/factory/runDuplexHandlers.ts"
         }
       },
       {
         "aspect": "admission-seal-in-bundle",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/opcBundle.ts"
+          "path": "platform/services/statecraft/api/projects/opcBundle.ts"
         }
       },
       {
         "aspect": "admission-seal-in-bundle",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/opcBundleHelpers.ts"
+          "path": "platform/services/statecraft/api/projects/opcBundleHelpers.ts"
         }
       },
       {
@@ -263,49 +263,49 @@
         "aspect": "admission-seal-in-bundle",
         "unit": {
           "kind": "file",
-          "path": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs"
+          "path": "product/apps/opc/src-tauri/src/commands/statecraft_client.rs"
         }
       },
       {
         "aspect": "run-grant-records",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       },
       {
         "aspect": "run-grant-records",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+          "path": "platform/services/statecraft/api/factory/auditActions.ts"
         }
       },
       {
         "aspect": "override-write-gate",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/artifacts.ts"
+          "path": "platform/services/statecraft/api/factory/artifacts.ts"
         }
       },
       {
         "aspect": "override-write-gate",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/conflicts.ts"
+          "path": "platform/services/statecraft/api/factory/conflicts.ts"
         }
       },
       {
         "aspect": "override-write-gate",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/agents/catalog.ts"
+          "path": "platform/services/statecraft/api/agents/catalog.ts"
         }
       },
       {
         "aspect": "override-trust-class",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/substrate.ts"
+          "path": "platform/services/statecraft/api/factory/substrate.ts"
         }
       },
       {
@@ -319,14 +319,14 @@
         "aspect": "override-verify-ui",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.factory.artifacts.tsx"
         }
       },
       {
         "aspect": "override-verify-ui",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/factory-api.server.ts"
+          "path": "platform/services/statecraft/web/app/lib/factory-api.server.ts"
         }
       }
     ],
@@ -350,7 +350,7 @@
       "FR-011 — All ten ASI controls are explicitly mapped and defensible",
       "FR-012 — Envelope homes: process file + in-manifest sub-envelope (resolves OQ-1)",
       "FR-013 — Override-write contract: rules block, models quarantine (resolves OQ-2; ASI06)",
-      "FR-014 — Signing authority: stagecraft seals, OPC is keyless (resolves OQ-4; ASI10 m6)",
+      "FR-014 — Signing authority: statecraft seals, OPC is keyless (resolves OQ-4; ASI10 m6)",
       "All-ten ASI coverage (the deferred gap analysis, delivered)",
       "Acceptance criteria",
       "Out of scope",

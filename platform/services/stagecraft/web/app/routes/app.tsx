@@ -130,7 +130,7 @@ export default function AppLayout() {
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-4">
               <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
-                stagecraft
+                statecraft
               </span>
             </div>
             <div className="flex items-center gap-3">

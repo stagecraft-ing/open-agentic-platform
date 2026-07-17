@@ -43,7 +43,7 @@ export async function gitInitAndPush(
     GIT_AUTHOR_EMAIL: opts.authorEmail,
     GIT_COMMITTER_NAME: opts.authorName,
     GIT_COMMITTER_EMAIL: opts.authorEmail,
-    // Bypass "dubious ownership" check — destDir was created by stagecraft
+    // Bypass "dubious ownership" check — destDir was created by statecraft
     // running under a different uid than the one git would expect.
     GIT_CONFIG_COUNT: "1",
     GIT_CONFIG_KEY_0: "safe.directory",

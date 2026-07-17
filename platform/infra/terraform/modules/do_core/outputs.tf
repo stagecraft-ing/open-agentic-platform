@@ -44,5 +44,5 @@ output "kube_token" {
   description = "DOKS API token for kubectl authentication"
 }
 
-output "stagecraft_serviceaccount_name" { value = "stagecraft-api-sa" }
+output "statecraft_serviceaccount_name" { value = "statecraft-api-sa" }
 output "deployd_serviceaccount_name"    { value = "deployd-api-sa" }

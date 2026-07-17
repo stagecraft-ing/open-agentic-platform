@@ -1,6 +1,6 @@
 ---
-id: "164-stagecraft-development-lifecycle-board"
-slug: stagecraft-development-lifecycle-board
+id: "164-statecraft-development-lifecycle-board"
+slug: statecraft-development-lifecycle-board
 title: "Pipelines → Development rename, lifecycle-state board over spec-spine states"
 status: approved
 implementation: complete
@@ -11,50 +11,50 @@ domain: platform
 risk: medium
 depends_on:
   - "075-factory-workflow-engine"  # factory-workflow-engine (pipeline runs surfaced as execution evidence)
-  - "077-stagecraft-factory-api"  # stagecraft-factory-api (the existing pipelines surface)
+  - "077-statecraft-factory-api"  # statecraft-factory-api (the existing pipelines surface)
   - "102-governed-excellence"  # governed-excellence (certificate emissions surfaced on cards)
   - "127-spec-code-coupling-gate"  # spec-code-coupling-gate (gate fires surfaced as execution evidence)
   - "133-amends-aware-coupling-gate"  # amends-aware coupling gate
   - "147-spec-kind-grammar"  # spec-kind-grammar (lifecycle / status fields)
-  - "163-stagecraft-requirements-view"  # stagecraft-requirements-view (the read-shaped pair)
-code_aliases: ["STAGECRAFT_DEVELOPMENT_BOARD", "LIFECYCLE_STATE_BOARD"]
+  - "163-statecraft-requirements-view"  # statecraft-requirements-view (the read-shaped pair)
+code_aliases: ["STATECRAFT_DEVELOPMENT_BOARD", "LIFECYCLE_STATE_BOARD"]
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.development.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-registry-board.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-registry-board.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId.development.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/spec-registry-board.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/spec-registry-board.test.ts }
 extends:
   - spec: "087-unified-workspace-architecture"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes.ts }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes.ts }
   - spec: "087-unified-workspace-architecture"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId.tsx }
   - spec: "087-unified-workspace-architecture"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx }
-  - spec: "163-stagecraft-requirements-view"
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId._index.tsx }
+  - spec: "163-statecraft-requirements-view"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/specRegistry/types.ts }
-  - spec: "163-stagecraft-requirements-view"
+    unit: { kind: file, path: platform/services/statecraft/api/specRegistry/types.ts }
+  - spec: "163-statecraft-requirements-view"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/specRegistry/registryReader.ts }
-  - spec: "163-stagecraft-requirements-view"
+    unit: { kind: file, path: platform/services/statecraft/api/specRegistry/registryReader.ts }
+  - spec: "163-statecraft-requirements-view"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-registry-grouping.test.ts }
+    unit: { kind: file, path: platform/services/statecraft/web/app/lib/spec-registry-grouping.test.ts }
 refines:
   - aspect: project-lifecycle-board
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.development.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId.development.tsx }
   - aspect: pipelines-redirect-to-development
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.pipelines.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId.pipelines.tsx }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }
   - role: aide-analogue
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-blueprint-spec.md }
   - role: precedent-route
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.pipelines.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId.pipelines.tsx }
   - role: pair-spec
-    unit: { kind: file, path: specs/163-stagecraft-requirements-view/spec.md }
+    unit: { kind: file, path: specs/163-statecraft-requirements-view/spec.md }
 summary: >
   Rename the existing
   `app.project.$projectId.pipelines.tsx` route to
@@ -89,7 +89,7 @@ summary: >
 
 ## 1. Problem
 
-`platform/services/stagecraft/web/app/routes/app.project.$projectId.pipelines.tsx`
+`platform/services/statecraft/web/app/routes/app.project.$projectId.pipelines.tsx`
 exists today and renders factory-engine pipeline activity at the
 project level. The name and the framing are both wrong for the
 work the route should carry:
@@ -128,7 +128,7 @@ Rename the route. Replace the backing model.
 
 `app.project.$projectId.pipelines.tsx` →
 `app.project.$projectId.development.tsx`. The route id moves; the
-URL changes; internal links in stagecraft (navigation, breadcrumbs,
+URL changes; internal links in statecraft (navigation, breadcrumbs,
 deep links) are updated.
 
 A redirect from `/app/project/<uuid>/pipelines` to
@@ -190,7 +190,7 @@ column placement is driven entirely by the spec's frontmatter
 ## 3. Functional Requirements
 
 - **FR-001** The route at
-  `platform/services/stagecraft/web/app/routes/app.project.$projectId.pipelines.tsx`
+  `platform/services/statecraft/web/app/routes/app.project.$projectId.pipelines.tsx`
   is renamed to
   `app.project.$projectId.development.tsx`. Project-level
   navigation links are updated to "Development".
@@ -230,7 +230,7 @@ column placement is driven entirely by the spec's frontmatter
   project's spec-spine lifecycle distribution.
 - **SC-002** A spec moved from `status: draft` to
   `status: approved` in the project repo migrates to the
-  `approved` column on the next stagecraft refresh of the
+  `approved` column on the next statecraft refresh of the
   registry data.
 - **SC-003** Execution evidence overlays update in real time as
   factory runs complete and governance certificates emit (via

@@ -13,13 +13,13 @@
 - **Chart**: `platform/charts/tenant-hello@0.1.0` (deployed via local
   `helm` shell-out, mirroring `deployd-api-rs::helm::HelmRunner`'s
   invocation shape — same chart bytes, same value overrides).
-- **Image**: `ghcr.io/stagecraft-ing/open-agentic-platform/tenant-hello:latest`
+- **Image**: `ghcr.io/statecrafting/open-agentic-platform/tenant-hello:latest`
   published by `cd-tenant-hello.yml` workflow_dispatch run
-  [25987117916](https://github.com/stagecraft-ing/open-agentic-platform/actions/runs/25987117916)
+  [25987117916](https://github.com/statecrafting/open-agentic-platform/actions/runs/25987117916)
   (39 s build, source = main @ `b3c0ddcf`).
 - **Test namespace**: `tenant-hello-test` (created + destroyed
   per-pass; one pod, no shared state). Image pull via copied
-  `ghcr-credentials` secret from `stagecraft-system`.
+  `ghcr-credentials` secret from `statecraft-system`.
 
 ## T023 — End-to-end happy path *(Phase 2 SC-002 positive half)*
 
@@ -28,7 +28,7 @@
 ```
 helm install tenant-hello-t023 platform/charts/tenant-hello \
   --namespace tenant-hello-test \
-  --set image.repository=ghcr.io/stagecraft-ing/open-agentic-platform/tenant-hello \
+  --set image.repository=ghcr.io/statecrafting/open-agentic-platform/tenant-hello \
   --set image.tag=latest \
   --set 'imagePullSecrets[0].name=ghcr-credentials' \
   --wait --timeout=2m
@@ -210,7 +210,7 @@ kubectl delete namespace tenant-hello-test
 ```
 
 Cluster state at end of the run: namespace deleted; no orphaned
-resources in `stagecraft-system`, `deployd-system`, `rauthy-system`.
+resources in `statecraft-system`, `deployd-system`, `rauthy-system`.
 
 ## Reproduction notes
 
@@ -225,6 +225,6 @@ resources in `stagecraft-system`, `deployd-system`, `rauthy-system`.
   `platform/charts/tenant-hello/` on disk); the values mapping is
   the same shape. A future spec 136 follow-up may re-run T023 via
   `POST /v1/deployments` end-to-end through deployd-api once a
-  stagecraft project is bound to tenant-hello, but the chart
+  statecraft project is bound to tenant-hello, but the chart
   contract verified here is the same contract deployd-api would
   apply.

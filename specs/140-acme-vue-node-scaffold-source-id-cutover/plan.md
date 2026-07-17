@@ -34,22 +34,22 @@ The plan keeps the spec 108 wire shape on
 `/api/factory/{adapters,contracts,processes}` byte-stable for all
 non-`template_remote` fields and replaces `template_remote` with
 `scaffold_source_id` inside the projected manifest. The only external
-consumer of that wire shape today is stagecraft itself; no other
+consumer of that wire shape today is statecraft itself; no other
 service is affected.
 
 ## Technical Context
 
-**Languages**: TypeScript 5.x (stagecraft Encore.ts), React Router v7
-(stagecraft web). No Rust changes (the OPC `factory_root.rs` /
+**Languages**: TypeScript 5.x (statecraft Encore.ts), React Router v7
+(statecraft web). No Rust changes (the OPC `factory_root.rs` /
 `virtual_root.rs` layer is upstream of the manifest field rename and
 unaffected).
 **Primary Dependencies**: Drizzle ORM (PostgreSQL), Encore.ts cron +
 PubSub (existing). No new dependencies.
-**Storage**: PostgreSQL (stagecraft). Touched tables:
+**Storage**: PostgreSQL (statecraft). Touched tables:
 `factory_artifact_substrate` (one new synthetic row per org via
 migration 36), `factory_upstreams` (read-only — composite-PK lookup
 by `(org_id, source_id)`). No schema changes.
-**Testing**: `encore test` for stagecraft API + DB tests; vitest for
+**Testing**: `encore test` for statecraft API + DB tests; vitest for
 pure helpers. Migration 36 covered by an Encore test asserting
 idempotence on second run.
 **Target Platform**: Encore.ts service in production AKS; web UI
@@ -108,7 +108,7 @@ specs/140-acme-vue-node-scaffold-source-id-cutover/
 ### Source code touched
 
 ```text
-platform/services/stagecraft/
+platform/services/statecraft/
 ├── api/db/migrations/
 │   └── 36_aim_vue_node_manifest_cutover.up.sql   # NEW — backfill synthetic oap-self row per org
 ├── api/factory/
@@ -259,7 +259,7 @@ indirected lookup.
    `WarmupContext` field rename.
 
 **Phase 2 exit criterion:** `grep -r template_remote
-platform/services/stagecraft --include='*.ts' --exclude='*.test.ts'`
+platform/services/statecraft --include='*.ts' --exclude='*.test.ts'`
 returns zero hits in production code (only schema/migration
 historical comments remain). (Maps to AC-1.)
 
@@ -287,7 +287,7 @@ old field and no consumer reads it.
    land, the legacy field is no longer relevant in user-visible
    guidance.
 
-4. **`platform/services/stagecraft/CLAUDE.md`**: update the
+4. **`platform/services/statecraft/CLAUDE.md`**: update the
    scaffold-warmup paragraph in the "Factory project scaffold"
    section to reference `scaffold_source_id` instead of
    `template_remote`.
@@ -322,7 +322,7 @@ old field and no consumer reads it.
 
 - **Spec 108 wire shape change.** `template_remote` disappears from
   the manifest object inside `/api/factory/adapters` responses.
-  External consumers today: zero (only stagecraft itself). Rollback
+  External consumers today: zero (only statecraft itself). Rollback
   cost: revert the projection.ts change, no DB rollback needed.
 
 - **Scheduler flakiness.** The new resolver issues one extra DB query

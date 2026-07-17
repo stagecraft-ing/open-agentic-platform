@@ -155,7 +155,7 @@ The find/replace plan, itemized by path surface:
    `tools/oap/policy-compiler/src/lib.rs` and
    `tools/oap/ci-parity-check/src/lib.rs`.
 8. **Rust doc comments**: update path-naming narrative comments in
-   `crates/factory-engine/src/stagecraft_client.rs` and
+   `crates/factory-engine/src/statecraft_client.rs` and
    `crates/axiomregent/src/feature_tools.rs`.
 9. **Generated fixtures**: regenerate
    `crates/featuregraph/tests/golden/features_graph.json` via

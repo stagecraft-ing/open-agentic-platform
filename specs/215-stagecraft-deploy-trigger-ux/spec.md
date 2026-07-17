@@ -1,9 +1,9 @@
 ---
-id: "215-stagecraft-deploy-trigger-ux"
-title: "Stagecraft Deploy Trigger UX (Preview in Deployd / View Deployd)"
-feature_branch: "feat/215-stagecraft-deploy-trigger-ux"
+id: "215-statecraft-deploy-trigger-ux"
+title: "Statecraft Deploy Trigger UX (Preview in Deployd / View Deployd)"
+feature_branch: "feat/215-statecraft-deploy-trigger-ux"
 status: approved
-implementation: complete  # All five FRs landed in one PR: deployd client consolidation + environment_deployments record module + M2M proxy guard (215b); authenticated trigger + latest endpoints with lazy reconciliation (215c); webhook preview-destroy fix keyed to the stored release id (215d); success-page row + env deployment UI + web client (215e). Locally verified: stagecraft tsc clean (api/), pure deploy vitest (34) green, deployments.test.ts registered in the spec-211 encore lane. DEFERRED (deploy-time / live-cluster, not resolvable in-repo): SC-001/SC-002/SC-004 need a live cluster + a built image (helm rollout, preview destroy, endpoint URLs); the automated factory terminal deploy stage remains the spec 112 §11 deferral.
+implementation: complete  # All five FRs landed in one PR: deployd client consolidation + environment_deployments record module + M2M proxy guard (215b); authenticated trigger + latest endpoints with lazy reconciliation (215c); webhook preview-destroy fix keyed to the stored release id (215d); success-page row + env deployment UI + web client (215e). Locally verified: statecraft tsc clean (api/), pure deploy vitest (34) green, deployments.test.ts registered in the spec-211 encore lane. DEFERRED (deploy-time / live-cluster, not resolvable in-repo): SC-001/SC-002/SC-004 need a live cluster + a built image (helm rollout, preview destroy, endpoint URLs); the automated factory terminal deploy stage remains the spec 112 §11 deferral.
 kind: platform
 domain: platform
 created: "2026-06-12"
@@ -14,14 +14,14 @@ summary: >
   dispatches the scaffolded commit to the auto-provisioned development
   environment, and "View Deployd" lands on an environment page that shows
   real deployment state and the live URL. Underneath the buttons: a
-  createDeployment client path, a stagecraft-side record of every dispatch
+  createDeployment client path, a statecraft-side record of every dispatch
   (fixing the preview-destroy release-id bug, where the webhook deletes a
   release id it never stored), authorization on the deploy proxy (today
   auth: false), and one consolidated deployd client replacing the two
   parallel M2M implementations. This is the manual precursor of the
   factory pipeline's automated terminal deploy stage, which remains the
   deferral recorded in spec 112 §11.
-code_aliases: ["STAGECRAFT_DEPLOY_TRIGGER_UX"]
+code_aliases: ["STATECRAFT_DEPLOY_TRIGGER_UX"]
 depends_on:
   - "213-tenant-repo-image-build"
   - "214-tenant-app-chart-supersession"
@@ -31,31 +31,31 @@ establishes:
   # FR-003 record module + its migration (49), and the FR-002/FR-008 endpoint
   # test. The owning edges land with the implementation PR per the draft's
   # planned-establishes note (spec 200 precedent).
-  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/deployments.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/deployments.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/deploy/deployments.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/deploy/deployments.test.ts }
 extends:
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.projects.new.tsx }
   - spec: "136-tenant-hello-demo-service"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/projects-api.server.ts }
+    unit: { kind: file, path: platform/services/statecraft/web/app/lib/projects-api.server.ts }
   - spec: "136-tenant-hello-demo-service"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/db/schema.ts }
   - spec: "137-tenant-environment-access-gates"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx }
   - spec: "137-tenant-environment-access-gates"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId.deploys.tsx }
   # Post-merge fix: register the env-detail route so FR-004 (deployment card)
   # and FR-006 (trigger), plus spec 137's access-gate UI, are reachable. The
   # detail file existed since 137 but was never wired into the route table, so
   # /deploys/:envId 404'd. Extends the app route table established by spec 087.
   - spec: "087-unified-workspace-architecture"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes.ts }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes.ts }
   # Same precedent as specs 202, 196, 194, 193, 187, 183: a new spec adds a
   # row to the featuregraph golden.
   - spec: "034-featuregraph-registry-scanner-fix"
@@ -63,29 +63,29 @@ extends:
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
   - aspect: "preview-release-id-tracking"
-    unit: { kind: file, path: platform/services/stagecraft/api/github/webhook.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/github/webhook.ts }
   - aspect: "deploy-trigger-authorization"
-    unit: { kind: file, path: platform/services/stagecraft/api/deploy/deploy.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/deploy/deploy.ts }
   - aspect: "deployd-client-consolidation"
-    unit: { kind: file, path: platform/services/stagecraft/api/deploy/deploydClient.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/deploy/deploydClient.ts }
   - aspect: "deployd-client-consolidation"
-    unit: { kind: file, path: platform/services/stagecraft/api/deploy/oidcM2m.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/deploy/oidcM2m.ts }
   # AC: deployments.test.ts joins the spec 211 encore-test lane (the
   # vite.config.ts exclude list IS the lane assignment).
   - aspect: "encore-test-lane-assignment"
-    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+    unit: { kind: file, path: platform/services/statecraft/vite.config.ts }
 references:
   - role: deferral-source
     unit: { kind: file, path: specs/112-factory-project-lifecycle/spec.md }
   - role: ux-precedent
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId._index.tsx }
   - role: deploy-promotion-vision
     unit: { kind: file, path: specs/087-unified-workspace-architecture/spec.md }
 ---
 
-# Feature Specification: Stagecraft Deploy Trigger UX
+# Feature Specification: Statecraft Deploy Trigger UX
 
-**Feature Branch**: `215-stagecraft-deploy-trigger-ux`
+**Feature Branch**: `215-statecraft-deploy-trigger-ux`
 **Created**: 2026-06-12
 **Status**: Draft (third of the three deploy-path specs; consumes 213
 tenant-repo-image-build and 214 tenant-app-chart-supersession)
@@ -101,8 +101,8 @@ deploy stage; this spec implements the manual, human-triggered slice.
 With specs 213 (an image exists and is resolvable) and 214 (a chart
 exists and the dispatch contract carries config, pull secret, namespace,
 and a derived hostname), the remaining work is plumbing and truth-keeping
-in stagecraft: a button that dispatches, a page that shows what happened,
-a record of what was dispatched (today stagecraft fires preview deploys
+in statecraft: a button that dispatches, a page that shows what happened,
+a record of what was dispatched (today statecraft fires preview deploys
 and forgets them, then tries to destroy a release id it invented rather
 than stored), and an answer to "who is allowed to press this".
 
@@ -121,7 +121,7 @@ than stored), and an answer to "who is allowed to press this".
   guard is deployd-api's own M2M scope check downstream.
 - `webhook.ts:172` destroys `preview-{projectId}-pr-{n}`, but deployd-api
   release ids are `rel_<uuid>` returned at create and never persisted by
-  stagecraft; the DELETE 404s silently and preview releases leak.
+  statecraft; the DELETE 404s silently and preview releases leak.
 - `deploy.ts` and `deploydClient.ts` duplicate M2M secret resolution and
   token caching (`oidcM2m.ts` is shared but wired twice).
 - deployd-api endpoints: status and logs exist
@@ -133,7 +133,7 @@ than stored), and an answer to "who is allowed to press this".
 ### User Story 1 - One click from created to running (Priority: P1)
 
 Right after creating a project, the operator clicks "Preview in Deployd"
-on the success page. Stagecraft resolves the artifact for the scaffolded
+on the success page. Statecraft resolves the artifact for the scaffolded
 commit, dispatches to the development environment, and replaces the
 button with live status; when the rollout lands, the row shows the
 endpoint URL.
@@ -200,7 +200,7 @@ the preview namespace.
 ### User Story 4 - Pressing the button requires permission (Priority: P2)
 
 Only authenticated members of the project's org can trigger or destroy
-deployments through stagecraft; environments with `requiresApproval` set
+deployments through statecraft; environments with `requiresApproval` set
 refuse direct dispatch.
 
 **Independent Test**: an unauthenticated request and a cross-org request
@@ -227,7 +227,7 @@ environment returns a specific "approval required" error.
 
   *Amendment (deploy timeout race + diagnostic, 2026-06-30).* deployd's
   `create_deployment` is synchronous (it holds the HTTP connection during
-  `helm upgrade --install --wait`), and stagecraft's `fetch` inherits
+  `helm upgrade --install --wait`), and statecraft's `fetch` inherits
   undici's 300s headers timeout. With deployd's old 5m `--wait` default
   those two 300s windows raced: when undici lost, a deploy that helm would
   have reported as FAILED (e.g. a tenant image stuck in ImagePullBackOff
@@ -235,7 +235,7 @@ environment returns a specific "approval required" error.
   whose diagnostic was the bare Node string `fetch failed`. Two corrections:
   (1) deployd's default `helm --wait` timeout drops below 300s (spec 136
   helm runner) so deployd reliably wins the race and its FAILED + helm
-  stderr reaches the UI; (2) stagecraft's REQUEST_FAILED diagnostic now
+  stderr reaches the UI; (2) statecraft's REQUEST_FAILED diagnostic now
   unwraps `err.cause` (`describeTransportError` in `deploydClient.ts`), so a
   genuine transport failure reads e.g. `fetch failed (ECONNREFUSED: ...)`
   or `fetch failed (UND_ERR_HEADERS_TIMEOUT: ...)` instead of `fetch
@@ -268,7 +268,7 @@ environment returns a specific "approval required" error.
   point; the success-page row is the post-create accelerator.
 - **FR-002**: New server-side client functions in
   `projects-api.server.ts`: `createDeployment`, `getLatestDeployment`,
-  `getDeploymentStatus`; all call stagecraft API endpoints (never
+  `getDeploymentStatus`; all call statecraft API endpoints (never
   deployd-api directly from the web tier), which in turn use the
   consolidated client (FR-007) with M2M credentials.
 - **FR-003**: New table `environment_deployments` (`schema.ts` +
@@ -278,7 +278,7 @@ environment returns a specific "approval required" error.
   FAILED | REQUEST_FAILED | DESTROYED), `endpoints` (JSON), `dispatchedBy`
   (user id or `webhook`), `diagnostic`, timestamps. Every dispatch path
   (UI trigger, PR webhook) MUST write through this table; module
-  `platform/services/stagecraft/api/deploy/deployments.ts` owns it.
+  `platform/services/statecraft/api/deploy/deployments.ts` owns it.
 - **FR-004**: The env detail page renders deployment state from
   `environment_deployments` plus a server-proxied deployd-api status/event
   read; the deploys list page shows per-environment latest status badges.
@@ -287,7 +287,7 @@ environment returns a specific "approval required" error.
   the constructed-string destroy is deleted. A missing record falls back
   to a logged no-op (never a fabricated id).
 - **FR-006**: Authorization: the UI trigger endpoint requires an
-  authenticated org member of the owning org (stagecraft session auth);
+  authenticated org member of the owning org (statecraft session auth);
   `requiresApproval` environments reject direct dispatch with a specific
   error (the approval flow itself is out of scope and stays with the
   spec 087 promotion vision). The raw `POST /v1/deployments` proxy stops
@@ -306,7 +306,7 @@ environment returns a specific "approval required" error.
 
 ### Key Entities
 
-- **environment_deployments**: stagecraft's durable record of every
+- **environment_deployments**: statecraft's durable record of every
   dispatch, keyed to deployd-api's release id; the page's source of truth
   and the destroy path's lookup.
 - **Deploy trigger action**: the authenticated path from button to
@@ -318,7 +318,7 @@ environment returns a specific "approval required" error.
 ### Measurable Outcomes
 
 - **SC-001**: From project creation to a clickable running-app URL using
-  only stagecraft UI actions: under 20 minutes including the build, with
+  only statecraft UI actions: under 20 minutes including the build, with
   zero terminal commands.
 - **SC-002**: PR open/close on a seeded repo creates and then destroys
   its preview release with zero orphaned helm releases (the 404-destroy

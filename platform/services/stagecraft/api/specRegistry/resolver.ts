@@ -10,7 +10,7 @@
 //
 // The MVP path resolution is environment-driven:
 //
-//   STAGECRAFT_PROJECT_REGISTRY_BASE=<dir>
+//   STATECRAFT_PROJECT_REGISTRY_BASE=<dir>
 //
 // when set, the resolver looks under `<dir>/<projectId>/` for a project
 // repo root containing `.derived/spec-registry/by-spec/` shards and a
@@ -37,7 +37,7 @@ export interface ProjectSpecRoots {
 
 export interface ResolverOptions {
   /**
-   * Override for STAGECRAFT_PROJECT_REGISTRY_BASE. Tests pass this directly
+   * Override for STATECRAFT_PROJECT_REGISTRY_BASE. Tests pass this directly
    * to keep behaviour deterministic regardless of ambient env.
    */
   base?: string | null;
@@ -57,7 +57,7 @@ export async function resolveProjectRegistry(
   projectId: string,
   opts: ResolverOptions = {}
 ): Promise<ProjectSpecRoots | null> {
-  const base = opts.base ?? process.env.STAGECRAFT_PROJECT_REGISTRY_BASE ?? null;
+  const base = opts.base ?? process.env.statecraft_PROJECT_REGISTRY_BASE ?? null;
   if (!base) return null;
 
   const projectRoot = resolve(base, projectId);

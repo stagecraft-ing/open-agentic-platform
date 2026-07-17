@@ -10,7 +10,7 @@
 //! polling.
 //!
 //! Authority invariant (spec 087 §5.3 / 111 §2.2): the desktop never
-//! originates publish/retire — those are stagecraft-owned mutations. We only
+//! originates publish/retire — those are statecraft-owned mutations. We only
 //! mirror state and pull bodies on cache-miss.
 //!
 //! The sync path is intentionally best-effort: DB errors and malformed
@@ -47,7 +47,7 @@ pub const EVENT_BINDING_UPDATED: &str = "project-agent-binding-updated";
 pub const EVENT_BINDING_SNAPSHOT: &str = "project-agent-binding-snapshot";
 
 /// One-shot flag per session: whether we have already surfaced the
-/// "stagecraft requires desktop update" log for a v:1 catalog envelope.
+/// "statecraft requires desktop update" log for a v:1 catalog envelope.
 /// Using a `std::sync::atomic::AtomicBool` avoids locking on the fast path.
 static CATALOG_VERSION_MISMATCH_LOGGED: std::sync::atomic::AtomicBool =
     std::sync::atomic::AtomicBool::new(false);
@@ -470,7 +470,7 @@ fn check_catalog_envelope_version(env: &ServerEnvelopeWire, kind: &str) -> bool 
         if !CATALOG_VERSION_MISMATCH_LOGGED.swap(true, Ordering::Relaxed) {
             warn!(
                 "agent_catalog_sync: received {kind} with empty org_id — \
-                 stagecraft requires desktop update (spec 123 §7.3). \
+                 statecraft requires desktop update (spec 123 §7.3). \
                  Envelope dropped. This warning appears once per session."
             );
         }

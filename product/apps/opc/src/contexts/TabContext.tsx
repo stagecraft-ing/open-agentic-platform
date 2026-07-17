@@ -16,7 +16,7 @@ export interface Tab {
   specMarkdownAbsolutePath?: string;
   initialProjectPath?: string; // for chat tabs
   projectPath?: string; // for agent-execution tabs
-  /** Spec 112 §6.3 — OAP bundle (adapter + contracts + processes + agents) for factory tabs opened via the stagecraft handoff. */
+  /** Spec 112 §6.3 — OAP bundle (adapter + contracts + processes + agents) for factory tabs opened via the statecraft handoff. */
   factoryBundle?: OpcBundle;
   status: 'active' | 'idle' | 'running' | 'complete' | 'error';
   hasUnsavedChanges: boolean;

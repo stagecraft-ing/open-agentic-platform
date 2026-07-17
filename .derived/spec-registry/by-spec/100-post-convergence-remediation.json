@@ -45,7 +45,7 @@
         "aspect": "security-hardening",
         "unit": {
           "kind": "file",
-          "path": "platform/charts/stagecraft/templates/deployment.yaml"
+          "path": "platform/charts/statecraft/templates/deployment.yaml"
         }
       },
       {

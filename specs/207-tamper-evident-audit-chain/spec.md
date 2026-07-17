@@ -3,7 +3,7 @@ id: "207-tamper-evident-audit-chain"
 title: "Tamper-Evident Audit Log Chain (ASI observability principle)"
 feature_branch: "feat/207-tamper-evident-audit-chain"
 status: approved
-implementation: complete  # All five ACs landed across four PRs: Phase 1 local chain + independent verifier (AC-1/AC-2/AC-5, policy-kernel); Phase 2a run-certificate anchoring (AC-3, factory-engine); Phase 2b server countersign + seal table (AC-4 server, stagecraft) and producer session-audit chain (axiomregent); Phase 2b client (this PR, AC-4 close): the OPC duplex consumer reads closed segment heads off the shared chain dir, submits each over audit.segment.countersign_request at reconnect, stores the countersignature, and exposes the unanchored window via the audit_unanchored_window command. Locally verified: cargo check (opc lib) clean, 46 sync_client unit tests green (8 new for the AC-4 client). Hardened after adversarial review: single-flight sweep guard (no overlapping sweeps on reconnect churn), blocking file I/O offloaded to spawn_blocking, atomic seal-store write (temp+rename) that reports persist success, and a read size cap. FR-004 is the stated, bounded residual (not eliminated): the open segment plus closed-but-uncountersigned segments are the unanchored window.
+implementation: complete  # All five ACs landed across four PRs: Phase 1 local chain + independent verifier (AC-1/AC-2/AC-5, policy-kernel); Phase 2a run-certificate anchoring (AC-3, factory-engine); Phase 2b server countersign + seal table (AC-4 server, statecraft) and producer session-audit chain (axiomregent); Phase 2b client (this PR, AC-4 close): the OPC duplex consumer reads closed segment heads off the shared chain dir, submits each over audit.segment.countersign_request at reconnect, stores the countersignature, and exposes the unanchored window via the audit_unanchored_window command. Locally verified: cargo check (opc lib) clean, 46 sync_client unit tests green (8 new for the AC-4 client). Hardened after adversarial review: single-flight sweep guard (no overlapping sweeps on reconnect churn), blocking file I/O offloaded to spawn_blocking, atomic seal-store write (temp+rename) that reports persist success, and a read size cap. FR-004 is the stated, bounded residual (not eliminated): the open segment plus closed-but-uncountersigned segments are the unanchored window.
 kind: governance
 domain: tooling
 created: "2026-06-11"
@@ -47,10 +47,10 @@ establishes:
   - unit: { kind: file, path: crates/factory-engine/src/run_audit_chain.rs }
   # AC-3 end-to-end: anchored segment is tamper-evident under verify_certificate.
   - unit: { kind: file, path: crates/factory-engine/tests/run_audit_anchoring.rs }
-  # FR-002 (Phase 2b, AC-4): the stagecraft session-audit countersign handler
+  # FR-002 (Phase 2b, AC-4): the statecraft session-audit countersign handler
   # (platform seals a submitted segment head; spec 198 FR-014 keyless-local).
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/auditSegmentHandlers.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/auditSegmentHandlers.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/auditSegmentHandlers.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/auditSegmentHandlers.test.ts }
   # The session-audit-seal table (one countersigned-segment row per
   # org/session/segment; idempotent on resubmission).
   # FR-001/FR-002 (Phase 2b producer, PR1): the axiomregent session-audit-chain
@@ -74,7 +74,7 @@ extends:
   # uses the signing authority; it does not evolve 198's authority.
   - spec: "198-factory-governance-envelope"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/signing-pure.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/signing-pure.ts }
 refines:
   - aspect: "hash-chained-audit-records"
     unit: { kind: file, path: crates/policy-kernel/src/audit.rs }
@@ -89,22 +89,22 @@ refines:
     unit: { kind: file, path: crates/factory-engine/src/lib.rs }
   # Phase 2b (AC-4): the duplex audit.segment.countersign_request contract.
   - aspect: "audit-segment-countersign-contract"
-    unit: { kind: file, path: platform/services/stagecraft/api/sync/types.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/sync/types.ts }
   # Phase 2b (AC-4): dispatch routing for the countersign request.
   - aspect: "audit-segment-countersign-dispatch"
-    unit: { kind: file, path: platform/services/stagecraft/api/sync/service.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/sync/service.ts }
   # Phase 2b (AC-4): the session-audit-seal Drizzle table definition.
   - aspect: "session-audit-seal-table"
-    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/db/schema.ts }
   # Phase 2b (AC-4): the FACTORY_AUDIT_SEGMENT_COUNTERSIGNED audit action
   # (upgraded from a context reference, since 207 now authors this constant).
   - aspect: "audit-segment-countersign-action"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/auditActions.ts }
   # Phase 2b (AC-4): auditSegmentHandlers.test.ts is DB-bound, so it joins the
   # spec 211 encore-test lane (the vite.config.ts exclude list IS the lane
   # assignment; bare vitest would fail it on a missing ENCORE_RUNTIME_LIB).
   - aspect: "encore-test-lane-assignment"
-    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+    unit: { kind: file, path: platform/services/statecraft/vite.config.ts }
   # Phase 2b producer (PR1): the axiomregent router hash-chains every governed
   # tool-dispatch decision into the session audit chain (set_audit_chain +
   # record_audit, reusing the policy-kernel AuditLogger's log_value). This is
@@ -132,7 +132,7 @@ refines:
     unit: { kind: file, path: product/apps/opc/src-tauri/src/lib.rs }
 references:
   - role: machinery
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/signing.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/signing.ts }
   - role: context
     unit: { kind: file, path: docs/owasp-agentic-top-10-2026.md }
 ---
@@ -174,7 +174,7 @@ anchor, verify independently.
   of its predecessor (genesis-marked per segment), reusing the spec 047
   proof-chain linkage rather than inventing a second chain shape. Applies
   to the policy-kernel audit writer (permission decisions, spec 068
-  NF-003 logs) and to factory run logs; stagecraft-side audit rows
+  NF-003 logs) and to factory run logs; statecraft-side audit rows
   (database-resident) declare their anchoring story in plan.md rather
   than pretending the same mechanism fits.
 - **FR-002 — Segment anchoring at rotation.** Log rotation closes a
@@ -182,7 +182,7 @@ anchor, verify independently.
   Run-scoped segments anchor by entering the run's governance certificate
   artifact list — tampering then fails `verify-certificate` with the
   existing artifact-hash diagnostic. Session-scoped segments anchor via
-  the platform countersign (spec 198 FR-014: stagecraft seals, the local
+  the platform countersign (spec 198 FR-014: statecraft seals, the local
   side holds no signing keys) when a platform connection exists; offline
   sessions chain locally and anchor retroactively at next connection,
   with the unanchored window visible — offline-first, honestly degraded,
@@ -236,7 +236,7 @@ anchor, verify independently.
   hardening above the platform countersign is org infrastructure.
 - The content of audit records (specs 047/068/172 own their schemas;
   this spec adds linkage and anchoring, not fields beyond them).
-- Stagecraft database audit-row immutability enforcement (DB-side
+- Statecraft database audit-row immutability enforcement (DB-side
   append-only is an operational posture; the plan.md decides what the
   platform can honestly attest about its own tables).
 - Tamper *prevention* — explicitly: this spec delivers evidence, not
@@ -281,10 +281,10 @@ not duplicate it.
   unanchored window; the external anchor closes the class. See the FR-004
   refinement note above (corrected after local review).
 
-Carve-out (plan.md decision 3): stagecraft database-resident audit rows
+Carve-out (plan.md decision 3): statecraft database-resident audit rows
 (`auditActions.ts`) are NOT file-chained; their honest anchoring story is
 the platform countersign plus append-only DB posture, not the per-record
-file chain. No stagecraft code changes in Phase 1.
+file chain. No statecraft code changes in Phase 1.
 
 Coupling note: the implementation PR adds `establishes:` edges for the new
 verifier binary and its CLI test, and an additive `extends:` edge on the
@@ -319,7 +319,7 @@ governance certificate so `verify-certificate` catches tampering.
   `governance_certificate.rs` change (the stage-scan is reused as-is).
 
 **Phase 2b server side (2026-06-19, PR B1): platform countersign (AC-4,
-stagecraft half).** Stagecraft can now seal a session-scoped audit segment
+statecraft half).** Statecraft can now seal a session-scoped audit segment
 head (spec 198 FR-014: the platform signs, the local side is keyless).
 
 - A new duplex message `audit.segment.countersign_request` carries
@@ -395,7 +395,7 @@ end-to-end. The OPC duplex consumer (`commands/sync_client.rs`) now:
   (AC-4 "the unanchored window is queryable").
 
 The local side holds no signing keys (spec 198 FR-014): it attests the head
-hash + metadata; stagecraft signs. The seal upsert is idempotent on
+hash + metadata; statecraft signs. The seal upsert is idempotent on
 `(org, session, segment)`, so reconnect resubmission is safe.
 
 - **Coupling (B2b):** `refines:` `commands/sync_client.rs` (the AC-4 client

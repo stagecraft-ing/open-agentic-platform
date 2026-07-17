@@ -1509,9 +1509,9 @@
       "violations": []
     },
     {
-      "feature_id": "077-stagecraft-factory-api",
-      "title": "Stagecraft Factory Lifecycle API — Project Init, Stage Confirmation, Audit Trail",
-      "spec_path": "specs/077-stagecraft-factory-api/spec.md",
+      "feature_id": "077-statecraft-factory-api",
+      "title": "Statecraft Factory Lifecycle API — Project Init, Stage Confirmation, Audit Trail",
+      "spec_path": "specs/077-statecraft-factory-api/spec.md",
       "status": "approved",
       "implementation": "complete",
       "governance": "",
@@ -1661,7 +1661,7 @@
         "074-factory-ingestion",
         "075-factory-workflow-engine",
         "076-factory-desktop-panel",
-        "077-stagecraft-factory-api",
+        "077-statecraft-factory-api",
         "078-platform-completion-plan",
         "080-github-identity-onboarding",
         "082-artifact-integrity-platform-hardening"
@@ -2062,9 +2062,9 @@
       "violations": []
     },
     {
-      "feature_id": "110-stagecraft-to-opc-factory-trigger",
-      "title": "Stagecraft-initiated Factory Run Trigger over the Duplex Channel",
-      "spec_path": "specs/110-stagecraft-to-opc-factory-trigger/spec.md",
+      "feature_id": "110-statecraft-to-opc-factory-trigger",
+      "title": "Statecraft-initiated Factory Run Trigger over the Duplex Channel",
+      "spec_path": "specs/110-statecraft-to-opc-factory-trigger/spec.md",
       "status": "approved",
       "implementation": "complete",
       "governance": "",
@@ -2073,7 +2073,7 @@
       "depends_on": [
         "075-factory-workflow-engine",
         "076-factory-desktop-panel",
-        "077-stagecraft-factory-api",
+        "077-statecraft-factory-api",
         "087-unified-workspace-architecture",
         "092-workspace-runtime-threading",
         "094-unified-artifact-store",
@@ -2086,7 +2086,7 @@
     },
     {
       "feature_id": "111-org-agent-catalog-sync",
-      "title": "Org-managed Agent Catalog Synced from Stagecraft to OPC",
+      "title": "Org-managed Agent Catalog Synced from Statecraft to OPC",
       "spec_path": "specs/111-org-agent-catalog-sync/spec.md",
       "status": "approved",
       "implementation": "complete",
@@ -2099,7 +2099,7 @@
         "068-permission-runtime",
         "087-unified-workspace-architecture",
         "090-governance-non-optionality",
-        "110-stagecraft-to-opc-factory-trigger"
+        "110-statecraft-to-opc-factory-trigger"
       ],
       "impl_files": [],
       "test_files": [],
@@ -2121,7 +2121,7 @@
         "094-unified-artifact-store",
         "108-factory-as-platform-feature",
         "109-factory-pat-and-pubsub-sync",
-        "110-stagecraft-to-opc-factory-trigger",
+        "110-statecraft-to-opc-factory-trigger",
         "111-org-agent-catalog-sync"
       ],
       "impl_files": [],
@@ -2129,9 +2129,9 @@
       "violations": []
     },
     {
-      "feature_id": "113-stagecraft-projects-rename-and-clone",
-      "title": "Stagecraft Projects Rename + In-Org Project Clone",
-      "spec_path": "specs/113-stagecraft-projects-rename-and-clone/spec.md",
+      "feature_id": "113-statecraft-projects-rename-and-clone",
+      "title": "Statecraft Projects Rename + In-Org Project Clone",
+      "spec_path": "specs/113-statecraft-projects-rename-and-clone/spec.md",
       "status": "approved",
       "implementation": "complete",
       "governance": "medium",
@@ -2159,7 +2159,7 @@
       "depends_on": [
         "109-factory-pat-and-pubsub-sync",
         "112-factory-project-lifecycle",
-        "113-stagecraft-projects-rename-and-clone"
+        "113-statecraft-projects-rename-and-clone"
       ],
       "impl_files": [],
       "test_files": [],
@@ -2254,7 +2254,7 @@
         "092-workspace-runtime-threading",
         "094-unified-artifact-store",
         "099-workspace-scoped-persistence",
-        "113-stagecraft-projects-rename-and-clone",
+        "113-statecraft-projects-rename-and-clone",
         "114-async-project-clone-pipeline",
         "115-knowledge-extraction-pipeline"
       ],
@@ -2274,9 +2274,9 @@
       "depends_on": [
         "074-factory-ingestion",
         "075-factory-workflow-engine",
-        "077-stagecraft-factory-api",
+        "077-statecraft-factory-api",
         "094-unified-artifact-store",
-        "110-stagecraft-to-opc-factory-trigger",
+        "110-statecraft-to-opc-factory-trigger",
         "115-knowledge-extraction-pipeline"
       ],
       "impl_files": [],
@@ -2565,7 +2565,7 @@
     },
     {
       "feature_id": "136-tenant-hello-demo-service",
-      "title": "Tenant-hello — stagecraft-deployable tenant reference service",
+      "title": "Tenant-hello — statecraft-deployable tenant reference service",
       "spec_path": "specs/136-tenant-hello-demo-service/spec.md",
       "status": "approved",
       "implementation": "complete",
@@ -2598,9 +2598,9 @@
       "violations": []
     },
     {
-      "feature_id": "138-stagecraft-create-realised-scaffold",
-      "title": "Stagecraft Create — realised scaffold subflow (amendment of 112)",
-      "spec_path": "specs/138-stagecraft-create-realised-scaffold/spec.md",
+      "feature_id": "138-statecraft-create-realised-scaffold",
+      "title": "Statecraft Create — realised scaffold subflow (amendment of 112)",
+      "spec_path": "specs/138-statecraft-create-realised-scaffold/spec.md",
       "status": "approved",
       "implementation": "complete",
       "governance": "low",
@@ -2648,7 +2648,7 @@
       "group": "",
       "depends_on": [
         "112-factory-project-lifecycle",
-        "138-stagecraft-create-realised-scaffold",
+        "138-statecraft-create-realised-scaffold",
         "139-factory-artifact-substrate"
       ],
       "impl_files": [],
@@ -2967,9 +2967,9 @@
       "violations": []
     },
     {
-      "feature_id": "160-factory-adapter-stagecraft-relocation",
-      "title": "Factory / adapter relocation into stagecraft",
-      "spec_path": "specs/160-factory-adapter-stagecraft-relocation/spec.md",
+      "feature_id": "160-factory-adapter-statecraft-relocation",
+      "title": "Factory / adapter relocation into statecraft",
+      "spec_path": "specs/160-factory-adapter-statecraft-relocation/spec.md",
       "status": "approved",
       "implementation": "complete",
       "governance": "medium",
@@ -2978,7 +2978,7 @@
       "depends_on": [
         "074-factory-ingestion",
         "075-factory-workflow-engine",
-        "077-stagecraft-factory-api",
+        "077-statecraft-factory-api",
         "108-factory-as-platform-feature"
       ],
       "impl_files": [],
@@ -3022,9 +3022,9 @@
       "violations": []
     },
     {
-      "feature_id": "163-stagecraft-requirements-view",
-      "title": "Spec-spine Requirements view in stagecraft",
-      "spec_path": "specs/163-stagecraft-requirements-view/spec.md",
+      "feature_id": "163-statecraft-requirements-view",
+      "title": "Spec-spine Requirements view in statecraft",
+      "spec_path": "specs/163-statecraft-requirements-view/spec.md",
       "status": "approved",
       "implementation": "complete",
       "governance": "medium",
@@ -3045,9 +3045,9 @@
       "violations": []
     },
     {
-      "feature_id": "164-stagecraft-development-lifecycle-board",
+      "feature_id": "164-statecraft-development-lifecycle-board",
       "title": "Pipelines → Development rename, lifecycle-state board over spec-spine states",
-      "spec_path": "specs/164-stagecraft-development-lifecycle-board/spec.md",
+      "spec_path": "specs/164-statecraft-development-lifecycle-board/spec.md",
       "status": "approved",
       "implementation": "complete",
       "governance": "medium",
@@ -3055,12 +3055,12 @@
       "group": "",
       "depends_on": [
         "075-factory-workflow-engine",
-        "077-stagecraft-factory-api",
+        "077-statecraft-factory-api",
         "102-governed-excellence",
         "127-spec-code-coupling-gate",
         "133-amends-aware-coupling-gate",
         "147-spec-kind-grammar",
-        "163-stagecraft-requirements-view"
+        "163-statecraft-requirements-view"
       ],
       "impl_files": [],
       "test_files": [],
@@ -3271,9 +3271,9 @@
       "violations": []
     },
     {
-      "feature_id": "175-stagecraft-project-dashboard-observability",
-      "title": "Stagecraft project dashboard — observability refinement of `_index`",
-      "spec_path": "specs/175-stagecraft-project-dashboard-observability/spec.md",
+      "feature_id": "175-statecraft-project-dashboard-observability",
+      "title": "Statecraft project dashboard — observability refinement of `_index`",
+      "spec_path": "specs/175-statecraft-project-dashboard-observability/spec.md",
       "status": "approved",
       "implementation": "complete",
       "governance": "medium",
@@ -3286,8 +3286,8 @@
         "124-opc-factory-run-platform-integration",
         "127-spec-code-coupling-gate",
         "147-spec-kind-grammar",
-        "163-stagecraft-requirements-view",
-        "164-stagecraft-development-lifecycle-board",
+        "163-statecraft-requirements-view",
+        "164-statecraft-development-lifecycle-board",
         "168-per-project-governance-certificate"
       ],
       "impl_files": [],
@@ -3504,7 +3504,7 @@
     },
     {
       "feature_id": "187-opc-e2e-test-harness",
-      "title": "OPC end-to-end test harness — built-binary driver, mock-stagecraft, process-tree introspection",
+      "title": "OPC end-to-end test harness — built-binary driver, mock-statecraft, process-tree introspection",
       "spec_path": "specs/187-opc-e2e-test-harness/spec.md",
       "status": "approved",
       "implementation": "in-progress",
@@ -3981,7 +3981,7 @@
       "depends_on": [
         "112-factory-project-lifecycle",
         "136-tenant-hello-demo-service",
-        "138-stagecraft-create-realised-scaffold"
+        "138-statecraft-create-realised-scaffold"
       ],
       "impl_files": [],
       "test_files": [],
@@ -3999,7 +3999,7 @@
       "depends_on": [
         "136-tenant-hello-demo-service",
         "137-tenant-environment-access-gates",
-        "138-stagecraft-create-realised-scaffold",
+        "138-statecraft-create-realised-scaffold",
         "119-project-as-unit-of-governance",
         "199-factory-thin-consumer-sync"
       ],
@@ -4008,9 +4008,9 @@
       "violations": []
     },
     {
-      "feature_id": "215-stagecraft-deploy-trigger-ux",
-      "title": "Stagecraft Deploy Trigger UX (Preview in Deployd / View Deployd)",
-      "spec_path": "specs/215-stagecraft-deploy-trigger-ux/spec.md",
+      "feature_id": "215-statecraft-deploy-trigger-ux",
+      "title": "Statecraft Deploy Trigger UX (Preview in Deployd / View Deployd)",
+      "spec_path": "specs/215-statecraft-deploy-trigger-ux/spec.md",
       "status": "approved",
       "implementation": "complete",
       "governance": "",
@@ -4233,11 +4233,11 @@
       "depends_on": [
         "119-project-as-unit-of-governance",
         "225-deployd-selfprovision-rbac",
-        "215-stagecraft-deploy-trigger-ux",
+        "215-statecraft-deploy-trigger-ux",
         "214-tenant-app-chart-supersession",
         "136-tenant-hello-demo-service",
         "137-tenant-environment-access-gates",
-        "113-stagecraft-projects-rename-and-clone",
+        "113-statecraft-projects-rename-and-clone",
         "080-github-identity-onboarding"
       ],
       "impl_files": [],
@@ -4254,9 +4254,9 @@
       "owner": "",
       "group": "",
       "depends_on": [
-        "138-stagecraft-create-realised-scaffold",
+        "138-statecraft-create-realised-scaffold",
         "199-factory-thin-consumer-sync",
-        "160-factory-adapter-stagecraft-relocation",
+        "160-factory-adapter-statecraft-relocation",
         "213-tenant-repo-image-build",
         "214-tenant-app-chart-supersession",
         "225-deployd-selfprovision-rbac"
@@ -4266,17 +4266,17 @@
       "violations": []
     },
     {
-      "feature_id": "228-stagecraft-public-marketing-site",
-      "title": "Stagecraft public marketing site: governed teal/mono port of the ecosystem + whitepaper",
-      "spec_path": "specs/228-stagecraft-public-marketing-site/spec.md",
+      "feature_id": "228-statecraft-public-marketing-site",
+      "title": "Statecraft public marketing site: governed teal/mono port of the ecosystem + whitepaper",
+      "spec_path": "specs/228-statecraft-public-marketing-site/spec.md",
       "status": "approved",
       "implementation": "complete",
       "governance": "",
       "owner": "",
       "group": "",
       "depends_on": [
-        "160-factory-adapter-stagecraft-relocation",
-        "163-stagecraft-requirements-view",
+        "160-factory-adapter-statecraft-relocation",
+        "163-statecraft-requirements-view",
         "103-init-protocol-governed-reads",
         "217-spec-spine-engine-swap-collapse"
       ],

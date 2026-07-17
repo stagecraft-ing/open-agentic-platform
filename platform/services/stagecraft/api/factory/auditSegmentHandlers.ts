@@ -2,7 +2,7 @@
 // countersignature requests.
 //
 // Mirrors the countersignRunCertificate pattern from grantDuplexHandlers.ts.
-// Stagecraft is the sole signing authority (spec 198 FR-014 posture): the
+// Statecraft is the sole signing authority (spec 198 FR-014 posture): the
 // local side (OPC) is keyless and submits a segment HEAD (hash + metadata);
 // this handler validates and returns a short-lived signed countersignature,
 // persisting a seal row.
@@ -61,7 +61,7 @@ export async function handleAuditSegmentCountersignRequest(
   }
 
   const { jws, kid } = signFactoryJws("oap-audit-segment-countersign+jws", {
-    iss: "stagecraft-factory",
+    iss: "statecraft-factory",
     org_id: ctx.orgId,
     session_id: sessionId,
     segment_id: segmentId,

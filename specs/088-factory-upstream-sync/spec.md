@@ -15,7 +15,7 @@ summary: >
   factory/ three-layer architecture. Superseded by spec 108: the translation
   protocol in §5 is retained and lifted into the spec 108 sync worker, but
   storage moves from the on-disk factory/ tree to PostgreSQL and the trigger
-  moves from the /factory-sync CLI command to the stagecraft UI.
+  moves from the /factory-sync CLI command to the statecraft UI.
 depends_on:
   - "074-factory-ingestion"  # factory-ingestion
   - "075-factory-workflow-engine"  # factory-workflow-engine
@@ -26,14 +26,14 @@ depends_on:
 ## 1. Problem Statement
 
 OAP's `factory/` directory is derived from two upstream sources maintained in
-the Stagecraft-ing GitHub organization:
+the Statecraft-ing GitHub organization:
 
 - **legacy-factory** (`legacy-factory`,
-  `Stagecraft-ing/legacy-factory`) — the upstream production factory
+  `statecrafting/legacy-factory`) — the upstream production factory
   containing pipeline orchestration skills, controller agents, page type
   definitions, security assessment agents, and an evaluation framework.
   Historically tracked as `the_factory`.
-- **template** (`template`, `Stagecraft-ing/template`) —
+- **template** (`template`, `statecrafting/template`) —
   the upstream enterprise application scaffold that the `acme-vue-node` adapter
   targets.
 

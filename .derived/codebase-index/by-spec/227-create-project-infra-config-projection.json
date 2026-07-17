@@ -1,9 +1,9 @@
 {
   "mapping": {
     "dependsOn": [
-      "138-stagecraft-create-realised-scaffold",
+      "138-statecraft-create-realised-scaffold",
       "199-factory-thin-consumer-sync",
-      "160-factory-adapter-stagecraft-relocation",
+      "160-factory-adapter-statecraft-relocation",
       "213-tenant-repo-image-build",
       "214-tenant-app-chart-supersession",
       "225-deployd-selfprovision-rbac"
@@ -42,87 +42,87 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/CLAUDE.md",
+        "path": "platform/services/statecraft/CLAUDE.md",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db/migrations/4_project_uses_redis.up.sql",
+        "path": "platform/services/statecraft/api/db/migrations/4_project_uses_redis.up.sql",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db/schema.ts",
+        "path": "platform/services/statecraft/api/db/schema.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/deploy/deploy.ts",
+        "path": "platform/services/statecraft/api/deploy/deploy.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/browse.ts",
+        "path": "platform/services/statecraft/api/factory/browse.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/moduleCatalog.ts",
+        "path": "platform/services/statecraft/api/factory/moduleCatalog.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/moduleCatalogCache.test.ts",
+        "path": "platform/services/statecraft/api/factory/moduleCatalogCache.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/moduleCatalogCache.ts",
+        "path": "platform/services/statecraft/api/factory/moduleCatalogCache.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/create.ts",
+        "path": "platform/services/statecraft/api/projects/create.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/envExample.test.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/envExample.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/envExample.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/envExample.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/moduleCatalog.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.test.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/perRequestScaffold.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/scaffold.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/lib/create-project-variant.test.ts",
+        "path": "platform/services/statecraft/web/app/lib/create-project-variant.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/lib/create-project-variant.ts",
+        "path": "platform/services/statecraft/web/app/lib/create-project-variant.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/lib/module-selection.test.ts",
+        "path": "platform/services/statecraft/web/app/lib/module-selection.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/lib/module-selection.ts",
+        "path": "platform/services/statecraft/web/app/lib/module-selection.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
+        "path": "platform/services/statecraft/web/app/lib/projects-api.server.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app.projects.new.tsx",
         "source": "spec-edge"
       }
     ],
@@ -143,131 +143,131 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/db/migrations/4_project_uses_redis.up.sql"
+            "file": "platform/services/statecraft/api/db/migrations/4_project_uses_redis.up.sql"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/4_project_uses_redis.up.sql"
+          "path": "platform/services/statecraft/api/db/migrations/4_project_uses_redis.up.sql"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/moduleCatalog.ts"
+            "file": "platform/services/statecraft/api/factory/moduleCatalog.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/moduleCatalog.ts"
+          "path": "platform/services/statecraft/api/factory/moduleCatalog.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/moduleCatalogCache.test.ts"
+            "file": "platform/services/statecraft/api/factory/moduleCatalogCache.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/moduleCatalogCache.test.ts"
+          "path": "platform/services/statecraft/api/factory/moduleCatalogCache.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/moduleCatalogCache.ts"
+            "file": "platform/services/statecraft/api/factory/moduleCatalogCache.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/moduleCatalogCache.ts"
+          "path": "platform/services/statecraft/api/factory/moduleCatalogCache.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/envExample.test.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/envExample.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/envExample.test.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/envExample.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/envExample.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/envExample.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/envExample.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/envExample.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/lib/create-project-variant.test.ts"
+            "file": "platform/services/statecraft/web/app/lib/create-project-variant.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/create-project-variant.test.ts"
+          "path": "platform/services/statecraft/web/app/lib/create-project-variant.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/lib/create-project-variant.ts"
+            "file": "platform/services/statecraft/web/app/lib/create-project-variant.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/create-project-variant.ts"
+          "path": "platform/services/statecraft/web/app/lib/create-project-variant.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/lib/module-selection.test.ts"
+            "file": "platform/services/statecraft/web/app/lib/module-selection.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/module-selection.test.ts"
+          "path": "platform/services/statecraft/web/app/lib/module-selection.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/lib/module-selection.ts"
+            "file": "platform/services/statecraft/web/app/lib/module-selection.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/module-selection.ts"
+          "path": "platform/services/statecraft/web/app/lib/module-selection.ts"
         }
       },
       {
@@ -364,144 +364,144 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/CLAUDE.md"
+            "file": "platform/services/statecraft/CLAUDE.md"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/CLAUDE.md"
+          "path": "platform/services/statecraft/CLAUDE.md"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/db/schema.ts"
+            "file": "platform/services/statecraft/api/db/schema.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/deploy.ts"
+            "file": "platform/services/statecraft/api/deploy/deploy.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deploy.ts"
+          "path": "platform/services/statecraft/api/deploy/deploy.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/browse.ts"
+            "file": "platform/services/statecraft/api/factory/browse.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/browse.ts"
+          "path": "platform/services/statecraft/api/factory/browse.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/create.ts"
+            "file": "platform/services/statecraft/api/projects/create.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/create.ts"
+          "path": "platform/services/statecraft/api/projects/create.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/moduleCatalog.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/moduleCatalog.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.test.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/perRequestScaffold.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.test.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/perRequestScaffold.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/scaffold.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/scaffold.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+            "file": "platform/services/statecraft/web/app/lib/projects-api.server.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+          "path": "platform/services/statecraft/web/app/lib/projects-api.server.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app.projects.new.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.projects.new.tsx"
         }
       }
     ],

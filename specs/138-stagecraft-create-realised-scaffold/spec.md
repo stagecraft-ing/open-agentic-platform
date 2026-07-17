@@ -1,7 +1,7 @@
 ---
-id: "138-stagecraft-create-realised-scaffold"
-slug: stagecraft-create-realised-scaffold
-title: "Stagecraft Create — realised scaffold subflow (amendment of 112)"
+id: "138-statecraft-create-realised-scaffold"
+slug: statecraft-create-realised-scaffold
+title: "Statecraft Create — realised scaffold subflow (amendment of 112)"
 status: approved
 implementation: complete
 owner: bart
@@ -16,57 +16,57 @@ depends_on:
   - "112-factory-project-lifecycle"  # factory-project-lifecycle (parent)
   - "108-factory-as-platform-feature"  # factory-as-platform-feature (factory_adapters/manifest shape)
   - "109-factory-pat-and-pubsub-sync"  # factory-pat-and-pubsub-sync (factory_upstream_pats consumed by warmup)
-code_aliases: ["STAGECRAFT_CREATE_REALISED"]
+code_aliases: ["STATECRAFT_CREATE_REALISED"]
 extends:
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/create.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/create.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffoldReadiness.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffoldReadiness.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/templateCache.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/templateCache.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/scheduler.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/scheduler.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/gitInitAndPush.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/gitInitAndPush.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/moduleCatalog.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.projects.new.tsx }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/charts/stagecraft/templates/workspace-pvc.yaml }
+    unit: { kind: file, path: platform/charts/statecraft/templates/workspace-pvc.yaml }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/syncPipeline.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/syncPipeline.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/syncWorker.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/syncWorker.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.test.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/translator.test.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/github/repoInit.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/github/repoInit.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/projects-api.server.ts }
+    unit: { kind: file, path: platform/services/statecraft/web/app/lib/projects-api.server.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/CLAUDE.md }
+    unit: { kind: file, path: platform/services/statecraft/CLAUDE.md }
 summary: >
   Spec 112 §5 specified Create at the contract level but left four points
   where the landed implementation diverged from the literal spec text:
-  (1) the prebuild profile set is stagecraft-owned, not adapter-driven;
+  (1) the prebuild profile set is statecraft-owned, not adapter-driven;
   (2) the Create transaction also inserts an `environments` row;
   (3) the form gates on a new `GET /api/projects/scaffold-readiness`
   endpoint; (4) the workspace dir is backed by an RWO PVC. None of these
@@ -75,7 +75,7 @@ summary: >
   narrative matches the landed code.
 ---
 
-# 138 — Stagecraft Create — Realised Scaffold Subflow
+# 138 — Statecraft Create — Realised Scaffold Subflow
 
 ## 1. Why this amendment
 
@@ -92,7 +92,7 @@ clarifies the four points listed below and back-links them.
 
 ## 2. The four refinements
 
-### 2.1 Profile set is stagecraft-owned (§5.3 row 2)
+### 2.1 Profile set is statecraft-owned (§5.3 row 2)
 
 **Was:** Spec 112 §5.3 row 2 said the prebuild profile set is "declared
 … from the adapter manifest §8".
@@ -114,7 +114,7 @@ repo, so the hardcoded set is the source of truth.
 
 **Manifest §8 status:** unchanged. `scaffold.profiles` remains a
 backward-compatible manifest extension declared in spec 112 §8 for
-non-template adapters that may land in the future. Stagecraft Create
+non-template adapters that may land in the future. Statecraft Create
 does not consult it in the MVP.
 
 ### 2.2 environments row in the Create transaction (§5.2 step 7)
@@ -174,14 +174,14 @@ Surfacing readiness server-side at load time means the form disables
 submit pre-emptively with a typed banner, and the user sees the cause
 before clicking.
 
-### 2.4 Workspace PVC backs ${STAGECRAFT_WORKSPACE_DIR} (§5.3 deployment note)
+### 2.4 Workspace PVC backs ${STATECRAFT_WORKSPACE_DIR} (§5.3 deployment note)
 
 **Was:** Spec 112 §5.3 said warmup runs at startup; storage backing
 was unspecified.
 
-**Is:** `platform/charts/stagecraft/templates/workspace-pvc.yaml`
+**Is:** `platform/charts/statecraft/templates/workspace-pvc.yaml`
 declares a `ReadWriteOnce` PVC sized 10Gi mounted at the path in
-`${STAGECRAFT_WORKSPACE_DIR}` (default `/var/stagecraft/workspace`).
+`${STATECRAFT_WORKSPACE_DIR}` (default `/var/statecraft/workspace`).
 `workspace.persistence.enabled` (default true) toggles between PVC and
 emptyDir; `workspace.persistence.storageClass` (default `""` →
 cluster-default) lets per-cloud values files override.
@@ -204,7 +204,7 @@ Spec 112's overall design is unchanged:
 - Three entry points (Open / Create / Import) — unchanged.
 - ACP-conformant `.factory/pipeline-state.json` as the canonical state
   marker — unchanged.
-- "Birth on stagecraft, life on OPC" boundary — unchanged.
+- "Birth on statecraft, life on OPC" boundary — unchanged.
 - §10 Create-eligibility gate (Node-24 only) — unchanged; still enforced
   via a `manifest.scaffold.runtime` check in `create.ts` that passes
   when the field is absent or `"node-24"` and rejects anything else
@@ -251,9 +251,9 @@ Spec 112's overall design is unchanged:
   2026-06-11
   during spec 199 AC-2/AC-3 verification.
 - 2026-05-04 — implementation lands (Phase 1-7 of the brief at
-  `specs/138-stagecraft-create-realised-scaffold/`).
+  `specs/138-statecraft-create-realised-scaffold/`).
 - 2026-05-04 — this amendment lands; spec 112 frontmatter records
-  `amended: "2026-05-04"` / `amendment_record: "138-stagecraft-create-realised-scaffold"`.
+  `amended: "2026-05-04"` / `amendment_record: "138-statecraft-create-realised-scaffold"`.
 - 2026-05-04 — post-deploy fix-up: scheduler now reports a precise
   blocker when warmup context is unresolvable (no adapters, stale
   manifest with no `template_remote`, no upstream PAT) instead of
@@ -271,7 +271,7 @@ Spec 112's overall design is unchanged:
   default `$HOME/.npm` resolves to `/.npm` and `mkdir` returns
   ENOENT/EROFS — `npm install` against the cloned template fails
   immediately. `templateCache.tooledEnv()` now stamps `HOME`,
-  `npm_config_cache`, and `XDG_CACHE_HOME` at `${STAGECRAFT_WORKSPACE_DIR}`
+  `npm_config_cache`, and `XDG_CACHE_HOME` at `${STATECRAFT_WORKSPACE_DIR}`
   subdirs (`.home`, `.npm-cache`, `.xdg-cache`) created on first
   warmup. `perRequestScaffold` mirrors the env so per-request
   add-module + lockfile refresh hit the same writable cache.

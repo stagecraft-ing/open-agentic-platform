@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# Compile stagecraft Encore bundle against infra.config.json so the
+# Compile statecraft Encore bundle against infra.config.json so the
 # resulting main.mjs binds to the cluster's PostgreSQL + NSQ + secrets, not
 # the ephemeral local infra that `encore run` provisions.
 #
 # Trick: `encore build docker` is the only command that honours --config, but
 # its docker-image packaging is pathologically slow. We run it only long
 # enough for main.mjs + encore-runtime.node to land on disk, then kill it.
-# This mirrors services/stagecraft/scripts/docker-build.sh but skips the
+# This mirrors services/statecraft/scripts/docker-build.sh but skips the
 # `docker build` step — we just want the JS bundle to run under mirrord.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_DIR="$(cd "$SCRIPT_DIR/../../../services/stagecraft" && pwd)"
+APP_DIR="$(cd "$SCRIPT_DIR/../../../services/statecraft" && pwd)"
 cd "$APP_DIR"
 
 MAIN_MJS=".encore/build/combined/combined/main.mjs"
@@ -111,17 +111,17 @@ echo "    ENCORE_APP_META_PATH=$META_PATH"
 KUBECONFIG_PATH="$SCRIPT_DIR/../kubeconfig"
 AUGMENTED_CONFIG="$APP_DIR/.encore/build/infra.config.augmented.json"
 echo "==> Fetching augmented infra config from cluster pod..."
-if ! KUBECONFIG="$KUBECONFIG_PATH" kubectl -n stagecraft-system exec deployment/stagecraft-api -- \
+if ! KUBECONFIG="$KUBECONFIG_PATH" kubectl -n statecraft-system exec deployment/statecraft-api -- \
      cat /encore/infra.config.json > "$AUGMENTED_CONFIG" 2>/dev/null; then
   rm -f "$AUGMENTED_CONFIG"
   cat >&2 <<EOF
-ERROR: could not fetch /encore/infra.config.json from the stagecraft-api pod.
+ERROR: could not fetch /encore/infra.config.json from the statecraft-api pod.
 
   Prereqs: KUBECONFIG=$KUBECONFIG_PATH must point at a cluster where
-  deployment/stagecraft-api exists in the stagecraft-system namespace and
+  deployment/statecraft-api exists in the statecraft-system namespace and
   is Ready. Verify with:
 
-      KUBECONFIG=$KUBECONFIG_PATH kubectl -n stagecraft-system get deploy stagecraft-api
+      KUBECONFIG=$KUBECONFIG_PATH kubectl -n statecraft-system get deploy statecraft-api
 EOF
   exit 1
 fi
@@ -132,14 +132,14 @@ fi
 echo "    ENCORE_INFRA_CONFIG_PATH=$AUGMENTED_CONFIG ($(wc -c <"$AUGMENTED_CONFIG" | tr -d ' ') bytes)"
 
 # APP_BASE_URL is what the backend uses to construct OAuth/OIDC redirect_uri
-# values sent to Rauthy and GitHub. The pod's value is https://stagecraft.ing,
+# values sent to Rauthy and GitHub. The pod's value is https://statecraft.ing,
 # which is correct for direct cluster-domain sign-in (mirrord still steals
 # the callback). For the localhost:3000 HMR dev flow the caller can export
 # DEV_APP_BASE_URL=http://localhost:3000 (and register that redirect URI on
 # the corresponding Rauthy/GitHub OAuth clients).
 APP_BASE_URL_OVERRIDE="${DEV_APP_BASE_URL:-}"
 if [[ -z "$APP_BASE_URL_OVERRIDE" ]]; then
-  APP_BASE_URL_OVERRIDE="$(KUBECONFIG="$KUBECONFIG_PATH" kubectl -n stagecraft-system exec deployment/stagecraft-api -- printenv APP_BASE_URL 2>/dev/null || true)"
+  APP_BASE_URL_OVERRIDE="$(KUBECONFIG="$KUBECONFIG_PATH" kubectl -n statecraft-system exec deployment/statecraft-api -- printenv APP_BASE_URL 2>/dev/null || true)"
 fi
 if [[ -z "$APP_BASE_URL_OVERRIDE" ]]; then
   echo "ERROR: could not resolve APP_BASE_URL (set DEV_APP_BASE_URL or ensure pod has APP_BASE_URL)" >&2
@@ -148,10 +148,10 @@ fi
 echo "    APP_BASE_URL=$APP_BASE_URL_OVERRIDE"
 
 # Write a tiny env file the Makefile will source into mirrord exec.
-cat > "$SCRIPT_DIR/.stagecraft.env" <<EOF
+cat > "$SCRIPT_DIR/.statecraft.env" <<EOF
 ENCORE_RUNTIME_LIB=$RUNTIME_CACHE
 ENCORE_INFRA_CONFIG_PATH=$AUGMENTED_CONFIG
 ENCORE_APP_META_PATH=$META_PATH
 APP_BASE_URL=$APP_BASE_URL_OVERRIDE
 EOF
-echo "==> Ready. Bundle will bind to cluster infra (postgresql.stagecraft-system, nsqd.stagecraft-system)."
+echo "==> Ready. Bundle will bind to cluster infra (postgresql.statecraft-system, nsqd.statecraft-system)."

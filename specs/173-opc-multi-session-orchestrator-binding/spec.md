@@ -299,7 +299,7 @@ null` and the consumer renders the absence as
   deferred this; spec 173 honours the deferral.
 - **Cross-workstation aggregation.** Like spec 172,
   spec 173 is workstation-local. Cross-workstation
-  workflow aggregation is a future stagecraft-side
+  workflow aggregation is a future statecraft-side
   concern.
 - **Workflow migration UI.** Pre-spec-173 workflows
   carry `null` project_path; no UI surfaces this

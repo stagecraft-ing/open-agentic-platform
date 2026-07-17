@@ -1,6 +1,6 @@
-# Stagecraft — SaaS Control Plane
+# Statecraft — SaaS Control Plane
 
-Stagecraft is the organisational control plane for Open Agentic Platform, built on [Encore.ts](https://encore.dev). It provides identity, workspace management, knowledge intake, deployment governance, and audit infrastructure.
+Statecraft is the organisational control plane for Open Agentic Platform, built on [Encore.ts](https://encore.dev). It provides identity, workspace management, knowledge intake, deployment governance, and audit infrastructure.
 
 ## What it does
 
@@ -61,9 +61,9 @@ npm test             # Direct vitest without infra setup
 
 ## Deployment
 
-Deployed to Azure AKS via Helm chart (`platform/charts/stagecraft/`). Docker images built with `encore build docker`. See `platform/CLAUDE.md` for infrastructure details.
+Deployed to Azure AKS via Helm chart (`platform/charts/statecraft/`). Docker images built with `encore build docker`. See `platform/CLAUDE.md` for infrastructure details.
 
 ## Specs
 
-- Spec 077 — Stagecraft Factory API
+- Spec 077 — Statecraft Factory API
 - Spec 087 — Unified Workspace Architecture (workspace entity model, knowledge intake domain)

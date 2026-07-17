@@ -9,11 +9,11 @@
     ],
     "implementingPaths": [
       {
-        "path": ".github/workflows/ci-stagecraft-encore.yml",
+        "path": ".github/workflows/ci-statecraft-encore.yml",
         "source": "spec-edge"
       },
       {
-        "path": ".github/workflows/ci-stagecraft.yml",
+        "path": ".github/workflows/ci-statecraft.yml",
         "source": "spec-edge"
       },
       {
@@ -33,11 +33,11 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/scripts/encore-test-lane.mjs",
+        "path": "platform/services/statecraft/scripts/encore-test-lane.mjs",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/vite.config.ts",
+        "path": "platform/services/statecraft/vite.config.ts",
         "source": "spec-edge"
       },
       {
@@ -45,7 +45,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-stagecraft-encore.yml",
+        "path": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-statecraft-encore.yml",
         "source": "spec-edge"
       },
       {
@@ -53,7 +53,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-stagecraft-encore.yml",
+        "path": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-statecraft-encore.yml",
         "source": "spec-edge"
       }
     ],
@@ -61,53 +61,53 @@
       {
         "locations": [
           {
-            "file": ".github/workflows/ci-stagecraft-encore.yml"
+            "file": ".github/workflows/ci-statecraft-encore.yml"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": ".github/workflows/ci-stagecraft-encore.yml"
+          "path": ".github/workflows/ci-statecraft-encore.yml"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/scripts/encore-test-lane.mjs"
+            "file": "platform/services/statecraft/scripts/encore-test-lane.mjs"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/scripts/encore-test-lane.mjs"
+          "path": "platform/services/statecraft/scripts/encore-test-lane.mjs"
         }
       },
       {
         "locations": [
           {
-            "file": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-stagecraft-encore.yml"
+            "file": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-statecraft-encore.yml"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-stagecraft-encore.yml"
+          "path": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-statecraft-encore.yml"
         }
       },
       {
         "locations": [
           {
-            "file": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-stagecraft-encore.yml"
+            "file": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-statecraft-encore.yml"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-stagecraft-encore.yml"
+          "path": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-statecraft-encore.yml"
         }
       },
       {
@@ -175,7 +175,7 @@
         "ownership": true,
         "sourceField": "co_authority",
         "unit": {
-          "anchor": "ci-stagecraft-encore",
+          "anchor": "ci-statecraft-encore",
           "file": "Makefile",
           "kind": "section"
         }
@@ -183,14 +183,14 @@
       {
         "locations": [
           {
-            "file": ".github/workflows/ci-stagecraft.yml"
+            "file": ".github/workflows/ci-statecraft.yml"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": ".github/workflows/ci-stagecraft.yml"
+          "path": ".github/workflows/ci-statecraft.yml"
         }
       },
       {
@@ -209,14 +209,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/vite.config.ts"
+            "file": "platform/services/statecraft/vite.config.ts"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       }
     ],

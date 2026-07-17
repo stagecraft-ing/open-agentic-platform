@@ -14,7 +14,7 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/auth/membershipResolver.ts"
+        "path": "platform/services/statecraft/api/auth/membershipResolver.ts"
       }
     ],
     "extends": [
@@ -23,7 +23,7 @@
         "spec": "080-github-identity-onboarding",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/auth/rauthy.ts"
+          "path": "platform/services/statecraft/api/auth/rauthy.ts"
         }
       },
       {
@@ -31,7 +31,7 @@
         "spec": "080-github-identity-onboarding",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/auth/rauthyCallback.ts"
+          "path": "platform/services/statecraft/api/auth/rauthyCallback.ts"
         }
       },
       {
@@ -39,7 +39,7 @@
         "spec": "080-github-identity-onboarding",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/signin.tsx"
+          "path": "platform/services/statecraft/web/app/routes/signin.tsx"
         }
       },
       {
@@ -80,7 +80,7 @@
         "role": "historical",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/auth/rauthySeed.ts"
+          "path": "platform/services/statecraft/api/auth/rauthySeed.ts"
         }
       },
       {
@@ -107,13 +107,13 @@
       "3.3 Trust boundaries",
       "4. Functional Requirements",
       "FR-001: Rauthy upstream provider configuration",
-      "FR-002: Idempotent Rauthy seeder on stagecraft startup",
+      "FR-002: Idempotent Rauthy seeder on statecraft startup",
       "FR-003: Corrected Rauthy admin client",
       "FR-004: Rewritten login callback",
       "FR-005: Membership resolution strategy chain",
       "FR-006: Personal Access Token storage and lifecycle",
       "FR-007: Settings UI for PAT management",
-      "FR-008: Removal of direct-GitHub OAuth from stagecraft",
+      "FR-008: Removal of direct-GitHub OAuth from statecraft",
       "5. Non-Functional Requirements",
       "6. Security",
       "7. Migration",
@@ -138,7 +138,7 @@
     ],
     "specPath": "specs/106-rauthy-native-oidc-and-membership/spec.md",
     "status": "approved",
-    "summary": "Close the implementation gap between spec 080's design and what actually shipped. Move GitHub from stagecraft-direct OAuth to Rauthy's upstream IDP, remove the imaginary admin-mint JWT endpoint, drive custom claims through Rauthy's scope + user-attribute model, and resolve org memberships through a layered strategy — GitHub App installation token first, per-user PAT second, with fail-loud if neither is available.\n",
+    "summary": "Close the implementation gap between spec 080's design and what actually shipped. Move GitHub from statecraft-direct OAuth to Rauthy's upstream IDP, remove the imaginary admin-mint JWT endpoint, drive custom claims through Rauthy's scope + user-attribute model, and resolve org memberships through a layered strategy — GitHub App installation token first, per-user PAT second, with fail-loud if neither is available.\n",
     "title": "Rauthy-Native OIDC + Layered Membership Resolution (App Installation + PAT)"
   },
   "shardHash": "cd96a2b25a25a95e3e1a72afd8af3fb7007bb615f22fafa15110e3dadb8e122d",

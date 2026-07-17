@@ -40,7 +40,7 @@ export interface TokenClaims {
 }
 
 // ---------------------------------------------------------------------------
-// M2M auth (OPC ↔ Stagecraft)
+// M2M auth (OPC ↔ Statecraft)
 // ---------------------------------------------------------------------------
 
 export interface M2MTokenRequest {

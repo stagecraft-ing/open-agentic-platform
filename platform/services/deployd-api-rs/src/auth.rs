@@ -113,11 +113,11 @@ pub fn has_scope(claims: &Claims, required: &str) -> bool {
 /// forward.
 ///
 /// Residual: every M2M caller sharing the same OIDC client (today, all of
-/// stagecraft's tenant-facing requests) presents the same `sub`, so this
+/// statecraft's tenant-facing requests) presents the same `sub`, so this
 /// check separates *distinct M2M callers* holding the required scope, not
-/// individual end-tenants within stagecraft. Per-tenant isolation for
+/// individual end-tenants within statecraft. Per-tenant isolation for
 /// requests routed through a single M2M identity must happen upstream
-/// (stagecraft's own project-membership checks) until a per-tenant-scoped
+/// (statecraft's own project-membership checks) until a per-tenant-scoped
 /// credential or signed tenant assertion is threaded through to deployd-api.
 pub fn is_owner_or_admin(
     claims: &Claims,

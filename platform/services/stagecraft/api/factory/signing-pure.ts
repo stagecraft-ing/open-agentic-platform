@@ -2,7 +2,7 @@
  * Pure Ed25519 compact-JWS helpers for the factory signing authority
  * (spec 198 FR-014).
  *
- * Stagecraft is the signing authority for three signature classes — the
+ * Statecraft is the signing authority for three signature classes — the
  * admission seal, the run-grant, and the emission countersign — all Ed25519
  * (EdDSA) compact JWS with a `kid` header resolved against the published
  * JWKS. The classes are domain-separated via the `typ` header so a token of

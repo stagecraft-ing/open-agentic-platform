@@ -139,6 +139,6 @@ keyVault:
 
 oidc:
   endpoint: "https://rauthy.localdev.online"
-  audience: "https://api.stagecraft.localdev.online"
+  audience: "https://api.statecraft.localdev.online"
 
 requiredScope: "deployd:deploy"

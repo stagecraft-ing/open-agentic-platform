@@ -16,7 +16,7 @@ depends_on:
 summary: >
   Elevate platform sync from fire-and-forget to promotion-grade. Define run
   promotion eligibility, add CompletedLocal status for local-only completions,
-  create a Stagecraft promotion validation endpoint, and integrate eligibility
+  create a Statecraft promotion validation endpoint, and integrate eligibility
   checks into the orchestrator completion path.
 code_aliases: ["PROMOTION_GRADE_MIRROR"]
 establishes:
@@ -36,9 +36,9 @@ Parent plan: [089 Governed Convergence Plan](../089-governed-convergence-plan/sp
 
 ## Problem
 
-Stagecraft sync is fire-and-forget by design:
+Statecraft sync is fire-and-forget by design:
 
-> `StagecraftClient` comment: "all remote calls are best-effort and never block local execution"
+> `StatecraftClient` comment: "all remote calls are best-effort and never block local execution"
 
 This means:
 - A completed workflow has no guarantee that its artifacts and events were recorded
@@ -61,7 +61,7 @@ client must distinguish between promotion-eligible and local-only completions.
 
 Add a `CompletedLocal` workflow status for runs that finish without full platform
 sync. Define promotion eligibility as a structured check (governance active,
-workspace present, events synced, artifacts recorded). Add a Stagecraft endpoint
+workspace present, events synced, artifacts recorded). Add a Statecraft endpoint
 that validates promotion eligibility server-side. Integrate the check into the
 orchestrator workflow completion path.
 
@@ -132,9 +132,9 @@ When a workflow's last step completes successfully:
 
 **Files**: `crates/orchestrator/src/state.rs`
 
-### Slice 3: Stagecraft promotion API endpoint
+### Slice 3: Statecraft promotion API endpoint
 
-New endpoint in `platform/services/stagecraft/api/factory/factory.ts`:
+New endpoint in `platform/services/statecraft/api/factory/factory.ts`:
 
 ```typescript
 // POST /api/workspaces/:workspaceId/promotions
@@ -171,9 +171,9 @@ CREATE TABLE promotions (
 );
 ```
 
-**Files**: `platform/services/stagecraft/api/factory/factory.ts`,
-`platform/services/stagecraft/api/db/schema.ts`,
-new migration `platform/services/stagecraft/api/db/migrations/11_promotions.up.sql`
+**Files**: `platform/services/statecraft/api/factory/factory.ts`,
+`platform/services/statecraft/api/db/schema.ts`,
+new migration `platform/services/statecraft/api/db/migrations/11_promotions.up.sql`
 
 ### Slice 4: Integrate promotion check into orchestrator completion
 
@@ -192,6 +192,6 @@ In the orchestrator workflow completion path (`dispatch_manifest` and
 
 - **SC-097-1**: `CompletedLocal` status distinguishes local-only from fully-synced completions
 - **SC-097-2**: `PromotionCheck` validates workspace, governance, event sync, and artifact recording
-- **SC-097-3**: Stagecraft promotion endpoint validates artifact + event completeness server-side
+- **SC-097-3**: Statecraft promotion endpoint validates artifact + event completeness server-side
 - **SC-097-4**: Orchestrator automatically sets `CompletedLocal` when platform sync is incomplete
 - **SC-097-5**: Promotion metadata is persisted in `WorkflowState.metadata`

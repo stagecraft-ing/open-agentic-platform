@@ -1,6 +1,6 @@
-# CLAUDE.md — Stagecraft (Encore.ts)
+# CLAUDE.md — Statecraft (Encore.ts)
 
-Stagecraft is the SaaS control plane built on **Encore.ts**. These conventions apply when working in this directory.
+Statecraft is the SaaS control plane built on **Encore.ts**. These conventions apply when working in this directory.
 
 ## Framework
 
@@ -24,7 +24,7 @@ Stagecraft is the SaaS control plane built on **Encore.ts**. These conventions a
 ## Local Dev
 
 ```bash
-cd platform/services/stagecraft && npm run start
+cd platform/services/statecraft && npm run start
 # App: http://localhost:4000 | Encore dashboard: http://localhost:9400
 ```
 
@@ -39,7 +39,7 @@ Test API endpoints by calling them directly as functions. Don't mock Encore infr
 
 ## Migrations
 
-SQL files live in `api/db/migrations/`, run by `scripts/migrate.mjs` as a Helm `pre-upgrade` hook (`platform/charts/stagecraft/templates/migration-job.yaml`).
+SQL files live in `api/db/migrations/`, run by `scripts/migrate.mjs` as a Helm `pre-upgrade` hook (`platform/charts/statecraft/templates/migration-job.yaml`).
 
 **Do not call Postgres `md5()` from migrations.** The Hetzner cluster Postgres is built against a FIPS-mode OpenSSL, so `md5()` returns `could not compute MD5 hash: unsupported` and aborts the migrate Job, blocking the whole upgrade. Use sha256 instead — either `encode(sha256('x'::bytea), 'hex')` (PG 11+ core) or precompute the hash in Node and inline a hex literal. Runtime `content_hash` producers (`api/factory/substrate.ts`, `api/projects/importArtifacts.ts`) already use sha256, so this also keeps migration-seeded values consistent with live ones.
 
@@ -49,10 +49,10 @@ For full Encore.ts API reference (APIs, databases, PubSub, streaming, auth, midd
 
 ## Chart selection and deploy wire contract (spec 136 / 214)
 
-Tenant deploys go through stagecraft → `deployd-api-rs`, which since spec 136
+Tenant deploys go through statecraft → `deployd-api-rs`, which since spec 136
 Phase 2.b drives Kubernetes via `helm upgrade --install` rather than raw
 kube-rs object construction. The chart that gets applied is resolved on the
-stagecraft side by a pure selector and passed across the wire by name.
+statecraft side by a pure selector and passed across the wire by name.
 
 - `api/deploy/chartSelector.ts` — pure function `selectChart({shape})` returns
   `{chart, version}` from `CHART_REGISTRY`. Unknown shapes throw — there is no
@@ -118,7 +118,7 @@ materialises through the substrate-aware `VirtualRoot`
 - `clone.ts` (spec 113) — `POST /api/projects/{sourceProjectId}/clone`. Mirror-clones a source project's primary repo into the caller's current OAP org installation, registers a new project bound to that repo, hydrates raw artefacts via the same `registerRawArtifactsFromRepo` path as import, and emits a `project.cloned` audit event. Default-vs-user-typed name semantics resolve collisions per FR-029/FR-030; rollback deletes the destination repo on any post-create failure.
 - `cloneAvailability.ts` (spec 113) — `GET /api/projects/clone/check-availability`. Read-only, idempotent verdict for the Clone dialog's debounced field checks.
 - `scaffold/` — the absorbed scaffold subflow:
-  - `templateCache.ts` — clones the upstream template into `${STAGECRAFT_WORKSPACE_DIR}/_template-cache`, runs `npm install`, persists upstream SHA in `.template-commit`. Materialises `_prebuilt-{minimal,public,internal,dual}` via `tsx scripts/setup-{app,dual-app}.ts`, persists prebuild SHA in `.prebuilt-commit`. Module-scoped `initStatus` drives the readiness endpoint.
+  - `templateCache.ts` — clones the upstream template into `${STATECRAFT_WORKSPACE_DIR}/_template-cache`, runs `npm install`, persists upstream SHA in `.template-commit`. Materialises `_prebuilt-{minimal,public,internal,dual}` via `tsx scripts/setup-{app,dual-app}.ts`, persists prebuild SHA in `.prebuilt-commit`. Module-scoped `initStatus` drives the readiness endpoint.
   - `scheduler.ts` — Encore `CronJob("scaffold-warmup-refresher", every: "30m")` plus a fire-and-forget warmup at module load. Resolves `(scaffoldRepoUrl, scaffoldRef, PAT)` from the first eligible org. Spec 199 FR-009 cutover: the resolver reads each org's latest admission record, where the manifest's org-agnostic `scaffold.source.remote` was resolved against `factory_upstreams` at admission time; the manifest-injected `scaffold_source_id` (spec 140 §2.2) and the older `template_remote` field are both retired. `WarmupResolution` discriminator: `"no-adapters" | "no-scaffold-source-id" | "no-scaffold-source-resolved" | "no-pat" | "ok"`.
   - `perRequestScaffold.ts` — copies the chosen prebuilt tree into a per-request temp dir, runs `tsx add-module.ts <id>` for each user-selected extra, refreshes the lockfile via `npm install --package-lock-only`, writes `.factory/pipeline-state.json`.
   - `gitInitAndPush.ts` — `git init -b <branch>` → `add` → `commit` → token-injected push, then `git remote set-url origin <bare>` so the token does not survive in `.git/config`. Subprocess output is token-redacted before any error surface.
@@ -126,7 +126,7 @@ materialises through the substrate-aware `VirtualRoot`
   - `moduleCatalog.ts` (pure derivation + helpers): `deriveModuleCatalog(manifests)`, `deriveInstallOrder(catalog)`, `parseScaffoldProfiles(manifest)`, `profileModulesFor(profiles, profile)`, `pickProfileFromModules(variant, modules)`, `extrasFor(catalog, builtIns, selected)`, `isKnownModule(catalog, id)`, `isModuleManifestPath(path)`, plus the `RawModuleManifest`/`ModuleDescriptor`/`ProfileDefault` types. Spec 227 Stage 1/2: the catalog derives at request time from the adapter's module `manifest.json` rows, and per-profile defaults from the adapter manifest's `scaffold.profiles[]` (`internal` ships `["user-management"]`), so the create surface projects both without hand-mirroring (no `MODULE_CATALOG`/`INSTALL_ORDER`). The Encore-side loader plus `GET /api/factory/module-catalog` live in `api/factory/moduleCatalog.ts` and now return a `{ modules, profiles }` bundle behind a short-TTL per-org cache (`moduleCatalogCache.ts`, keyed by namespace + org). `extrasFor` filters the profile's derived built-ins out of the user's extras (the Stage 1 empty `PROFILE_MODULES`/`PRESETS` constants are gone). Profiles select AUTH_DRIVER (spec 199 FR-007 cutover, 2026-06-11; the template-distributor shape and `detectProfile` are retired).
   - `seedPipelineState.ts`, `deepLink.ts`, `artifactExtract.ts`, `types.ts` — pure helpers consumed by `create.ts`.
 
-The `template-distributor` external service is retired — all scaffold work for newly-created factory projects happens in-process here under the org's existing GitHub App installation, backed by the workspace PVC declared in `platform/charts/stagecraft/templates/workspace-pvc.yaml`.
+The `template-distributor` external service is retired — all scaffold work for newly-created factory projects happens in-process here under the org's existing GitHub App installation, backed by the workspace PVC declared in `platform/charts/statecraft/templates/workspace-pvc.yaml`.
 
 ## Knowledge extraction pipeline (spec 115)
 
@@ -162,15 +162,15 @@ Entry points (the four "what to call from the rest of the codebase" surfaces):
 
 Env knobs:
 
-- `STAGECRAFT_EXTRACT_STALE_AFTER_SEC` — sweeper cutoff (default 600)
-- `STAGECRAFT_EXTRACT_MAX_AUTO_RETRIES` — auto-retry cap before manual Retry needed (default 2)
-- `STAGECRAFT_EXTRACT_EAGER_BUFFER_BYTES` — worker eager-load threshold (default 4MB)
-- `STAGECRAFT_EXTRACT_PDF_MIN_MEDIAN_CHARS` — embedded-text PDF threshold (default 80)
-- `STAGECRAFT_EXTRACT_LEGACY_TRANSITION` — set to `"true"` to re-enable the legacy click-walk endpoint for incident response (FR-027)
-- `STAGECRAFT_EXTRACT_POLICY_DIR` — override for compiled policy snapshot dir (default `build/policy/projects`; spec 119 §4.5)
-- `STAGECRAFT_EXTRACT_PRICE_*_USD_PER_MTOK` — Anthropic pricing overrides for the cost estimator
+- `STATECRAFT_EXTRACT_STALE_AFTER_SEC` — sweeper cutoff (default 600)
+- `STATECRAFT_EXTRACT_MAX_AUTO_RETRIES` — auto-retry cap before manual Retry needed (default 2)
+- `STATECRAFT_EXTRACT_EAGER_BUFFER_BYTES` — worker eager-load threshold (default 4MB)
+- `STATECRAFT_EXTRACT_PDF_MIN_MEDIAN_CHARS` — embedded-text PDF threshold (default 80)
+- `STATECRAFT_EXTRACT_LEGACY_TRANSITION` — set to `"true"` to re-enable the legacy click-walk endpoint for incident response (FR-027)
+- `STATECRAFT_EXTRACT_POLICY_DIR` — override for compiled policy snapshot dir (default `build/policy/projects`; spec 119 §4.5)
+- `STATECRAFT_EXTRACT_PRICE_*_USD_PER_MTOK` — Anthropic pricing overrides for the cost estimator
 - `ANTHROPIC_API_KEY` — required secret; agent extractors fail closed without it
-- `STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC` — `factory_runs` staleness cutoff for the spec 124 sweeper (default 1800, i.e. 30 minutes). Rows in `(queued, running)` whose `last_event_at` is older than this are flipped to `failed` with a `factory.run.swept` audit by `api/factory/runsScheduler.ts` (cron `factory-runs-staleness-sweeper`, every 1m).
-- `STAGECRAFT_FACTORY_SYNC_STALE_AFTER_SEC`: `factory_sync_runs` staleness cutoff for the spec 109 §5.1 sweeper (default 600, i.e. 10 minutes). Rows in `(pending, running)` whose `COALESCE(started_at, queued_at)` is older than this are flipped to `failed` (and `factory_upstreams.last_sync_status` corrected) with a `factory.upstreams.sync_swept` audit by `api/factory/syncRunsScheduler.ts` (cron `factory-sync-runs-staleness-sweeper`, every 1m).
-- `STAGECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT`: spec 202 FR-003(c) queue-storm ceiling (default 25). At `POST /api/factory/runs` reservation, `api/factory/queueStormGate.ts::detectQueueStorm` counts the org's `factory_runs` rows in `(queued, running)`; at or over this ceiling it logs a warning and writes a `factory.run.storm_detected` audit row. Detection-only: the run is still admitted regardless of the outcome. Enforcement (a refusal) is deferred until the governance envelope carries an authoritative threshold (the `budgets:` section, spec 202 FR-001); until then this is platform config, not an admitted ceiling.
-- `STAGECRAFT_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC` / `STAGECRAFT_FACTORY_APPROVAL_VELOCITY_THRESHOLD`: spec 202 FR-004 approval-velocity (governance-drift) counter (defaults 60s / 10 approvals). At `POST /api/factory/runs/:id/gates/:stageId/approve`, once the `factory.run.gate_approved` row is written, `api/factory/approvalVelocity.ts::detectApprovalVelocity` counts the actor's org-scoped gate approvals in the rolling window; at or over the threshold it logs a warning and writes a `factory.run.approval_velocity_anomaly` audit row. The same count is surfaced read-only as `approvalVelocity` on `GET /api/factory/runs/:id/approval-context`. Detection-only: the approval is still recorded regardless. Records, never blocks (depth of approval policy is org-filed, spec 198 FR-013); like the queue-storm ceiling this is platform config until the envelope carries an authoritative threshold.
+- `STATECRAFT_FACTORY_RUN_STALE_AFTER_SEC` — `factory_runs` staleness cutoff for the spec 124 sweeper (default 1800, i.e. 30 minutes). Rows in `(queued, running)` whose `last_event_at` is older than this are flipped to `failed` with a `factory.run.swept` audit by `api/factory/runsScheduler.ts` (cron `factory-runs-staleness-sweeper`, every 1m).
+- `STATECRAFT_FACTORY_SYNC_STALE_AFTER_SEC`: `factory_sync_runs` staleness cutoff for the spec 109 §5.1 sweeper (default 600, i.e. 10 minutes). Rows in `(pending, running)` whose `COALESCE(started_at, queued_at)` is older than this are flipped to `failed` (and `factory_upstreams.last_sync_status` corrected) with a `factory.upstreams.sync_swept` audit by `api/factory/syncRunsScheduler.ts` (cron `factory-sync-runs-staleness-sweeper`, every 1m).
+- `STATECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT`: spec 202 FR-003(c) queue-storm ceiling (default 25). At `POST /api/factory/runs` reservation, `api/factory/queueStormGate.ts::detectQueueStorm` counts the org's `factory_runs` rows in `(queued, running)`; at or over this ceiling it logs a warning and writes a `factory.run.storm_detected` audit row. Detection-only: the run is still admitted regardless of the outcome. Enforcement (a refusal) is deferred until the governance envelope carries an authoritative threshold (the `budgets:` section, spec 202 FR-001); until then this is platform config, not an admitted ceiling.
+- `STATECRAFT_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC` / `STATECRAFT_FACTORY_APPROVAL_VELOCITY_THRESHOLD`: spec 202 FR-004 approval-velocity (governance-drift) counter (defaults 60s / 10 approvals). At `POST /api/factory/runs/:id/gates/:stageId/approve`, once the `factory.run.gate_approved` row is written, `api/factory/approvalVelocity.ts::detectApprovalVelocity` counts the actor's org-scoped gate approvals in the rolling window; at or over the threshold it logs a warning and writes a `factory.run.approval_velocity_anomaly` audit row. The same count is surfaced read-only as `approvalVelocity` on `GET /api/factory/runs/:id/approval-context`. Detection-only: the approval is still recorded regardless. Records, never blocks (depth of approval policy is org-filed, spec 198 FR-013); like the queue-storm ceiling this is platform config until the envelope carries an authoritative threshold.

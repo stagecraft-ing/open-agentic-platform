@@ -270,35 +270,35 @@ export const references: Reference[] = [
     id: 1,
     label: "OAP-ARCH",
     title: "Open Agentic Platform: Architecture Overview",
-    url: "https://github.com/stagecraft-ing/open-agentic-platform/blob/main/docs/ARCHITECTURE.md",
+    url: "https://github.com/statecrafting/open-agentic-platform/blob/main/docs/ARCHITECTURE.md",
     accessed: "July 2026",
   },
   {
     id: 2,
     label: "OAP-SPINE",
     title: "The Spec Spine in Detail",
-    url: "https://github.com/stagecraft-ing/open-agentic-platform/blob/main/docs/spec-spine-in-detail.md",
+    url: "https://github.com/statecrafting/open-agentic-platform/blob/main/docs/spec-spine-in-detail.md",
     accessed: "July 2026",
   },
   {
     id: 3,
     label: "OAP-GOV",
     title: "Spec 102: Governance Model",
-    url: "https://github.com/stagecraft-ing/open-agentic-platform/blob/main/specs/102-governance-model/",
+    url: "https://github.com/statecrafting/open-agentic-platform/blob/main/specs/102-governance-model/",
     accessed: "July 2026",
   },
   {
     id: 4,
     label: "OAP-FACTORY",
     title: "Spec 103: Factory Pipeline",
-    url: "https://github.com/stagecraft-ing/open-agentic-platform/blob/main/specs/103-factory-pipeline/",
+    url: "https://github.com/statecrafting/open-agentic-platform/blob/main/specs/103-factory-pipeline/",
     accessed: "July 2026",
   },
   {
     id: 5,
     label: "OAP-IDENTITY",
     title: "Spec 104: Identity and Access (Rauthy OIDC)",
-    url: "https://github.com/stagecraft-ing/open-agentic-platform/blob/main/specs/104-identity-access/",
+    url: "https://github.com/statecrafting/open-agentic-platform/blob/main/specs/104-identity-access/",
     accessed: "July 2026",
   },
   {
@@ -312,7 +312,7 @@ export const references: Reference[] = [
     id: 7,
     label: "OAP-OVERVIEW",
     title: "Open Agentic Platform: Project Overview",
-    url: "https://github.com/stagecraft-ing/open-agentic-platform/blob/main/docs/OVERVIEW.md",
+    url: "https://github.com/statecrafting/open-agentic-platform/blob/main/docs/OVERVIEW.md",
     accessed: "July 2026",
   },
   {
@@ -520,13 +520,13 @@ export const relatedReading: RelatedLink[] = [
   {
     sectionId: "spec-spine",
     title: "Spec Spine in Detail",
-    url: "https://github.com/stagecraft-ing/open-agentic-platform/blob/main/docs/spec-spine-in-detail.md",
+    url: "https://github.com/statecrafting/open-agentic-platform/blob/main/docs/spec-spine-in-detail.md",
     source: "OAP Docs",
   },
   {
     sectionId: "spec-spine",
     title: "Architecture Overview",
-    url: "https://github.com/stagecraft-ing/open-agentic-platform/blob/main/docs/ARCHITECTURE.md",
+    url: "https://github.com/statecrafting/open-agentic-platform/blob/main/docs/ARCHITECTURE.md",
     source: "OAP Docs",
   },
   {
@@ -538,13 +538,13 @@ export const relatedReading: RelatedLink[] = [
   {
     sectionId: "governed-execution",
     title: "OPC Desktop Cockpit",
-    url: "https://github.com/stagecraft-ing/open-agentic-platform/blob/main/product/apps/opc/README.md",
+    url: "https://github.com/statecrafting/open-agentic-platform/blob/main/product/apps/opc/README.md",
     source: "OAP Product",
   },
   {
     sectionId: "governance-certificate",
     title: "Governance Model Spec",
-    url: "https://github.com/stagecraft-ing/open-agentic-platform/blob/main/specs/102-governance-model/",
+    url: "https://github.com/statecrafting/open-agentic-platform/blob/main/specs/102-governance-model/",
     source: "OAP Specs",
   },
   {
@@ -556,7 +556,7 @@ export const relatedReading: RelatedLink[] = [
   {
     sectionId: "identity-collaboration",
     title: "Identity & Access Spec",
-    url: "https://github.com/stagecraft-ing/open-agentic-platform/blob/main/specs/104-identity-access/",
+    url: "https://github.com/statecrafting/open-agentic-platform/blob/main/specs/104-identity-access/",
     source: "OAP Specs",
   },
   {
@@ -568,13 +568,13 @@ export const relatedReading: RelatedLink[] = [
   {
     sectionId: "factory-pipeline",
     title: "Factory Pipeline Spec",
-    url: "https://github.com/stagecraft-ing/open-agentic-platform/blob/main/specs/103-factory-pipeline/",
+    url: "https://github.com/statecrafting/open-agentic-platform/blob/main/specs/103-factory-pipeline/",
     source: "OAP Specs",
   },
   {
     sectionId: "factory-pipeline",
     title: "Project Overview",
-    url: "https://github.com/stagecraft-ing/open-agentic-platform/blob/main/docs/OVERVIEW.md",
+    url: "https://github.com/statecrafting/open-agentic-platform/blob/main/docs/OVERVIEW.md",
     source: "OAP Docs",
   },
   {

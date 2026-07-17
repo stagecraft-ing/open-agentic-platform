@@ -2,7 +2,7 @@
 id: "137-tenant-environment-access-gates"
 title: "Tenant environment access gates — passwordless OIDC via Rauthy"
 status: approved
-implementation: in-progress  # Phase 0 closed 2026-05-15 (5/6 clarifications locked + T003 Rauthy admin smoke). Phase 1 (schema migration: tables environmentAccessGates + environmentAccessGateAllowlistEmails with 3 CHECK constraints and FIPS-safe lower(value) uniqueness), Phase 2 (CRUD endpoints + audit hooks + assertNoPasswordFields guard), Phase 3 (Rauthy admin client wrapper + provisionTenantGateClient + idempotent deprovision; flows_enabled mechanism replaces non-existent password_login_enabled scalar) all landed 2026-05-15. Phase 4 (deployd-api Helm overlay) landed 2026-05-17 — new oauth2-proxy-gate chart embedded via include_str! per spec 136 Phase 2.b pattern; AccessGateDescriptor wire shape on DeploymentRequest; install_with_gate / uninstall_with_gate orchestration with FR-003 atomicity (tenant rolls back if gate install fails); tenant chart Ingress renders nginx auth-url/auth-signin annotations conditionally on gate.enabled; reconcile-on-off-transition cleans up stale gate releases. Phase 5 (stagecraft UI) landed 2026-05-17 — new per-env detail route hosts the gate card + allowlist editor + login-method picker + end-user preview + empty-state CTA, wired to Phase 2's PUT/POST/DELETE endpoints via new server-side fetch helpers. Phase 4↔5 integration landed 2026-05-17 (T070–T076) — migration 41 adds deploy-descriptor secret columns (rauthy_client_secret + cookie_secret + tls_secret_name) with CHECK enabled_requires_secrets; provisionTenantGateClient now captures the Rauthy client secret (corrected 2026-06-30: read back via POST /auth/v1/clients/{id}/secret, since the Rauthy 0.35 create response carries no secret field; see the "Rauthy secret retrieval" empirical correction below); putAccessGate generates cookie_secret on first enable + persists secrets; new accessGatesDeploy.ts assembles the deployd-api wire shape from descriptor row + sibling allowlist; deploy.ts caller forwards access_gate on POST /v1/deployments; kubernetes-reflector installed via setup.sh (chart 9.1.6) replicates the wildcard cert Secret into tenant namespaces via reflector annotations on the Certificate's secretTemplate. Phase 6 (E1–E6 evidence + lifecycle flip) remains.
+implementation: in-progress  # Phase 0 closed 2026-05-15 (5/6 clarifications locked + T003 Rauthy admin smoke). Phase 1 (schema migration: tables environmentAccessGates + environmentAccessGateAllowlistEmails with 3 CHECK constraints and FIPS-safe lower(value) uniqueness), Phase 2 (CRUD endpoints + audit hooks + assertNoPasswordFields guard), Phase 3 (Rauthy admin client wrapper + provisionTenantGateClient + idempotent deprovision; flows_enabled mechanism replaces non-existent password_login_enabled scalar) all landed 2026-05-15. Phase 4 (deployd-api Helm overlay) landed 2026-05-17 — new oauth2-proxy-gate chart embedded via include_str! per spec 136 Phase 2.b pattern; AccessGateDescriptor wire shape on DeploymentRequest; install_with_gate / uninstall_with_gate orchestration with FR-003 atomicity (tenant rolls back if gate install fails); tenant chart Ingress renders nginx auth-url/auth-signin annotations conditionally on gate.enabled; reconcile-on-off-transition cleans up stale gate releases. Phase 5 (statecraft UI) landed 2026-05-17 — new per-env detail route hosts the gate card + allowlist editor + login-method picker + end-user preview + empty-state CTA, wired to Phase 2's PUT/POST/DELETE endpoints via new server-side fetch helpers. Phase 4↔5 integration landed 2026-05-17 (T070–T076) — migration 41 adds deploy-descriptor secret columns (rauthy_client_secret + cookie_secret + tls_secret_name) with CHECK enabled_requires_secrets; provisionTenantGateClient now captures the Rauthy client secret (corrected 2026-06-30: read back via POST /auth/v1/clients/{id}/secret, since the Rauthy 0.35 create response carries no secret field; see the "Rauthy secret retrieval" empirical correction below); putAccessGate generates cookie_secret on first enable + persists secrets; new accessGatesDeploy.ts assembles the deployd-api wire shape from descriptor row + sibling allowlist; deploy.ts caller forwards access_gate on POST /v1/deployments; kubernetes-reflector installed via setup.sh (chart 9.1.6) replicates the wildcard cert Secret into tenant namespaces via reflector annotations on the Certificate's secretTemplate. Phase 6 (E1–E6 evidence + lifecycle flip) remains.
 approved: "2026-05-15"
 amended: "2026-06-16"
 amendment_record: |
@@ -22,31 +22,31 @@ domain: platform
 risk: medium
 depends_on:
   - "136-tenant-hello-demo-service"  # tenant-hello as reference; gates are added per-environment
-  - "087-unified-workspace-architecture"  # unified-workspace-architecture (environments are stagecraft entities)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (environments are statecraft entities)
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/environments/accessGates.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/environments/accessGatesHelpers.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/environments/accessGates.test.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/environments/encore.service.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/auth/rauthyAdminClients.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/auth/rauthyAdminClientsHelpers.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/auth/rauthyAdminClients.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/environments/accessGates.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/environments/accessGatesHelpers.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/environments/accessGates.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/environments/encore.service.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/auth/rauthyAdminClients.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/auth/rauthyAdminClientsHelpers.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/auth/rauthyAdminClients.test.ts }
   - unit: { kind: directory, path: platform/charts/oauth2-proxy-gate }
-  - unit: { kind: file, path: platform/services/stagecraft/api/environments/accessGatesDeploy.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/api/environments/accessGatesDeploy.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx }
 extends:
   - spec: "136-tenant-hello-demo-service"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/db/schema.ts }
   - spec: "136-tenant-hello-demo-service"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+    unit: { kind: file, path: platform/services/statecraft/vite.config.ts }
   - spec: "136-tenant-hello-demo-service"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId.deploys.tsx }
   - spec: "136-tenant-hello-demo-service"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/projects-api.server.ts }
+    unit: { kind: file, path: platform/services/statecraft/web/app/lib/projects-api.server.ts }
 co_authority:
   - with_specs:
       - "214-tenant-app-chart-supersession"
@@ -63,8 +63,8 @@ co_authority:
       - "136-tenant-hello-demo-service"
     unit: { kind: section, file: platform/services/deployd-api-rs/src/routes.rs, anchor: gate-overlay }
   - with_specs:
-      - "077-stagecraft-factory-api"
-    unit: { kind: section, file: platform/services/stagecraft/api/deploy/deploy.ts, anchor: access-gate-wire }
+      - "077-statecraft-factory-api"
+    unit: { kind: section, file: platform/services/statecraft/api/deploy/deploy.ts, anchor: access-gate-wire }
   - with_specs:
       - "072-multi-cloud-k8s-portability"
       - "106-rauthy-native-oidc-and-membership"
@@ -78,7 +78,7 @@ summary: >
   applied above the tenant app so tenant codebases carry no auth logic.
   Passwordless OIDC via our existing Rauthy instance is the only mode —
   users authenticate by magic link or federated upstream IdP (Google,
-  Microsoft Entra, GitHub, generic OIDC). Stagecraft and Rauthy clients
+  Microsoft Entra, GitHub, generic OIDC). Statecraft and Rauthy clients
   for tenant gates are configured to refuse password login outright;
   the platform never sees, stores, or relays a password.
 ---
@@ -122,8 +122,8 @@ platform owns:
   returned email against `allowed_emails` / `allowed_domains` on the
   post-auth callback.
 
-Stagecraft and the tenant app **never** see passwords or upstream IdP
-tokens. The only identity material that crosses into stagecraft's data
+Statecraft and the tenant app **never** see passwords or upstream IdP
+tokens. The only identity material that crosses into statecraft's data
 plane is the post-authentication subject (email + sub), and only if the
 tenant app explicitly reads it from forwarded headers.
 
@@ -136,10 +136,10 @@ tenant app explicitly reads it from forwarded headers.
 - deployd-api rendering the K8s objects for an enabled gate
   (oauth2-proxy Deployment + Service, Rauthy client provisioned via
   Rauthy's admin API, Ingress annotated with `auth-url`/`auth-signin`).
-- Stagecraft UI for managing the gate per environment: toggle on/off,
+- Statecraft UI for managing the gate per environment: toggle on/off,
   edit allowlist, choose which login methods Rauthy surfaces (magic
   link, federated, or both).
-- A Rauthy client provisioning path: stagecraft creates one OIDC client
+- A Rauthy client provisioning path: statecraft creates one OIDC client
   per gated environment via Rauthy's admin API.
 
 **Explicitly out of scope:**
@@ -148,7 +148,7 @@ tenant app explicitly reads it from forwarded headers.
   password-bearing mechanism. Removed by directive.
 - Tenant app-level auth (the tenant remains free to layer its own).
 - Replacing Rauthy with a different IdP — Rauthy is the chosen primitive.
-- Single sign-on across stagecraft and gated tenant environments — its
+- Single sign-on across statecraft and gated tenant environments — its
   own design decision and would inherit from this spec, not the other
   way around.
 - Email allowlist UX for non-administrators (this spec only covers the
@@ -160,7 +160,7 @@ tenant app explicitly reads it from forwarded headers.
 ## Current state vs intent
 
 **Current state:**
-- `environments` (`platform/services/stagecraft/api/db/schema.ts:219-233`)
+- `environments` (`platform/services/statecraft/api/db/schema.ts:219-233`)
   has `projectId, name, kind, k8sNamespace, autoDeployBranch,
   requiresApproval`. No access-gate field.
 - deployd-api's `POST /v1/deployments` contract
@@ -170,7 +170,7 @@ tenant app explicitly reads it from forwarded headers.
 - deployd-api's K8s renderer
   (`platform/services/deployd-api-rs/src/k8s.rs:51-82`) creates raw
   `Deployment + Service + Ingress` with no auth annotations.
-- Rauthy is deployed (`platform/charts/rauthy/`) and serves stagecraft's
+- Rauthy is deployed (`platform/charts/rauthy/`) and serves statecraft's
   own auth, but no tenant Ingress has ever been configured against it,
   and no Auth Providers (Google/Microsoft/GitHub upstreams) are
   configured today.
@@ -182,7 +182,7 @@ tenant app explicitly reads it from forwarded headers.
 - Per-environment gate descriptor with `enabled: bool` + Rauthy client
   reference + allowlist + login-method config.
 - Secret material (oauth2-proxy cookie secrets, Rauthy client secrets)
-  lives in K8s Secrets, never in stagecraft Postgres. No password hashes
+  lives in K8s Secrets, never in statecraft Postgres. No password hashes
   exist anywhere in the platform.
 - deployd-api's create-deployment path provisions the gate atomically
   with the tenant Deployment when `enabled: true`; the destroy path
@@ -245,19 +245,19 @@ Rauthy clients created per gated environment carry:
   `ClientSecretResponse { id, confidential, secret }`. `createRauthyClient`
   now creates, then reads the secret back from that endpoint; the new
   `fetchRauthyClientSecret` helper is also the non-destructive self-heal
-  for an existing client whose secret stagecraft never persisted (recover
+  for an existing client whose secret statecraft never persisted (recover
   it instead of delete + recreate, which would rotate the secret). The
-  load-bearing intent (stagecraft holds the confidential-client secret so
+  load-bearing intent (statecraft holds the confidential-client secret so
   the oauth2-proxy gate can authenticate) is preserved; only the wire
   mechanism is corrected.
 
   *Empirical correction (RAUTHY_ISSUER_URL wiring + form, 2026-07-01).*
-  FR-003(b)/(c) require stagecraft to forward the Rauthy issuer to the
+  FR-003(b)/(c) require statecraft to forward the Rauthy issuer to the
   tenant's `oauth2-proxy` (`accessGatesDeploy.ts` puts it on the descriptor;
   `deploy.ts` refuses a gate-enabled deploy when `RAUTHY_ISSUER_URL` is
-  empty). Two gaps were found live on `stagecraft.ing`: (1) `RAUTHY_ISSUER_URL`
-  was set nowhere in the deployed stagecraft env (absent from the
-  `stagecraft-api-secrets` bootstrap in `platform/infra/hetzner/setup.sh`),
+  empty). Two gaps were found live on `statecraft.ing`: (1) `RAUTHY_ISSUER_URL`
+  was set nowhere in the deployed statecraft env (absent from the
+  `statecraft-api-secrets` bootstrap in `platform/infra/hetzner/setup.sh`),
   so every gate-enabled tenant deploy failed the guard with `RAUTHY_ISSUER_URL
   is required when a tenant access gate is enabled`; and (2) the value form is
   load-bearing. `oauth2-proxy` uses `--oidc-issuer-url` as BOTH the discovery
@@ -269,7 +269,7 @@ Rauthy clients created per gated environment carry:
   path is unaffected because `auth.rs` reads the issuer from the discovery
   document rather than trusting the configured endpoint. Fix: `setup.sh`
   derives `RAUTHY_ISSUER_URL="${RAUTHY_URL%/}/auth/v1/"` into
-  `stagecraft-api-secrets`, and the `oauth2-proxy-gate` chart's `rauthy.issuerUrl`
+  `statecraft-api-secrets`, and the `oauth2-proxy-gate` chart's `rauthy.issuerUrl`
   example is corrected to the full issuer form.
 
 Rauthy Auth Providers (the upstream IdPs) are configured at the Rauthy
@@ -281,7 +281,7 @@ binding the upstream identity to a tenant-scoped Rauthy session.
 
 ## Functional Requirements *(MVP)*
 
-- **FR-001** Stagecraft persists a per-environment access-gate
+- **FR-001** Statecraft persists a per-environment access-gate
   descriptor with `enabled: bool` + Rauthy client reference + allowlist
   + login-method config.
 - **FR-002** When `enabled: false`, deployd-api renders the tenant
@@ -312,9 +312,9 @@ binding the upstream identity to a tenant-scoped Rauthy session.
   (oauth2-proxy Deployment + Service, Rauthy client) along with the
   tenant workload. Auth Providers configured at the Rauthy level remain
   (they're shared across tenants).
-- **FR-007** Stagecraft never stores a user password, hash, or upstream
+- **FR-007** Statecraft never stores a user password, hash, or upstream
   IdP token. Rauthy is the only system that touches user identity
-  material; stagecraft sees only the post-authentication subject.
+  material; statecraft sees only the post-authentication subject.
 - **FR-008** Rotating tenant access updates the Rauthy user directory
   (for magic link) or the Auth Provider's upstream allowlist (for
   federated); changes propagate without tenant workload restart and
@@ -369,7 +369,7 @@ binding the upstream identity to a tenant-scoped Rauthy session.
    JSON wrangling.
 
 3. **Rauthy admin API contract.** Rauthy supports programmatic client
-   registration. Stagecraft calls this on gate-config changes. Need to
+   registration. Statecraft calls this on gate-config changes. Need to
    confirm: (a) the admin API tolerates volume (one client per gated
    env), (b) revocation is clean, (c) toggling `password_login_enabled`
    on an existing client is supported (vs requiring client recreation),
@@ -382,7 +382,7 @@ binding the upstream identity to a tenant-scoped Rauthy session.
    decided up front so that toggling the gate doesn't require Rauthy
    client edits.
 
-5. **Stagecraft user → Rauthy user mapping.** When an admin types an
+5. **Statecraft user → Rauthy user mapping.** When an admin types an
    email into the allowlist, does that auto-provision a Rauthy user
    (with magic-link enabled) or does it only allow login attempts?
    Auto-provision is more user-friendly; allow-on-demand is safer
@@ -397,9 +397,9 @@ binding the upstream identity to a tenant-scoped Rauthy session.
    the Rauthy deployment level. This spec provisions tenant gate
    clients but assumes Auth Providers already exist in Rauthy. The
    admin UX for configuring those upstreams (entering Google client
-   ID + secret into Rauthy) is out of scope for stagecraft; admins do
+   ID + secret into Rauthy) is out of scope for statecraft; admins do
    it in Rauthy directly. A follow-up spec could surface that in the
-   stagecraft admin panel if useful.
+   statecraft admin panel if useful.
 
 ### What this spec does NOT decide
 

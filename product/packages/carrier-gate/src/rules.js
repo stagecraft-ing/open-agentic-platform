@@ -1,7 +1,7 @@
 // Spec 204 FR-001: the canonical carrier-class rule set.
 //
 // Authored as plain ESM JavaScript (not TypeScript) on purpose. This leaf is
-// imported across the Encore service boundary by stagecraft's overrideGate.ts.
+// imported across the Encore service boundary by statecraft's overrideGate.ts.
 // Encore installs and requires node_modules dependencies at runtime, so the
 // shared module must be directly Node-loadable: a raw `.ts` entry point cannot
 // be imported by the production runtime. Shipping `.js` keeps ONE canonical

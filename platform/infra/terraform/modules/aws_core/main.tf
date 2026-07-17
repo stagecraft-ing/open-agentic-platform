@@ -50,9 +50,9 @@ module "eks" {
   }
 }
 
-# ECR Repository for stagecraft
-resource "aws_ecr_repository" "stagecraft" {
-  name                 = "${var.project_name}/stagecraft"
+# ECR Repository for statecraft
+resource "aws_ecr_repository" "statecraft" {
+  name                 = "${var.project_name}/statecraft"
   image_tag_mutability = "MUTABLE"
   force_delete         = true
 }
@@ -81,19 +81,19 @@ module "eso_irsa" {
   }
 }
 
-# IAM role for stagecraft service (IRSA)
-module "stagecraft_irsa" {
+# IAM role for statecraft service (IRSA)
+module "statecraft_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "~> 5.0"
 
-  role_name = "${var.project_name}-stagecraft-role"
+  role_name = "${var.project_name}-statecraft-role"
 
   attach_external_secrets_policy = true
 
   oidc_providers = {
     main = {
       provider_arn               = module.eks.oidc_provider_arn
-      namespace_service_accounts = ["stagecraft-system:stagecraft-api-sa"]
+      namespace_service_accounts = ["statecraft-system:statecraft-api-sa"]
     }
   }
 }

@@ -108,7 +108,7 @@
         "aspect": "shared-carrier-rules",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/overrideGate.ts"
+          "path": "platform/services/statecraft/api/factory/overrideGate.ts"
         }
       },
       {

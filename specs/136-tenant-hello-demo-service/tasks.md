@@ -13,7 +13,7 @@
   `platform/services/tenant-hello/package.json`.
 - [x] T003 Extend `tools/spec-spine/codebase-indexer/src/manifest.rs`
   `discover_npm_packages` to include `tenant-hello` alongside
-  `stagecraft`. Verify Layer 1 NPM table and Layer 2 traceability list
+  `statecraft`. Verify Layer 1 NPM table and Layer 2 traceability list
   the fixture.
 - [x] T004 Author `plan.md` and `tasks.md` (this file).
 - [x] T005 Reviewer pass — confirm C-001…C-005 wording, then flip
@@ -45,13 +45,13 @@ behind this checkpoint per Principle III.
 - [x] T014 [P] `templates/serviceaccount.yaml` — bound SA, no extra
   permissions. **Done 2026-05-06.**
 - [x] T015 `templates/ingress.yaml` (gated on
-  `values.ingress.enabled`) — host driven by a stagecraft-supplied
+  `values.ingress.enabled`) — host driven by a statecraft-supplied
   per-tenant value. **Done 2026-05-06.**
 - [x] T016 `helm lint platform/charts/tenant-hello/` clean.
   **Done 2026-05-06** — `helm v4.1.1` lint exits 0 (only an INFO
   about a missing chart icon, no warnings or errors). Skipped the
   `make ci` integration: there's no existing `ci-charts` recipe and
-  the other charts (stagecraft, deployd-api, rauthy) aren't lint-gated
+  the other charts (statecraft, deployd-api, rauthy) aren't lint-gated
   in CI either; introducing a one-chart precedent would be inconsistent.
 - [x] T017 `helm template` rendered cleanly with default values:
   ServiceAccount + Service + Deployment + (optional) Ingress, with the
@@ -64,10 +64,10 @@ the C-clause obligations.
 
 ---
 
-## Phase 2 — Stagecraft chart-per-tenant wiring
+## Phase 2 — Statecraft chart-per-tenant wiring
 
 - [x] T020 Add `chartSelector` to
-  `platform/services/stagecraft/api/deploy/chartSelector.ts` (placed
+  `platform/services/statecraft/api/deploy/chartSelector.ts` (placed
   under `api/deploy/` rather than `api/projects/` because chart
   resolution is part of the deploy invocation surface, not project
   creation). Pure function: input is a `{shape: TenantShape}`
@@ -75,9 +75,9 @@ the C-clause obligations.
   is the first registered shape; unknown shapes throw rather than
   silently fall back. Unit test under `chartSelector.test.ts`
   (3 tests, all passing). **Done 2026-05-06.**
-- [x] T021 Stagecraft API surface change documented inline in the
+- [x] T021 Statecraft API surface change documented inline in the
   service's CLAUDE.md. **Done 2026-05-15** —
-  `platform/services/stagecraft/CLAUDE.md` gains a "Chart selection
+  `platform/services/statecraft/CLAUDE.md` gains a "Chart selection
   and deploy wire contract (spec 136)" section that pins the
   `chartSelector` semantics (pure function, throw-on-unknown shape),
   the `deployd-api-rs` `POST /v1/deployments` wire shape (`chart` /
@@ -85,7 +85,7 @@ the C-clause obligations.
   `desired_routes` / slugs to Helm values), and the local-dev
   record-only fallback.
 - [x] T022 `deployd-api-rs` deploy invocation accepts the resolved
-  chart name from stagecraft and applies it via Helm.
+  chart name from statecraft and applies it via Helm.
   **Done 2026-05-15.** Approach decisions taken in this PR:
   * **Shell out to `helm` CLI** rather than introducing a Rust Helm
     library — keeps the dep surface small and matches platform-wide
@@ -197,7 +197,7 @@ evidenced 2026-05-17 (`execution/verification.md` §T023).
 - T005 unblocks T010+ (Principle III: no implementation under draft).
 - T010–T015 are mostly parallel (different chart files); T016/T017 wait
   on the chart skeleton.
-- T020 depends on T010+ (stagecraft needs a chart to point at). T022
+- T020 depends on T010+ (statecraft needs a chart to point at). T022
   depends on T020.
 - Phase 3 depends on a complete Phase 1+2.
 - Phase 4 depends on Phase 3 evidence being captured.

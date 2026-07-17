@@ -1,6 +1,6 @@
 # Spec: 214-tenant-app-chart-supersession
 #
-# Default values for the acme-vue-encore reference chart. stagecraft +
+# Default values for the acme-vue-encore reference chart. statecraft +
 # deployd-api (helm.rs build_values) overlay per deployment: image
 # repo/tag from the tenant build (spec 213 artifact ref), ingress.host
 # from hostname.ts (FR-007), tls/gate/extraEnv/imagePullSecrets/namespace

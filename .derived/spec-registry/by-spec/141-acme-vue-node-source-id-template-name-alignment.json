@@ -18,7 +18,7 @@
         "spec": "140-acme-vue-node-scaffold-source-id-cutover",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/translator.ts"
+          "path": "platform/services/statecraft/api/factory/translator.ts"
         }
       },
       {
@@ -26,7 +26,7 @@
         "spec": "140-acme-vue-node-scaffold-source-id-cutover",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/substrateBrowser.ts"
+          "path": "platform/services/statecraft/api/factory/substrateBrowser.ts"
         }
       },
       {
@@ -34,7 +34,7 @@
         "spec": "140-acme-vue-node-scaffold-source-id-cutover",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/translator.test.ts"
+          "path": "platform/services/statecraft/api/factory/translator.test.ts"
         }
       },
       {
@@ -42,7 +42,7 @@
         "spec": "140-acme-vue-node-scaffold-source-id-cutover",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/artifacts.test.ts"
+          "path": "platform/services/statecraft/api/factory/artifacts.test.ts"
         }
       },
       {
@@ -50,7 +50,7 @@
         "spec": "140-acme-vue-node-scaffold-source-id-cutover",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/scheduler.test.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/scheduler.test.ts"
         }
       },
       {
@@ -58,7 +58,7 @@
         "spec": "140-acme-vue-node-scaffold-source-id-cutover",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/scaffold.test.ts"
         }
       },
       {
@@ -66,7 +66,7 @@
         "spec": "140-acme-vue-node-scaffold-source-id-cutover",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       }
     ],
@@ -84,14 +84,14 @@
         "role": "historical",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts"
+          "path": "platform/services/statecraft/api/factory/oapNativeAdapters.ts"
         }
       },
       {
         "role": "historical",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/projection.test.ts"
+          "path": "platform/services/statecraft/api/factory/projection.test.ts"
         }
       }
     ],

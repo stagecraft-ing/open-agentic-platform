@@ -16,7 +16,7 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/audit/auditTwoPrincipal.test.ts"
+        "path": "platform/services/statecraft/api/audit/auditTwoPrincipal.test.ts"
       }
     ],
     "extends": [
@@ -66,49 +66,49 @@
         "aspect": "agent-nhi-minting",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/auth/sessionMint.ts"
+          "path": "platform/services/statecraft/api/auth/sessionMint.ts"
         }
       },
       {
         "aspect": "nhi-lifecycle",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/auth/rauthy.ts"
+          "path": "platform/services/statecraft/api/auth/rauthy.ts"
         }
       },
       {
         "aspect": "audit-attribution",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       },
       {
         "aspect": "audit-attribution",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/audit/audit.ts"
+          "path": "platform/services/statecraft/api/audit/audit.ts"
         }
       },
       {
         "aspect": "audit-attribution",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/service.ts"
+          "path": "platform/services/statecraft/api/sync/service.ts"
         }
       },
       {
         "aspect": "audit-attribution",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+          "path": "platform/services/statecraft/api/factory/grantDuplexHandlers.ts"
         }
       },
       {
         "aspect": "audit-attribution",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       }
     ],

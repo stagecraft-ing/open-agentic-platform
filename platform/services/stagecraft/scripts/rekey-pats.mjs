@@ -7,16 +7,16 @@
 // `encore secret set` flip. This script is the bridge.
 //
 // Usage:
-//   cd platform/services/stagecraft
+//   cd platform/services/statecraft
 //   # 1. Resolve POSTGRES_PASSWORD + start a port-forward in another shell:
-//   kubectl --kubeconfig ../infra/hetzner/kubeconfig -n stagecraft-system \
+//   kubectl --kubeconfig ../infra/hetzner/kubeconfig -n statecraft-system \
 //     port-forward svc/postgresql 5432:5432
 //
 //   # 2. In this shell, source both keys from .env then run:
 //   export OLD_KEY=$(grep -E '^PAT_ENCRYPTION_KEY_COMPROMISED=' ../infra/hetzner/.env | cut -d= -f2- | sed 's/^"//;s/"$//')
 //   export NEW_KEY=$(grep -E '^PAT_ENCRYPTION_KEY='              ../infra/hetzner/.env | cut -d= -f2- | sed 's/^"//;s/"$//')
-//   export PGPASSWORD=$(kubectl --kubeconfig ../infra/hetzner/kubeconfig -n stagecraft-system \
-//     get secret stagecraft-api-secrets -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d)
+//   export PGPASSWORD=$(kubectl --kubeconfig ../infra/hetzner/kubeconfig -n statecraft-system \
+//     get secret statecraft-api-secrets -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d)
 //   node scripts/rekey-pats.mjs --dry-run
 //   node scripts/rekey-pats.mjs --apply
 //
@@ -105,7 +105,7 @@ if (oldKey.equals(newKey)) {
 
 const dbHost = process.env.PGHOST ?? "127.0.0.1";
 const dbPort = Number(process.env.PGPORT ?? "5432");
-const dbUser = process.env.PGUSER ?? "stagecraft";
+const dbUser = process.env.PGUSER ?? "statecraft";
 const dbName = process.env.PGDATABASE ?? "auth";
 const dbPassword = process.env.PGPASSWORD;
 if (!dbPassword) die(3, "PGPASSWORD env var is empty");

@@ -357,7 +357,7 @@ export type ProjectArtifactInsert = typeof projectArtifacts.$inferInsert;
 // Environment Deployments (spec 215 FR-003)
 // ---------------------------------------------------------------------------
 //
-// Stagecraft's durable record of every deploy dispatch (UI trigger or PR
+// Statecraft's durable record of every deploy dispatch (UI trigger or PR
 // webhook), keyed to deployd-api's release id. Source of truth for the env
 // page (FR-004) and the destroy path's release-id lookup (FR-005). Migration
 // 49 owns the table; the status / variant CHECK constraints live in SQL.
@@ -583,7 +583,7 @@ export const factoryPipelines = pgTable("factory_pipelines", {
   previousPipelineId: uuid("previous_pipeline_id"),
   // spec 110 §2 + §8 rollout — trigger source for this pipeline. CHECK
   // constraint lives in migration 20; keep the literal union here aligned.
-  source: text("source").$type<"opc-direct" | "stagecraft">()
+  source: text("source").$type<"opc-direct" | "statecraft">()
     .notNull()
     .default("opc-direct"),
   startedAt: timestamp("started_at", { withTimezone: true }),
@@ -1684,7 +1684,7 @@ export const projectSpecGroupNames = pgTable(
 // Spec 207 AC-4: session-scoped audit segment countersign seals.
 //
 // One row per countersigned segment head submitted over the duplex channel.
-// Stagecraft is the sole signing authority (spec 198 FR-014 posture). The
+// Statecraft is the sole signing authority (spec 198 FR-014 posture). The
 // upsert is idempotent on (org_id, session_id, segment_id) to handle
 // at-least-once reconnect re-submission.
 // ---------------------------------------------------------------------------

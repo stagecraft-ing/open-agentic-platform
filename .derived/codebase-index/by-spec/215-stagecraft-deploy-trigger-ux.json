@@ -12,59 +12,59 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db/schema.ts",
+        "path": "platform/services/statecraft/api/db/schema.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/deploy/deploy.ts",
+        "path": "platform/services/statecraft/api/deploy/deploy.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/deploy/deploydClient.ts",
+        "path": "platform/services/statecraft/api/deploy/deploydClient.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/deploy/deployments.test.ts",
+        "path": "platform/services/statecraft/api/deploy/deployments.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/deploy/deployments.ts",
+        "path": "platform/services/statecraft/api/deploy/deployments.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/deploy/oidcM2m.ts",
+        "path": "platform/services/statecraft/api/deploy/oidcM2m.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/github/webhook.ts",
+        "path": "platform/services/statecraft/api/github/webhook.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/vite.config.ts",
+        "path": "platform/services/statecraft/vite.config.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
+        "path": "platform/services/statecraft/web/app/lib/projects-api.server.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes.ts",
+        "path": "platform/services/statecraft/web/app/routes.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app.project.$projectId._index.tsx",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.deploys.tsx",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app.projects.new.tsx",
         "source": "spec-edge"
       },
       {
@@ -80,27 +80,27 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/deployments.test.ts"
+            "file": "platform/services/statecraft/api/deploy/deployments.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deployments.test.ts"
+          "path": "platform/services/statecraft/api/deploy/deployments.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/deployments.ts"
+            "file": "platform/services/statecraft/api/deploy/deployments.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deployments.ts"
+          "path": "platform/services/statecraft/api/deploy/deployments.ts"
         }
       },
       {
@@ -119,157 +119,157 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/db/schema.ts"
+            "file": "platform/services/statecraft/api/db/schema.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+            "file": "platform/services/statecraft/web/app/lib/projects-api.server.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+          "path": "platform/services/statecraft/web/app/lib/projects-api.server.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes.ts"
+            "file": "platform/services/statecraft/web/app/routes.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes.ts"
+          "path": "platform/services/statecraft/web/app/routes.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app.project.$projectId.deploys.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.deploys.tsx"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app.projects.new.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.projects.new.tsx"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/deploy.ts"
+            "file": "platform/services/statecraft/api/deploy/deploy.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deploy.ts"
+          "path": "platform/services/statecraft/api/deploy/deploy.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/deploydClient.ts"
+            "file": "platform/services/statecraft/api/deploy/deploydClient.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deploydClient.ts"
+          "path": "platform/services/statecraft/api/deploy/deploydClient.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/oidcM2m.ts"
+            "file": "platform/services/statecraft/api/deploy/oidcM2m.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/oidcM2m.ts"
+          "path": "platform/services/statecraft/api/deploy/oidcM2m.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/github/webhook.ts"
+            "file": "platform/services/statecraft/api/github/webhook.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/github/webhook.ts"
+          "path": "platform/services/statecraft/api/github/webhook.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/vite.config.ts"
+            "file": "platform/services/statecraft/vite.config.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app.project.$projectId._index.tsx"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId._index.tsx"
         }
       },
       {
@@ -299,7 +299,7 @@
         }
       }
     ],
-    "specId": "215-stagecraft-deploy-trigger-ux",
+    "specId": "215-statecraft-deploy-trigger-ux",
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",

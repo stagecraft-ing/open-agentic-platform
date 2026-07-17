@@ -5,11 +5,11 @@ paths:
 
 # Platform services — Encore.ts and deployd-api
 
-## stagecraft (Encore.ts)
+## statecraft (Encore.ts)
 
-- TypeScript SaaS in `platform/services/stagecraft/`.
+- TypeScript SaaS in `platform/services/statecraft/`.
 - Uses **npm**, not pnpm — explicitly excluded from the pnpm workspace.
-- Local dev: `cd platform/services/stagecraft && npm run start` (Encore.ts on :4000).
+- Local dev: `cd platform/services/statecraft && npm run start` (Encore.ts on :4000).
 - Slack, Atlassian, GitHub webhook handling, admin, monitoring live here.
 
 ## deployd-api-rs (Rust)
@@ -26,10 +26,10 @@ cd platform && make tf-apply   # Full Azure deployment
 ```
 
 - Terraform modules: Azure AKS, ACR, KeyVault.
-- Helm charts: stagecraft, deployd-api, rauthy.
+- Helm charts: statecraft, deployd-api, rauthy.
 - Baseline K8s policies: network deny, resource quotas (`platform/k8s/`).
 
 ## Combined dev loop
 
-`make dev-platform` from the repo root starts stagecraft + deployd-api
+`make dev-platform` from the repo root starts statecraft + deployd-api
 in the background.

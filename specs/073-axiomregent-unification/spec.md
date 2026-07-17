@@ -29,7 +29,7 @@ references:
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/search.rs }
 summary: >
   Consolidates five standalone crates and services (gitctx, blockoli, stackwalk, titor, github-app)
-  into axiomregent and stagecraft. Migrates axiomregent from synchronous rusqlite to async hiqlite
+  into axiomregent and statecraft. Migrates axiomregent from synchronous rusqlite to async hiqlite
   for unified storage, distributed coordination, and cross-session event propagation. Introduces
   GitHub organisation-level integration via a platform-brokered App installation token flow with
   per-tool scope narrowing. Rewrites deployd-api from Node.js/Express to Rust with hiqlite-backed
@@ -83,9 +83,9 @@ This spec addresses five structural problems:
   titor's checkpoint, restore, fork, GC, and Merkle verification capabilities
 - Migrate axiomregent from rusqlite to hiqlite as the unified storage and coordination layer
 - Refactor axiomregent's router from sync to async (required by hiqlite's async-only API)
-- Implement GitHub App installation token brokering in stagecraft (new Seam E)
-- Absorb github-app's Probot webhook handlers into stagecraft
-- Per-tool GitHub token scope narrowing in the stagecraft token broker
+- Implement GitHub App installation token brokering in statecraft (new Seam E)
+- Absorb github-app's Probot webhook handlers into statecraft
+- Per-tool GitHub token scope narrowing in the statecraft token broker
 - Rewrite deployd-api in Rust with hiqlite-backed deployment state persistence
 - Delete `crates/gitctx/`, `crates/blockoli/`, `crates/stackwalk/`, `crates/titor/`,
   `platform/services/github-app/` after absorption
@@ -97,7 +97,7 @@ This spec addresses five structural problems:
   but does not define the K8s StatefulSet deployment model for axiomregent)
 - GitHub Discussions, Projects v2, or Milestones API coverage
 - GitHub OAuth federation in Rauthy for user SSO (separate concern from App installation tokens)
-- Migrating stagecraft from PostgreSQL to hiqlite (stagecraft keeps Postgres via Encore.ts)
+- Migrating statecraft from PostgreSQL to hiqlite (statecraft keeps Postgres via Encore.ts)
 - Changes to the spec compiler, registry consumer, or spec-lint tools
 - OPC desktop frontend changes beyond updating import paths for absorbed crate APIs
 
@@ -144,13 +144,13 @@ multiple axiomregent sessions operate on the same repository. Tools classified a
 that mutate the worktree SHALL acquire a dlock keyed by the canonical repo root path before
 proceeding.
 
-**FR-008** Stagecraft SHALL expose `POST /api/github/token` accepting `repo` (owner/name) and
+**FR-008** Statecraft SHALL expose `POST /api/github/token` accepting `repo` (owner/name) and
 `scope` (GitHub permission string) parameters. It SHALL look up the `githubInstallId` from the
 `projectRepos` table, sign an RS256 JWT as the GitHub App, exchange it for a scoped installation
 access token via `POST /app/installations/{id}/access_tokens`, and return the short-lived token.
 The endpoint SHALL require a valid M2M bearer token (existing Rauthy OIDC flow).
 
-**FR-009** Stagecraft SHALL narrow GitHub installation token permissions to the minimum required
+**FR-009** Statecraft SHALL narrow GitHub installation token permissions to the minimum required
 for the requesting tool's operation. The scope mapping SHALL be:
 
 | Tool category | GitHub token permissions |
@@ -162,7 +162,7 @@ for the requesting tool's operation. The scope mapping SHALL be:
 | `github.list_releases`, `github.get_release`, `github.compare_releases` | `contents: read` |
 | `github.get_contributors`, `github.get_repo_stats`, `github.get_dependency_graph` | `metadata: read` |
 
-**FR-010** Stagecraft SHALL handle GitHub App webhook events: `installation.created` (store
+**FR-010** Statecraft SHALL handle GitHub App webhook events: `installation.created` (store
 installation_id), `repository.created` (auto-register in `projectRepos`), `push` to default branch
 (trigger governance checks), `pull_request.*` (PR preview deploy + governed review checks),
 `check_suite.completed` (update deployment status), `member`/`team` (sync org membership). This
@@ -400,7 +400,7 @@ date functions (FR-014).
                                         ^
                                         | (3) scoped installation token
                                         |
-axiomregent                         stagecraft
+axiomregent                         statecraft
     |                                   |
     | (1) GET /api/github/token         |
     |     ?repo=owner/name              |
@@ -427,12 +427,12 @@ axiomregent                         stagecraft
 Cache key format: `github:token:{owner}/{repo}:{scope}` — ensures different scope requests for
 the same repo get separate cached tokens.
 
-### Stagecraft GitHub Webhook Absorption
+### Statecraft GitHub Webhook Absorption
 
-The Probot service is replaced by new Encore.ts API routes in stagecraft:
+The Probot service is replaced by new Encore.ts API routes in statecraft:
 
 ```
-platform/services/stagecraft/api/github/
+platform/services/statecraft/api/github/
 ├── webhook.ts          — POST /api/github/webhook (signature verification, event dispatch)
 ├── token.ts            — POST /api/github/token (installation token broker, FR-008)
 ├── installations.ts    — installation.created handler → store in projectRepos
@@ -492,7 +492,7 @@ hiqlite `listen/notify`:
 | `crates/blockoli/` | axiomregent `search/` | `embeddings/encoder.rs`, `vector_store/sqlite.rs` types, `blocks.rs` | actix-web HTTP server, `routes.rs`, `main.rs`, qdrant-client dep |
 | `crates/stackwalk/` | axiomregent `search/` | All 7 modules (`parser`, `indexer`, `call_graph`, `call_stack`, `config`, `block`, `utils`) | Standalone crate boundary, `build.rs` (merged into axiomregent's) |
 | `crates/titor/` | axiomregent `checkpoint/` | `merkle.rs`, `verification.rs`, compression strategy, timeline DAG concepts | Filesystem CAS (replaced by hiqlite + blob FS), CLI binary, MCP example |
-| `platform/services/github-app/` | stagecraft `api/github/` | Webhook event handling logic (3 handlers) | Probot framework, standalone Dockerfile, smee-client dev proxy |
+| `platform/services/github-app/` | statecraft `api/github/` | Webhook event handling logic (3 handlers) | Probot framework, standalone Dockerfile, smee-client dev proxy |
 | `platform/services/deployd-api/` | `platform/services/deployd-api-rs/` | REST API contract, K8s deployment logic | Node.js/Express, in-memory Map store, npm dependencies |
 
 After absorption, the following directories are deleted:
@@ -577,11 +577,11 @@ axiomregent's `build.rs`).
 2. Strip gitctx's rmcp server layer; adapt tools as `ToolProvider` implementations
 3. Replace PAT-based auth with platform token resolution:
    a. Check `PLATFORM_GITHUB_TOKEN_URL` env var
-   b. If set, call stagecraft `POST /api/github/token` with repo + scope
+   b. If set, call statecraft `POST /api/github/token` with repo + scope
    c. Cache token in hiqlite KV with 50-minute TTL
    d. Fall back to `GITHUB_TOKEN` / `GH_TOKEN` env vars for local-only mode
-4. Implement `POST /api/github/token` in stagecraft (FR-008, FR-009)
-5. Implement GitHub webhook handling in stagecraft `api/github/` (FR-010)
+4. Implement `POST /api/github/token` in statecraft (FR-008, FR-009)
+5. Implement GitHub webhook handling in statecraft `api/github/` (FR-010)
 6. Update `app.yml` permissions: add `checks: write`, `actions: write`, `pull_requests: write`,
    `contents: read`, `members: read`, `organization_administration: read`
 7. Remove gitctx binary from Tauri `externalBin` and `tauri.conf.json`
@@ -637,7 +637,7 @@ session's Tier 2/3 tool call blocks until the first session's lock is released.
 **SC-007** `deployd-api-rs POST /v1/deployments` creates a deployment record that survives process
 restart, verified by `GET /v1/deployments/:id/status` returning the correct state after restart.
 
-**SC-008** Stagecraft `POST /api/github/token` returns a scoped installation token that
+**SC-008** Statecraft `POST /api/github/token` returns a scoped installation token that
 successfully authenticates against the GitHub API for the requested permission scope and fails for
 permissions not included in the scope.
 
@@ -676,9 +676,9 @@ rusqlite. Hiqlite also depends on rusqlite internally. Mitigation: hiqlite repla
 rusqlite usage in axiomregent; the desktop app remains in its isolated workspace; blockoli's
 rusqlite usage is eliminated (replaced by hiqlite tables).
 
-**R-005** GitHub App webhook secret management. Absorbing webhook handling into stagecraft requires
+**R-005** GitHub App webhook secret management. Absorbing webhook handling into statecraft requires
 the App's private key and webhook secret as CSI-mounted secrets. Mitigation: follow the existing
-CSI secrets pattern used for OIDC M2M credentials; add secrets to the stagecraft Helm chart values.
+CSI secrets pattern used for OIDC M2M credentials; add secrets to the statecraft Helm chart values.
 
 **R-006** Distributed lock timeout (10 seconds). Long-running tools like `workspace.apply_patch`
 on large repos may exceed the dlock timeout. Mitigation: acquire dlock only for the mutation

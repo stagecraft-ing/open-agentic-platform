@@ -10,7 +10,7 @@ created: "2026-06-11"
 authors: ["open-agentic-platform"]
 language: en
 summary: >
-  Harden the OPC↔stagecraft duplex channel from version-parity to message
+  Harden the OPC↔statecraft duplex channel from version-parity to message
   integrity. Spec 189 guarantees both ends speak the same envelope schema
   version; transport security is TLS plus bearer auth at handshake.
   Within an authenticated stream nothing binds individual frames: no
@@ -35,7 +35,7 @@ depends_on:
 extends:
   - spec: "189-duplex-envelope-version-parity"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/sync/types.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/sync/types.ts }
   # Same precedent as specs 196, 194, 193, 187, 183: a new spec adds a row
   # to the featuregraph golden.
   - spec: "034-featuregraph-registry-scanner-fix"
@@ -43,12 +43,12 @@ extends:
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
   - aspect: "frame-integrity"
-    unit: { kind: file, path: platform/services/stagecraft/api/sync/service.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/sync/service.ts }
   - aspect: "frame-integrity"
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/sync_client.rs }
 references:
   - role: machinery
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/signing.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/signing.ts }
   - role: gate-declaration
     unit: { kind: file, path: tools/oap/schema-parity-check/envelope-version.mjs }
   - role: context
@@ -60,7 +60,7 @@ references:
 **Feature Branch**: `206-duplex-frame-integrity`
 **Created**: 2026-06-11
 **Status**: Draft (follow-on filed by the ASI gap-closure pass)
-**Input**: The ASI 2026 gap analysis (2026-06-10) found: "OPC↔stagecraft
+**Input**: The ASI 2026 gap analysis (2026-06-10) found: "OPC↔statecraft
 duplex has version parity + bearer auth but no frame integrity or
 anti-replay." Spec 198's all-ten table rates ASI07 solid on the strength
 of signed inter-stage manifests (170) and version parity (189) — both
@@ -108,7 +108,7 @@ trust analysis is asymmetric and worth stating:
   "MAC optional" mode and no silent fallback (m4/m6 — disable legacy
   modes, reject downgrades).
 - **FR-004 — Ephemeral key lifecycle.** The session MAC key is minted by
-  stagecraft at handshake (the signing authority side of spec 198 FR-014
+  statecraft at handshake (the signing authority side of spec 198 FR-014
   is the natural home), delivered over the authenticated TLS handshake,
   and rotated at grant renewal. Keys are never persisted on the OPC side
   and never reused across sessions. A key is a channel-integrity secret,

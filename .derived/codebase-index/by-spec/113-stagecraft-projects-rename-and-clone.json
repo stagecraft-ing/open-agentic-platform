@@ -4,8 +4,8 @@
     "warnings": [
       {
         "code": "W-002",
-        "message": "spec '113-stagecraft-projects-rename-and-clone' file unit 'platform/services/stagecraft/api/projects/clone.test.ts' does not exist",
-        "path": "platform/services/stagecraft/api/projects/clone.test.ts"
+        "message": "spec '113-statecraft-projects-rename-and-clone' file unit 'platform/services/statecraft/api/projects/clone.test.ts' does not exist",
+        "path": "platform/services/statecraft/api/projects/clone.test.ts"
       }
     ]
   },
@@ -18,39 +18,39 @@
     ],
     "implementingPaths": [
       {
-        "path": "platform/services/stagecraft/api/projects/clone.ts",
+        "path": "platform/services/statecraft/api/projects/clone.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/cloneAvailability.test.ts",
+        "path": "platform/services/statecraft/api/projects/cloneAvailability.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/cloneAvailability.ts",
+        "path": "platform/services/statecraft/api/projects/cloneAvailability.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/cloneHelpers.ts",
+        "path": "platform/services/statecraft/api/projects/cloneHelpers.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/encore.service.ts",
+        "path": "platform/services/statecraft/api/projects/encore.service.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx",
+        "path": "platform/services/statecraft/web/app/components/CloneProjectDialog.tsx",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
+        "path": "platform/services/statecraft/web/app/lib/projects-api.server.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app._index.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app._index.tsx",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app.tsx",
         "source": "spec-edge"
       }
     ],
@@ -58,118 +58,118 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/clone.ts"
+            "file": "platform/services/statecraft/api/projects/clone.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/clone.ts"
+          "path": "platform/services/statecraft/api/projects/clone.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/cloneAvailability.test.ts"
+            "file": "platform/services/statecraft/api/projects/cloneAvailability.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/cloneAvailability.test.ts"
+          "path": "platform/services/statecraft/api/projects/cloneAvailability.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/cloneAvailability.ts"
+            "file": "platform/services/statecraft/api/projects/cloneAvailability.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/cloneAvailability.ts"
+          "path": "platform/services/statecraft/api/projects/cloneAvailability.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/cloneHelpers.ts"
+            "file": "platform/services/statecraft/api/projects/cloneHelpers.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/cloneHelpers.ts"
+          "path": "platform/services/statecraft/api/projects/cloneHelpers.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/encore.service.ts"
+            "file": "platform/services/statecraft/api/projects/encore.service.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/encore.service.ts"
+          "path": "platform/services/statecraft/api/projects/encore.service.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx"
+            "file": "platform/services/statecraft/web/app/components/CloneProjectDialog.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx"
+          "path": "platform/services/statecraft/web/app/components/CloneProjectDialog.tsx"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+            "file": "platform/services/statecraft/web/app/lib/projects-api.server.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+          "path": "platform/services/statecraft/web/app/lib/projects-api.server.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app._index.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app._index.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app._index.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app._index.tsx"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.tsx"
         }
       },
       {
@@ -178,11 +178,11 @@
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/clone.test.ts"
+          "path": "platform/services/statecraft/api/projects/clone.test.ts"
         }
       }
     ],
-    "specId": "113-stagecraft-projects-rename-and-clone",
+    "specId": "113-statecraft-projects-rename-and-clone",
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",

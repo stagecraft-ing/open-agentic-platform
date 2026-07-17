@@ -23,82 +23,82 @@ depends_on:
   - "124-opc-factory-run-platform-integration"  # opc-factory-run-platform-integration (closes spec 108 §7.1 punt)
 code_aliases: ["FACTORY_ARTIFACT_SUBSTRATE"]
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/substrate.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/substrate.ts }
   - unit: { kind: file, path: crates/factory-engine/src/substrate_version.rs }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/agentCatalogMigration.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/oapContracts.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/agentCatalogMigration.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/oapContracts.ts }
   - unit: { kind: file, path: crates/factory-engine/src/factory_root.rs }
   - unit: { kind: file, path: crates/factory-engine/src/virtual_root.rs }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/substrateBrowser.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/runAgentRefs.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/substrateBrowser.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/runAgentRefs.ts }
 extends:
   - spec: "108-factory-as-platform-feature"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/translator.ts }
   - spec: "108-factory-as-platform-feature"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/syncPipeline.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/syncPipeline.ts }
   - spec: "108-factory-as-platform-feature"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/syncWorker.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/syncWorker.ts }
   - spec: "108-factory-as-platform-feature"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/artifacts.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/artifacts.ts }
   - spec: "108-factory-as-platform-feature"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/conflicts.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/conflicts.ts }
   - spec: "108-factory-as-platform-feature"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/bindings.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/bindings.ts }
   - spec: "108-factory-as-platform-feature"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/upstreams.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/upstreams.ts }
   - spec: "108-factory-as-platform-feature"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.factory.artifacts.tsx }
   - spec: "108-factory-as-platform-feature"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/web/app/components/artifact-merge-editor.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/components/artifact-merge-editor.tsx }
   - spec: "108-factory-as-platform-feature"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/browse.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/browse.ts }
   - spec: "111-org-agent-catalog-sync"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/api/agents/catalog.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/agents/catalog.ts }
   - spec: "111-org-agent-catalog-sync"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/api/agents/relay.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/agents/relay.ts }
   - spec: "111-org-agent-catalog-sync"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/api/sync/service.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/sync/service.ts }
   - spec: "123-agent-catalog-org-rescope"
     nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/api/agents/bindings.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/agents/bindings.ts }
 refines:
   - aspect: "factory-engine-substrate"
     unit: { kind: file, path: crates/factory-engine/src/engine.rs }
   - aspect: "factory-engine-substrate"
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/factory.rs }
   - aspect: "factory-engine-substrate"
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/opcBundle.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/opcBundle.ts }
   - aspect: "factory-engine-substrate"
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/create.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/create.ts }
   - aspect: "factory-engine-substrate"
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/import.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/import.ts }
   - aspect: "factory-engine-substrate"
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffoldReadiness.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffoldReadiness.ts }
   - aspect: "factory-engine-substrate"
-    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/db/schema.ts }
 references:
   # Spec 199 amendment (2026-06-09): the thin-consumer cutover deleted the
   # ingest sanitiser and the categorical projection these claims owned.
   # Historical pointers retained, non-owning.
   - role: historical
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/oapNativeIngest.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/oapNativeIngest.ts }
   - role: historical
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/oapNativeSanitise.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/oapNativeSanitise.ts }
   - role: historical
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/projection.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/projection.ts }
 summary: >
   Replace the spec 108 bucket-blob translator with a content-addressed
   substrate (`factory_artifact_substrate`) that mirrors upstream Factory and
@@ -290,7 +290,7 @@ over verbatim, applied to **any** kind).
 factory_upstreams (
   org_id        uuid not null references organizations(id),
   source_id     text not null,          -- see §3.1 — stable per-org identifier for this upstream
-  repo_url      text not null,          -- 'Stagecraft-ing/legacy-factory'
+  repo_url      text not null,          -- 'statecrafting/legacy-factory'
   ref           text not null default 'main',
   subpath       text,                   -- optional: 'Factory Agent/' | 'orchestration/' | null for whole repo
   role          text not null,          -- 'orchestration' | 'scaffold' | 'mixed' | 'oap-self'
@@ -355,7 +355,7 @@ The sync engine treats both transparently.
   recorded under the bucket-blob model carry their own JSONB-frozen
   audit; they remain readable but are not retroactively re-bound.
 - **Editing the substrate from OPC.** OPC is a read consumer in this
-  spec. Editing happens on stagecraft (`/app/factory/...`).
+  spec. Editing happens on statecraft (`/app/factory/...`).
 
 ## 4. Origin / Kind / Bundle Taxonomy
 
@@ -373,7 +373,7 @@ has its own set:
 | `oap-rust-axum`         | OAP-controlled upstream                   | yes               |
 | `oap-encore-react`      | OAP-controlled upstream                   | yes               |
 | `oap-self`              | sub-path of `<this-repo>` (bootstrap path) | yes               |
-| `user-authored`         | created in stagecraft UI                  | yes (always)      |
+| `user-authored`         | created in statecraft UI                  | yes (always)      |
 
 `user-authored` is the new home for spec 111's existing `agent_catalog`
 content. Migration is mechanical: `(org_id, name, version)` → `(org_id,
@@ -722,7 +722,7 @@ template side); the wire shape is preserved byte-stable.
 
 ## 11. Risks and Open Questions
 
-1. **Three-way merge UX is new ground for stagecraft.** The
+1. **Three-way merge UX is new ground for statecraft.** The
    `conflict_state` machine is straightforward; the editor UI for
    "edit and accept" with an inline 3-way diff requires a CodeMirror
    merge view or equivalent. If that is too much for Phase 1, ship
@@ -754,7 +754,7 @@ template side); the wire shape is preserved byte-stable.
    don't exist), the seed should be sanitized in Phase 2, not
    ingested verbatim.
 6. **`oap-self` security model.** Sync from this monorepo means
-   stagecraft pulls from a remote it (in production) does not own.
+   statecraft pulls from a remote it (in production) does not own.
    `oap-self` should resolve to a pinned ref + signed commits in
    production; in dev it can be a local checkout. The
    `factory_upstream_pats` mechanism (spec 109) accommodates this

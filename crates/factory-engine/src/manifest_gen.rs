@@ -204,7 +204,7 @@ pub fn generate_scaffold_manifest(
     let mut steps: Vec<WorkflowStep> = Vec::new();
 
     // ── s6a: Scaffold initialization ─────────────────────────────────────
-    // The project directory already contains the seeded scaffold (stagecraft
+    // The project directory already contains the seeded scaffold (statecraft
     // owns scaffold provisioning at create/import time, regardless of whether
     // the adapter source is a vendored local dir or an upstream pointer).
     // This step runs setup commands and verifies the project compiles before

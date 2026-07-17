@@ -4,13 +4,13 @@
     "warnings": [
       {
         "code": "W-002",
-        "message": "spec '141-acme-vue-node-source-id-template-name-alignment' file unit 'platform/services/stagecraft/api/factory/oapNativeAdapters.ts' does not exist",
-        "path": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts"
+        "message": "spec '141-acme-vue-node-source-id-template-name-alignment' file unit 'platform/services/statecraft/api/factory/oapNativeAdapters.ts' does not exist",
+        "path": "platform/services/statecraft/api/factory/oapNativeAdapters.ts"
       },
       {
         "code": "W-002",
-        "message": "spec '141-acme-vue-node-source-id-template-name-alignment' file unit 'platform/services/stagecraft/api/factory/projection.test.ts' does not exist",
-        "path": "platform/services/stagecraft/api/factory/projection.test.ts"
+        "message": "spec '141-acme-vue-node-source-id-template-name-alignment' file unit 'platform/services/statecraft/api/factory/projection.test.ts' does not exist",
+        "path": "platform/services/statecraft/api/factory/projection.test.ts"
       }
     ]
   },
@@ -23,31 +23,31 @@
     ],
     "implementingPaths": [
       {
-        "path": "platform/services/stagecraft/api/factory/artifacts.test.ts",
+        "path": "platform/services/statecraft/api/factory/artifacts.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/substrateBrowser.ts",
+        "path": "platform/services/statecraft/api/factory/substrateBrowser.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/translator.test.ts",
+        "path": "platform/services/statecraft/api/factory/translator.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/translator.ts",
+        "path": "platform/services/statecraft/api/factory/translator.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/scaffold.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/scheduler.test.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/scheduler.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/vite.config.ts",
+        "path": "platform/services/statecraft/vite.config.ts",
         "source": "spec-edge"
       }
     ],
@@ -55,92 +55,92 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/artifacts.test.ts"
+            "file": "platform/services/statecraft/api/factory/artifacts.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/artifacts.test.ts"
+          "path": "platform/services/statecraft/api/factory/artifacts.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/substrateBrowser.ts"
+            "file": "platform/services/statecraft/api/factory/substrateBrowser.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/substrateBrowser.ts"
+          "path": "platform/services/statecraft/api/factory/substrateBrowser.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/translator.test.ts"
+            "file": "platform/services/statecraft/api/factory/translator.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/translator.test.ts"
+          "path": "platform/services/statecraft/api/factory/translator.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/translator.ts"
+            "file": "platform/services/statecraft/api/factory/translator.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/translator.ts"
+          "path": "platform/services/statecraft/api/factory/translator.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/scaffold.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/scaffold.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/scheduler.test.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/scheduler.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/scheduler.test.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/scheduler.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/vite.config.ts"
+            "file": "platform/services/statecraft/vite.config.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       },
       {
@@ -149,7 +149,7 @@
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts"
+          "path": "platform/services/statecraft/api/factory/oapNativeAdapters.ts"
         }
       },
       {
@@ -158,7 +158,7 @@
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/projection.test.ts"
+          "path": "platform/services/statecraft/api/factory/projection.test.ts"
         }
       }
     ],

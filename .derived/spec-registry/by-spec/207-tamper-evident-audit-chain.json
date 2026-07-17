@@ -33,11 +33,11 @@
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/auditSegmentHandlers.ts"
+        "path": "platform/services/statecraft/api/factory/auditSegmentHandlers.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/auditSegmentHandlers.test.ts"
+        "path": "platform/services/statecraft/api/factory/auditSegmentHandlers.test.ts"
       },
       {
         "kind": "file",
@@ -66,7 +66,7 @@
         "spec": "198-factory-governance-envelope",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/signing-pure.ts"
+          "path": "platform/services/statecraft/api/factory/signing-pure.ts"
         }
       }
     ],
@@ -91,7 +91,7 @@
         "role": "machinery",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/signing.ts"
+          "path": "platform/services/statecraft/api/factory/signing.ts"
         }
       },
       {
@@ -135,35 +135,35 @@
         "aspect": "audit-segment-countersign-contract",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/types.ts"
+          "path": "platform/services/statecraft/api/sync/types.ts"
         }
       },
       {
         "aspect": "audit-segment-countersign-dispatch",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/service.ts"
+          "path": "platform/services/statecraft/api/sync/service.ts"
         }
       },
       {
         "aspect": "session-audit-seal-table",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       },
       {
         "aspect": "audit-segment-countersign-action",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+          "path": "platform/services/statecraft/api/factory/auditActions.ts"
         }
       },
       {
         "aspect": "encore-test-lane-assignment",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       },
       {

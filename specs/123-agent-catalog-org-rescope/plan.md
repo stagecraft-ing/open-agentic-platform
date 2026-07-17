@@ -7,7 +7,7 @@
 
 ## Summary
 
-Move `agent_catalog`, `agent_catalog_audit`, and `agent_policies` from `project_id` (set by spec 119 migration `27_collapse_workspace_into_project`) back to `org_id`. Add a `project_agent_bindings` join table that pins one org agent at one immutable version per project — no per-binding override of the agent definition. Surface the catalog as a top-nav `Agents` page in stagecraft (sibling of `Projects` and `Factory`); rewrite the project `Agents` tab as a binding manager. Bump the duplex envelope schema (spec 087 §5.3 / spec 111 §7) to `v: 2` for catalog envelopes and add `v: 1` project-binding envelopes. Wire Factory's `agent_resolver` to the org catalog so cross-project Stage CD comparator runs (spec 122) reference identical agent definitions by `content_hash`. Amend spec 119 in place using its own `amends:` / `amendment_record:` convention; the rest of 119's workspace→project collapse is untouched.
+Move `agent_catalog`, `agent_catalog_audit`, and `agent_policies` from `project_id` (set by spec 119 migration `27_collapse_workspace_into_project`) back to `org_id`. Add a `project_agent_bindings` join table that pins one org agent at one immutable version per project — no per-binding override of the agent definition. Surface the catalog as a top-nav `Agents` page in statecraft (sibling of `Projects` and `Factory`); rewrite the project `Agents` tab as a binding manager. Bump the duplex envelope schema (spec 087 §5.3 / spec 111 §7) to `v: 2` for catalog envelopes and add `v: 1` project-binding envelopes. Wire Factory's `agent_resolver` to the org catalog so cross-project Stage CD comparator runs (spec 122) reference identical agent definitions by `content_hash`. Amend spec 119 in place using its own `amends:` / `amendment_record:` convention; the rest of 119's workspace→project collapse is untouched.
 
 ## Sequencing
 
@@ -15,10 +15,10 @@ Move `agent_catalog`, `agent_catalog_audit`, and `agent_policies` from `project_
 |-------|-------|---------------|
 | **0** | Foundations: shared TS / Rust types for the new envelope versions; frontmatter constants; audit-action additions; codebase-index re-spin | §4, §7 |
 | **1** | Schema migration `30_agent_catalog_org_rescope.up.sql` — `org_id` columns added + backfilled, `project_id` columns dropped, constraints rebuilt, `project_agent_bindings` created, dedup-and-bind backfill runs | §4, §9 |
-| **2** | Stagecraft API rewrite: `api/agents/catalog.ts` for org scope; new `api/agents/bindings.ts` module; old project-scoped CRUD endpoints removed | §5 |
+| **2** | Statecraft API rewrite: `api/agents/catalog.ts` for org scope; new `api/agents/bindings.ts` module; old project-scoped CRUD endpoints removed | §5 |
 | **3** | Duplex envelopes: bump catalog `v: 1 → v: 2`; introduce `project.agent_binding.updated` and `project.agent_binding.snapshot` at `v: 1`; relay routing; compile-time schema-version constant updated | §7 |
-| **4** | Stagecraft web — org `Agents` top-nav surface (`app.agents.*` routes); top-nav entry; old workspace-era authoring routes deleted | §6.1 |
-| **5** | Stagecraft web — project `Agents` tab rewrite as binding manager (bind / repin / unbind); 119-era `agents.new` and `agents.$agentId.publish` routes deleted | §6.2 |
+| **4** | Statecraft web — org `Agents` top-nav surface (`app.agents.*` routes); top-nav entry; old workspace-era authoring routes deleted | §6.1 |
+| **5** | Statecraft web — project `Agents` tab rewrite as binding manager (bind / repin / unbind); 119-era `agents.new` and `agents.$agentId.publish` routes deleted | §6.2 |
 | **6** | OPC desktop — `agent_catalog_sync.rs` schema bump for `org_id`; binding-aware `list_active_agents(project_id)`; `list_org_agents(org_id)` for ad-hoc browse | §6.3, §8.3 |
 | **7** | Factory engine — `crates/factory-engine/src/agent_resolver.rs`; thread the resolver through Stage CD comparator (spec 122); integration test that two projects' Stage CD runs reference the same `content_hash` | §8.2, §11 A-8 |
 | **8** | Spec 119 amendment edits land; spec 123 frontmatter flips to `status: approved` / `implementation: complete`; codebase index + spec registry recompile clean; acceptance gates A-1..A-11 verified | §3, §11 |
@@ -41,7 +41,7 @@ Phase 0 unblocks 1 and 3 in parallel-by-file (types are shared). Phases 4 and 5 
 ## Risks
 
 - **Cross-project name collision under dedup.** Two projects in one org with same agent name + divergent content forces a manual reconcile. Mitigation: pre-flight inventory script (§9.1) reports collisions before migration runs; the migration aborts (not silent-wins) on divergence; operator reconciles by renaming one in dev DB before re-running.
-- **Desktop cache drift after envelope schema bump.** Older OPCs that connect post-migration receive `v: 2` envelopes they cannot parse. Mitigation: clean break per pre-alpha posture; compile-time schema-version constant ensures desktop/platform agree at build time. A shipped older desktop that connects displays a "stagecraft requires desktop update" toast (no silent corruption).
+- **Desktop cache drift after envelope schema bump.** Older OPCs that connect post-migration receive `v: 2` envelopes they cannot parse. Mitigation: clean break per pre-alpha posture; compile-time schema-version constant ensures desktop/platform agree at build time. A shipped older desktop that connects displays a "statecraft requires desktop update" toast (no silent corruption).
 - **Factory pipelines that today pin "agent name X" break post-migration.** With names now unique per `(org_id, name)` rather than per `(project_id, name)`, a name that was overloaded across projects becomes ambiguous. Mitigation: the resolver's first job is to fail loud on ambiguous name resolution; the `agent_resolver` integration test in Phase 7 covers this.
 - **Spec 119 amendment edits + frontmatter changes drift the codebase-index.** The codebase-indexer scans `[package.metadata.oap]` and spec frontmatter to build traceability. Mitigation: re-run `codebase-indexer compile` as part of Phase 8 acceptance; A-10 verifies clean re-render.
 - **Project_agent_bindings storm on first connect.** A fresh OPC connecting after migration receives the catalog snapshot + N project-binding snapshots. Mitigation: snapshot envelopes carry only `(binding_id, org_agent_id, pinned_version, pinned_content_hash)` — no body/frontmatter — so payload is tiny; full bodies fetched lazily via existing `agent.catalog.fetch_request` (spec 111 §2.3).
@@ -58,11 +58,11 @@ Phase 0 unblocks 1 and 3 in parallel-by-file (types are shared). Phases 4 and 5 
   - Spec 111 (`org-agent-catalog-sync`) — original org-level design and duplex envelope shape; this spec restores its scoping
   - Spec 119 (`project-as-unit-of-governance`) — the spec amended; uses its own `amends:` / `amendment_record:` frontmatter convention
 - Existing primitives this spec touches:
-  - `platform/services/stagecraft/api/agents/catalog.ts` — current project-scoped impl, rewritten
-  - `platform/services/stagecraft/api/agents/relay.ts` — duplex relay updated for v2 catalog + v1 binding envelopes
-  - `platform/services/stagecraft/api/sync/duplex.ts` — envelope kind registry
-  - `platform/services/stagecraft/api/db/migrations/27_collapse_workspace_into_project.up.sql` — what migration 30 partially reverses (agents only)
-  - `platform/services/stagecraft/web/app/routes/app.tsx` — top-nav adds `Agents`
+  - `platform/services/statecraft/api/agents/catalog.ts` — current project-scoped impl, rewritten
+  - `platform/services/statecraft/api/agents/relay.ts` — duplex relay updated for v2 catalog + v1 binding envelopes
+  - `platform/services/statecraft/api/sync/duplex.ts` — envelope kind registry
+  - `platform/services/statecraft/api/db/migrations/27_collapse_workspace_into_project.up.sql` — what migration 30 partially reverses (agents only)
+  - `platform/services/statecraft/web/app/routes/app.tsx` — top-nav adds `Agents`
   - `product/apps/opc/src-tauri/src/commands/agent_catalog_sync.rs` — schema bump
   - `crates/factory-engine/src/stages/stage_cd_comparator.rs` — passes through new resolver
 - Cross-crate dependencies:

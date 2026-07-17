@@ -51,7 +51,7 @@ function synthesiseProcessId(
 }
 
 // ---------------------------------------------------------------------------
-// Wire shapes — camelCase per the existing stagecraft convention. The
+// Wire shapes — camelCase per the existing statecraft convention. The
 // JSONB columns persist the snake_case form per spec §3 (the platform
 // handler converts at the boundary; see `runAgentRefs.ts`).
 // ---------------------------------------------------------------------------

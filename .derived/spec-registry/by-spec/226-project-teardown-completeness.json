@@ -12,11 +12,11 @@
     "dependsOn": [
       "119-project-as-unit-of-governance",
       "225-deployd-selfprovision-rbac",
-      "215-stagecraft-deploy-trigger-ux",
+      "215-statecraft-deploy-trigger-ux",
       "214-tenant-app-chart-supersession",
       "136-tenant-hello-demo-service",
       "137-tenant-environment-access-gates",
-      "113-stagecraft-projects-rename-and-clone",
+      "113-statecraft-projects-rename-and-clone",
       "080-github-identity-onboarding"
     ],
     "domain": "platform",
@@ -42,21 +42,21 @@
         "role": "teardown-entry-point",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/projects.ts"
+          "path": "platform/services/statecraft/api/projects/projects.ts"
         }
       },
       {
         "role": "repo-delete-helper",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/cloneHelpers.ts"
+          "path": "platform/services/statecraft/api/projects/cloneHelpers.ts"
         }
       },
       {
         "role": "deployment-teardown-trigger",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deploydClient.ts"
+          "path": "platform/services/statecraft/api/deploy/deploydClient.ts"
         }
       },
       {
@@ -77,7 +77,7 @@
         "role": "repo-provenance-schema",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       }
     ],

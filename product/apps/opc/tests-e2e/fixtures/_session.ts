@@ -2,16 +2,16 @@
 // it lives under fixtures/ outside the local typecheck scope).
 //
 // Each fixture launches its own built OPC binary through tauri-driver, pointed
-// at a mock-stagecraft instance in the requested mode. STAGECRAFT_BASE_URL is
+// at a mock-statecraft instance in the requested mode. STATECRAFT_BASE_URL is
 // set on the tauri-driver process so the launched OPC inherits it (lib.rs URL
-// resolution order: app_settings -> STAGECRAFT_BASE_URL env -> default), which
+// resolution order: app_settings -> STATECRAFT_BASE_URL env -> default), which
 // is what lets a fixture redirect the binary at the mock with no src-tauri
 // change.
 
 import { spawn, type ChildProcess } from "node:child_process";
 import { connect } from "node:net";
 import { remote } from "webdriverio";
-import { MockStagecraft, type MockMode } from "../harness/mock_stagecraft";
+import { MockStatecraft, type MockMode } from "../harness/mock_statecraft";
 import { OpcDriver, opcBinaryPath, type WebDriverLike } from "../harness/driver";
 import {
   clearSeededSession,
@@ -21,7 +21,7 @@ import {
 
 export interface OpcSession {
   driver: OpcDriver;
-  mock: MockStagecraft;
+  mock: MockStatecraft;
   browser: WebElementHost;
   teardown: () => Promise<void>;
 }
@@ -47,7 +47,7 @@ export interface LaunchOptions {
 }
 
 export async function launchOpc(opts: LaunchOptions): Promise<OpcSession> {
-  const mock = new MockStagecraft({ mode: opts.mode, orgId: opts.orgId });
+  const mock = new MockStatecraft({ mode: opts.mode, orgId: opts.orgId });
   const { url } = await mock.start();
   const httpBase = url.replace(/^ws:\/\//, "http://").replace(/\/api\/sync\/duplex$/, "");
 
@@ -65,10 +65,10 @@ export async function launchOpc(opts: LaunchOptions): Promise<OpcSession> {
   }
 
   // tauri-driver spawns the OPC binary, so the binary inherits tauri-driver's
-  // env. A fresh tauri-driver per fixture keeps STAGECRAFT_BASE_URL per-mode.
+  // env. A fresh tauri-driver per fixture keeps STATECRAFT_BASE_URL per-mode.
   const tauriDriver = spawn("tauri-driver", [], {
     stdio: ["ignore", "inherit", "inherit"],
-    env: { ...process.env, STAGECRAFT_BASE_URL: httpBase, ...opts.extraEnv },
+    env: { ...process.env, STATECRAFT_BASE_URL: httpBase, ...opts.extraEnv },
   });
   await waitForPort(4444, 10_000);
 

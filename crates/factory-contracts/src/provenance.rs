@@ -16,7 +16,7 @@
 //! downstream Stage-4/5 hand-fixes.
 //!
 //! The reserved TS mirror lives at
-//! `platform/services/stagecraft/api/governance/provenancePolicy.ts`. When
+//! `platform/services/statecraft/api/governance/provenancePolicy.ts`. When
 //! that file lands, `tools/oap/schema-parity-check` will compare its fingerprint
 //! against `provenance_schema_fingerprint()`. Until then, the parity check
 //! records the Rust-side fingerprint to `build/schema-parity/` so the

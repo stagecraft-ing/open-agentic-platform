@@ -10,7 +10,7 @@
     ],
     "implementingPaths": [
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractionOutput.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractionOutput.ts",
         "source": "spec-edge"
       },
       {
@@ -22,14 +22,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractionOutput.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractionOutput.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractionOutput.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractionOutput.ts"
         }
       },
       {

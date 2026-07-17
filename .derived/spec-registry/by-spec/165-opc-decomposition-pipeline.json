@@ -125,7 +125,7 @@
         "role": "target-renderer",
         "unit": {
           "kind": "file",
-          "path": "specs/163-stagecraft-requirements-view/spec.md"
+          "path": "specs/163-statecraft-requirements-view/spec.md"
         }
       }
     ],
@@ -179,7 +179,7 @@
     ],
     "specPath": "specs/165-opc-decomposition-pipeline/spec.md",
     "status": "approved",
-    "summary": "The six-stage OPC pipeline that produces draft specs from external evidence: (1) knowledge extraction via spec 120's deterministic Rust extractor, (2) structural fingerprinting via xray, (3) semantic clustering via axiomregent/search, (4) behavioural traversal via the call graph + cross-reference data, (5) temporal lineage via git history mapped to logical units per spec 154, and (6) LLM synthesis that consumes the structured evidence from stages 1–5 and emits draft specs.\nBoth reverse-engineering (the agent-builder-console case — an existing repo with no spec spine) and born-with (factory-engine adapter output bundles) flow through the same pipeline. Emitted draft specs carry `status: draft`, `origin: retroactive: true`, a declared `kind:` per spec 147, declared logical units per spec 154, and `role: decomposition-origin` references with `provenance:` per spec 161 (the emission contract).\nDraft specs land in the project's repo under `<project>/specs/` and surface in the stagecraft Requirements view (spec 163). The developer reviews them there: edits, refinements, rejection of bad derivations, splitting of over-broad specs. Approved specs become the execution contract OPC pulls back to drive factory runs against the project.\n",
+    "summary": "The six-stage OPC pipeline that produces draft specs from external evidence: (1) knowledge extraction via spec 120's deterministic Rust extractor, (2) structural fingerprinting via xray, (3) semantic clustering via axiomregent/search, (4) behavioural traversal via the call graph + cross-reference data, (5) temporal lineage via git history mapped to logical units per spec 154, and (6) LLM synthesis that consumes the structured evidence from stages 1–5 and emits draft specs.\nBoth reverse-engineering (the agent-builder-console case — an existing repo with no spec spine) and born-with (factory-engine adapter output bundles) flow through the same pipeline. Emitted draft specs carry `status: draft`, `origin: retroactive: true`, a declared `kind:` per spec 147, declared logical units per spec 154, and `role: decomposition-origin` references with `provenance:` per spec 161 (the emission contract).\nDraft specs land in the project's repo under `<project>/specs/` and surface in the statecraft Requirements view (spec 163). The developer reviews them there: edits, refinements, rejection of bad derivations, splitting of over-broad specs. Approved specs become the execution contract OPC pulls back to drive factory runs against the project.\n",
     "title": "OPC decomposition pipeline — reverse-engineering and born-with spec spawning"
   },
   "shardHash": "e9b41668f8cedc2d248a7fcb99dc295a9bbe82c2e90c4987b15e8071bc4de661",

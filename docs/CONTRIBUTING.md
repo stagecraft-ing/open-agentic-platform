@@ -51,7 +51,7 @@ cycle, plus a domain specialist:
   plan. Produces minimal diffs.
 - **`reviewer`** — post-change review for bugs, security, performance,
   and spec compliance. Read-only.
-- **`encore-expert`** — Encore.ts framework specialist for stagecraft
+- **`encore-expert`** — Encore.ts framework specialist for statecraft
   service development. Read-only.
 
 ### Commands (`.claude/skills/`)
@@ -115,7 +115,7 @@ Specific subsets:
 | `make ci-rust` | All Rust manifests: `check` + `clippy -D warnings` + `test` |
 | `make ci-tools` | Spec tool crates + `spec-spine registry` contract subsets + staleness gate |
 | `make ci-desktop` | `product/apps/opc`: rust + version alignment + tsc + vitest |
-| `make ci-stagecraft` | `platform/services/stagecraft`: npm ci + tsc + vitest |
+| `make ci-statecraft` | `platform/services/statecraft`: npm ci + tsc + vitest |
 | `make ci-spec-code-coupling` | PR-time spec/code coupling gate (spec 127) |
 | `make ci-supply-chain` | `cargo-deny` + `pnpm audit` + `npm audit` (spec 116, blocking) |
 | `make ci-schema-parity` | Rust ↔ TypeScript contract drift (spec 125) |

@@ -33,7 +33,7 @@
   "pubsub": [
     {
       "type": "nsq",
-      "hosts": "nsqd.stagecraft-system.svc.cluster.local:4150",
+      "hosts": "nsqd.statecraft-system.svc.cluster.local:4150",
       "topics": {
         "factory-event": {
           "name": "factory-event",
@@ -89,11 +89,11 @@
   ],
   "sql_servers": [
     {
-      "host": "postgresql.stagecraft-system.svc.cluster.local",
+      "host": "postgresql.statecraft-system.svc.cluster.local",
       "databases": {
-        "stagecraft": {
-          "name": "stagecraft",
-          "username": "stagecraft",
+        "statecraft": {
+          "name": "statecraft",
+          "username": "statecraft",
           "password": {
             "$env": "POSTGRES_PASSWORD"
           }

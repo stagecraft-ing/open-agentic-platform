@@ -36,7 +36,7 @@ This runs the codebase indexer and the fast Spec/Code Coupling check against `or
 To start local development servers:
 
 - `make dev`: Starts the OPC desktop application.
-- `make dev-platform`: Starts the background platform services (stagecraft and deployd-api).
+- `make dev-platform`: Starts the background platform services (statecraft and deployd-api).
 - `make dev-all`: Starts both desktop and platform services.
 - `make stop`: Kills the background platform services.
 

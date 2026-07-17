@@ -1,8 +1,8 @@
-// Spec 187 FR-T2 — configurable mock-stagecraft duplex server.
+// Spec 187 FR-T2 — configurable mock-statecraft duplex server.
 //
 // A duplex WebSocket double that speaks the spec 087 envelope grammar. It
 // mirrors the LOCKED server-side types in
-//   platform/services/stagecraft/api/sync/types.ts   (ServerHello / ServerMeta)
+//   platform/services/statecraft/api/sync/types.ts   (ServerHello / ServerMeta)
 // and the Rust desktop mirror in
 //   product/apps/opc/src-tauri/src/commands/sync_client.rs
 // rather than inventing a speculative shape. The handshake is the Encore
@@ -49,7 +49,7 @@ export type MockMode =
   | "handshake-rejects"
   | "mid-session-drop";
 
-export interface MockStagecraftOptions {
+export interface MockStatecraftOptions {
   mode: MockMode;
   /** org id stamped onto sync.hello (default "org_mock"). */
   orgId?: string;
@@ -68,7 +68,7 @@ interface InboundWaiter {
   timer: ReturnType<typeof setTimeout>;
 }
 
-export class MockStagecraft {
+export class MockStatecraft {
   private mode: MockMode;
   private readonly orgId: string;
   private readonly host: string;
@@ -90,7 +90,7 @@ export class MockStagecraft {
   private readonly inbound: unknown[] = [];
   private inboundWaiters: InboundWaiter[] = [];
 
-  constructor(opts: MockStagecraftOptions) {
+  constructor(opts: MockStatecraftOptions) {
     this.mode = opts.mode;
     this.orgId = opts.orgId ?? "org_mock";
     this.host = opts.host ?? "127.0.0.1";
@@ -144,7 +144,7 @@ export class MockStagecraft {
       return;
     }
 
-    // "healthy": leave the socket open, as a real stagecraft would. Spec 208
+    // "healthy": leave the socket open, as a real statecraft would. Spec 208
     // FR-005: retain the socket so the drill can push an org.halt.* frame
     // after the hello (push()) and record the client's org.halt.ack
     // (recordInbound / waitForFrame).
@@ -183,7 +183,7 @@ export class MockStagecraft {
     return new Promise<unknown>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.inboundWaiters = this.inboundWaiters.filter((w) => w !== waiter);
-        reject(new Error("mock-stagecraft: timed out waiting for inbound frame"));
+        reject(new Error("mock-statecraft: timed out waiting for inbound frame"));
       }, timeoutMs);
       const waiter: InboundWaiter = { match, resolve, reject, timer };
       this.inboundWaiters.push(waiter);
@@ -222,7 +222,7 @@ export class MockStagecraft {
     // or an unhandled rejection past the fixture (FR-T3 / FR-T6 no-flake).
     for (const waiter of this.inboundWaiters.splice(0)) {
       clearTimeout(waiter.timer);
-      waiter.reject(new Error("mock-stagecraft: stopped while waiting for inbound frame"));
+      waiter.reject(new Error("mock-statecraft: stopped while waiting for inbound frame"));
     }
     // Force-terminate any retained duplex socket. A real drill tears the OPC
     // binary down separately, so the client socket is still open here, and
@@ -256,7 +256,7 @@ function listen(server: HttpServer | NetServer, port: number, host: string): Pro
 function portOf(server: HttpServer | NetServer): number {
   const addr = server.address() as AddressInfo | null;
   if (!addr || typeof addr === "string") {
-    throw new Error("mock-stagecraft: server is not listening on a TCP port");
+    throw new Error("mock-statecraft: server is not listening on a TCP port");
   }
   return addr.port;
 }

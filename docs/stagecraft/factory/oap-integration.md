@@ -20,12 +20,12 @@ Factory and OAP solve complementary problems and share structural DNA:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  LEVEL 1: PLATFORM (Stagecraft — organizational control plane)      │
+│  LEVEL 1: PLATFORM (Statecraft — organizational control plane)      │
 │                                                                       │
 │  Project creation → adapter selection → business doc upload           │
 │  Policy assignment → audit trail → deployment trigger                 │
 │                                                                       │
-│  Stagecraft knows: which org, which project, which adapter,           │
+│  Statecraft knows: which org, which project, which adapter,           │
 │  which policy bundle, who approved what stage                         │
 └───────────────────────────────┬─────────────────────────────────────┘
                                 │ HTTP/WS (project config + policy bundle)
@@ -56,11 +56,11 @@ Factory and OAP solve complementary problems and share structural DNA:
 
 ---
 
-## Level 1: Platform Orchestration (Stagecraft)
+## Level 1: Platform Orchestration (Statecraft)
 
-### What Stagecraft Manages
+### What Statecraft Manages
 
-Stagecraft is the organizational control plane. For Factory integration it handles:
+Statecraft is the organizational control plane. For Factory integration it handles:
 
 1. **Project registration** — user creates a project, selects "Factory pipeline" as delivery method
 2. **Adapter assignment** — org admin or user selects adapter (next-prisma, rust-axum, etc.)
@@ -68,7 +68,7 @@ Stagecraft is the organizational control plane. For Factory integration it handl
 4. **Policy bundle assignment** — attach org-level policy (which adapters allowed, max token budget, required approvers)
 5. **Audit trail** — every stage confirmation, every gate decision, every retry logged to `audit_log` table
 
-### New Stagecraft API Surface
+### New Statecraft API Surface
 
 ```
 POST /api/projects/:id/factory/init
@@ -91,7 +91,7 @@ GET  /api/projects/:id/factory/audit
 
 ### Policy Bundle for Factory
 
-Stagecraft compiles a policy bundle that travels down to OPC and axiomregent:
+Statecraft compiles a policy bundle that travels down to OPC and axiomregent:
 
 ```yaml
 # Factory-specific policy shard
@@ -473,13 +473,13 @@ tools:
 ### 1. Project Setup (Platform)
 
 ```
-User → Stagecraft UI:
+User → Statecraft UI:
   "Create new project: Acme Vendor Portal"
   "Delivery method: Factory pipeline"
   "Adapter: next-prisma"
   "Upload: requirements.pdf, data-dictionary.xlsx, process-flows.pdf"
 
-Stagecraft:
+Statecraft:
   → Creates project record
   → Stores document refs
   → Assigns org policy bundle
@@ -610,7 +610,7 @@ After all scaffolding:
 
   If approved:
     → Pipeline status: completed
-    → Stagecraft notified: project ready for deployment
+    → Statecraft notified: project ready for deployment
     → deployd-api-rs can deploy to staging
 
   Audit trail:
@@ -639,7 +639,7 @@ No changes to: contract schemas, agent prompts, patterns, or invariants. They wo
 3. **Post-step verification** — hook after scaffolding steps runs adapter `feature_verify` commands
 4. **Factory UI panel** — OPC desktop gets an "Factory Pipeline" view with stage visualization
 5. **Policy shard** — axiomregent loads Factory-specific policy (allowed paths, commands)
-6. **Stagecraft API** — endpoints for Factory project init, stage confirmation, audit
+6. **Statecraft API** — endpoints for Factory project init, stage confirmation, audit
 
 ### Shared
 
@@ -655,4 +655,4 @@ No changes to: contract schemas, agent prompts, patterns, or invariants. They wo
 3. **Bounded context preserved** — OAP dispatches each step as a fresh Claude CLI session; Factory's ~1-3K token agent prompts are exactly what the dispatch system expects
 4. **Human checkpoints native** — OAP's `StepGateConfig::Checkpoint` is Factory's "confirm before proceeding" pattern
 5. **Crash recovery unified** — OAP's `WorkflowState` already tracks step completion and supports resume; no need for a separate `.factory/pipeline-state.json`
-6. **Audit trail integrated** — Stagecraft's `audit_log` captures the full pipeline lifecycle, not just the code generation
+6. **Audit trail integrated** — Statecraft's `audit_log` captures the full pipeline lifecycle, not just the code generation

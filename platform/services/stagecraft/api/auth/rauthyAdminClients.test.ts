@@ -90,7 +90,7 @@ describe("buildTenantGateClientPayload", () => {
 
   test("sanitizes the name to Rauthy's [a-zA-Z0-9À-ɏ-\\s] regex (strips '·')", () => {
     // Rauthy 0.35 rejects the create/update with a 400 when the client
-    // name carries the middle-dot separator stagecraft's UI used to build.
+    // name carries the middle-dot separator statecraft's UI used to build.
     const payload = buildTenantGateClientPayload(spec);
     expect(payload.name).not.toMatch(/·/);
     expect(payload.name).toMatch(/^[a-zA-Z0-9À-ɏ\-\s]{2,128}$/);

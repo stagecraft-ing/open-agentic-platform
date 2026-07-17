@@ -4,12 +4,12 @@
     "warnings": [
       {
         "code": "W-002",
-        "message": "spec '160-factory-adapter-stagecraft-relocation' file unit 'docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md' does not exist",
+        "message": "spec '160-factory-adapter-statecraft-relocation' file unit 'docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md' does not exist",
         "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
       },
       {
         "code": "W-002",
-        "message": "spec '160-factory-adapter-stagecraft-relocation' file unit 'tools/spec-spine/codebase-indexer/src/lib.rs' does not exist",
+        "message": "spec '160-factory-adapter-statecraft-relocation' file unit 'tools/spec-spine/codebase-indexer/src/lib.rs' does not exist",
         "path": "tools/spec-spine/codebase-indexer/src/lib.rs"
       }
     ]
@@ -21,7 +21,7 @@
     "dependsOn": [
       "074-factory-ingestion",
       "075-factory-workflow-engine",
-      "077-stagecraft-factory-api",
+      "077-statecraft-factory-api",
       "108-factory-as-platform-feature"
     ],
     "implementingPaths": [
@@ -30,7 +30,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft",
+        "path": "platform/services/statecraft",
         "source": "spec-edge"
       },
       {
@@ -38,7 +38,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "specs/077-stagecraft-factory-api/spec.md",
+        "path": "specs/077-statecraft-factory-api/spec.md",
         "source": "spec-edge"
       },
       {
@@ -50,14 +50,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft"
+            "file": "platform/services/statecraft"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "directory",
-          "path": "platform/services/stagecraft"
+          "path": "platform/services/statecraft"
         }
       },
       {
@@ -103,14 +103,14 @@
       {
         "locations": [
           {
-            "file": "specs/077-stagecraft-factory-api/spec.md"
+            "file": "specs/077-statecraft-factory-api/spec.md"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "specs/077-stagecraft-factory-api/spec.md"
+          "path": "specs/077-statecraft-factory-api/spec.md"
         }
       },
       {
@@ -136,7 +136,7 @@
         }
       }
     ],
-    "specId": "160-factory-adapter-stagecraft-relocation",
+    "specId": "160-factory-adapter-statecraft-relocation",
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",

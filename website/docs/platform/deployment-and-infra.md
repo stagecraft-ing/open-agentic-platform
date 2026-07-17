@@ -5,7 +5,7 @@ The Open Agentic Platform is designed to run on Kubernetes. The infrastructure c
 ## Helm Charts
 
 OAP provides Helm charts for its core services:
-- `charts/stagecraft/`: The main SaaS service.
+- `charts/statecraft/`: The main SaaS service.
 - `charts/deployd-api/`: The deployment orchestrator.
 - `charts/rauthy/`: The OIDC identity provider.
 

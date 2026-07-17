@@ -16,52 +16,52 @@ risk: low
 amends: ["139-factory-artifact-substrate"]
 depends_on:
   - "112-factory-project-lifecycle"  # factory-project-lifecycle (Create/Import flow consumes scaffold readiness)
-  - "138-stagecraft-create-realised-scaffold"  # stagecraft-create-realised-scaffold (introduced template_remote, scaffoldReadiness)
+  - "138-statecraft-create-realised-scaffold"  # statecraft-create-realised-scaffold (introduced template_remote, scaffoldReadiness)
   - "139-factory-artifact-substrate"  # factory-artifact-substrate (§7.2 declared scaffold_source_id replaces template_remote)
 code_aliases: ["ACME_VUE_NODE_SCAFFOLD_SOURCE_ID_CUTOVER"]
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/types.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffoldReadinessBlocker.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/types.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projects/scaffoldReadinessBlocker.ts }
 references:
   # Spec 199 amendment (2026-06-09): the thin-consumer cutover deleted the
   # adapter-config constants and the categorical projection; §2.2's
   # manifest-carried scaffold_source_id is partially superseded by 199
   # FR-009 (resolution-at-admission). Historical pointers, non-owning.
   - role: historical
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/oapNativeAdapters.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/oapNativeAdapters.ts }
   - role: historical
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/projection.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/projection.ts }
 extends:
   - spec: "139-factory-artifact-substrate"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/translator.ts }
   - spec: "139-factory-artifact-substrate"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/substrateBrowser.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/substrateBrowser.ts }
   - spec: "139-factory-artifact-substrate"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/syncWorker.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/syncWorker.ts }
   - spec: "139-factory-artifact-substrate"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/scheduler.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/scheduler.ts }
   - spec: "139-factory-artifact-substrate"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/templateCache.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/templateCache.ts }
   - spec: "139-factory-artifact-substrate"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/create.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/create.ts }
   - spec: "139-factory-artifact-substrate"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffoldReadiness.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffoldReadiness.ts }
   - spec: "139-factory-artifact-substrate"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.projects.new.tsx }
   - spec: "139-factory-artifact-substrate"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/projects-api.server.ts }
+    unit: { kind: file, path: platform/services/statecraft/web/app/lib/projects-api.server.ts }
   - spec: "139-factory-artifact-substrate"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/CLAUDE.md }
+    unit: { kind: file, path: platform/services/statecraft/CLAUDE.md }
 summary: >
   Spec 139 §7.2 declared `template_remote` is replaced by
   `orchestration_source_id` + `scaffold_source_id`. Phase 2 landed the
@@ -268,7 +268,7 @@ no `/factory-sync` button needs to be pressed first.
   removing `template_remote` from the manifest is a wire change in
   the same way Phase 4b dropped the four legacy `factory_upstreams`
   per-side columns. External consumers of that endpoint (today: only
-  stagecraft itself) consume `scaffold_source_id` after this
+  statecraft itself) consume `scaffold_source_id` after this
   amendment.
 - The scaffold warmup contract on `GET /api/projects/scaffold-readiness`
   — the response shape's `blocker` enum is unchanged; only the
@@ -320,9 +320,9 @@ Test files affected (non-exhaustive — golden updates expected):
 
 ## 6. Acceptance criteria
 
-- **AC-1:** No production code under `platform/services/stagecraft/`
+- **AC-1:** No production code under `platform/services/statecraft/`
   reads `manifest.template_remote`. (`grep -r template_remote
-  platform/services/stagecraft --include='*.ts' --exclude='*.test.ts'`
+  platform/services/statecraft --include='*.ts' --exclude='*.test.ts'`
   returns only schema/migration historical comments.)
 
 - **AC-2:** `oapNativeIngest.ts::OAP_NATIVE_ADAPTERS["acme-vue-node"]`

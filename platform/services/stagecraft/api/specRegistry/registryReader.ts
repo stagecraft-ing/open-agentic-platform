@@ -5,7 +5,7 @@
 // in-tree reader for the published `spec-spine` CLI: the registry is now
 // the sharded `.derived/spec-registry/by-spec/*.json` tree, read via
 // `spec-spine registry <verb> --repo <projectRoot>`. This module is the
-// stagecraft-side enforcement: every call on behalf of the Requirements
+// statecraft-side enforcement: every call on behalf of the Requirements
 // view (FR-001..FR-006) routes through `spawnSpecSpine` below; no other
 // module in `api/specRegistry/` parses the registry shards.
 //

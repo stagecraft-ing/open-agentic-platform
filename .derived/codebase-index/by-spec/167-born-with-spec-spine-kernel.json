@@ -74,7 +74,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/scaffold/kernelVersionStamp.ts",
+        "path": "platform/services/statecraft/api/projects/scaffold/kernelVersionStamp.ts",
         "source": "spec-edge"
       },
       {
@@ -246,14 +246,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/scaffold/kernelVersionStamp.ts"
+            "file": "platform/services/statecraft/api/projects/scaffold/kernelVersionStamp.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/kernelVersionStamp.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/kernelVersionStamp.ts"
         }
       },
       {

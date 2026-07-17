@@ -33,7 +33,7 @@ summary: >
   (`list_projects`, `get_project_sessions`, `decode_project_path`,
   `get_project_path_from_sessions`). The discipline that emerges from
   this surface — many sessions per project path, project identity by
-  *filesystem path* rather than stagecraft project UUID, JSONL content
+  *filesystem path* rather than statecraft project UUID, JSONL content
   authoritative over the encoded directory name, non-disambiguating
   across developers by design — has had no spec authority until now.
 
@@ -83,8 +83,8 @@ The gap is concrete:
   resolution order in `get_project_path_from_sessions`. Without
   spec context that ordering reads as defensive coding rather than
   as the normative "JSONL is truth" stance.
-- **Anyone reasoning about identity in stagecraft↔OPC integration**
-  (per the future stagecraft-side ingestion path INTENT §4.2 hints
+- **Anyone reasoning about identity in statecraft↔OPC integration**
+  (per the future statecraft-side ingestion path INTENT §4.2 hints
   at) needs an authoritative answer to "what is the project, and
   what is the session, in OPC terms?" The current answer is
   "whatever `claude.rs` returns" — fine operationally, fragile as a
@@ -196,22 +196,22 @@ model on top." OPC reads; it does not redefine. The encoded
 directory name is Claude Code's filesystem index, not OPC's
 identity assertion.
 
-### 3.4 OPC project identity vs stagecraft project identity
+### 3.4 OPC project identity vs statecraft project identity
 
 The `Project` record returned by `opc::commands::claude::list_projects` is bound
-to a filesystem path, not to a stagecraft project UUID. Two
-distinct stagecraft projects in two different orgs may share the
+to a filesystem path, not to a statecraft project UUID. Two
+distinct statecraft projects in two different orgs may share the
 same filesystem path on a developer's workstation; OPC sees one
-project (the path), stagecraft sees two (the UUIDs).
+project (the path), statecraft sees two (the UUIDs).
 
 This is intentional and documented for downstream consumers:
 
 - **Path-identity is workstation-scoped.** It exists only on the
   developer's local filesystem.
-- **UUID-identity is platform-scoped.** It lives in stagecraft's
+- **UUID-identity is platform-scoped.** It lives in statecraft's
   database and survives across workstations.
 
-Future ingestion of OPC session events into stagecraft (INTENT
+Future ingestion of OPC session events into statecraft (INTENT
 §4.2 names this as the disambiguable-session-streams aspiration)
 will need to carry both identities and join them at the ingestion
 layer. That ingestion is **out of scope for this spec**; the
@@ -240,7 +240,7 @@ overlay — would require either:
 - A workstation-level overlay that re-keys sessions before OPC
   reads them (a separable mechanism, not part of the session
   model itself), or
-- A stagecraft-side ingestion that joins OPC's path-identity to a
+- A statecraft-side ingestion that joins OPC's path-identity to a
   signed-in user identity at the platform layer (the path INTENT
   §4.2 names, deferred to a later spec).
 
@@ -287,7 +287,7 @@ layer and documents the inheritance.
 - Symbol-level spec authority over the four `claude::*` Tauri
   commands listed in frontmatter (§3.1–§3.3).
 - The four discipline claims (§3.1, §3.2, §3.3, §4).
-- The OPC-project ↔ stagecraft-project identity separation (§3.4).
+- The OPC-project ↔ statecraft-project identity separation (§3.4).
 - The ASI09 alignment as supporting rationale (§5).
 
 ### Out of scope (and intentionally so)
@@ -296,9 +296,9 @@ layer and documents the inheritance.
   The non-disambiguating shape is a design choice; spec 157 records
   it, does not solve it. A future amendment or new spec authoring
   per-developer disambiguation extends the surface here.
-- **Stagecraft-side session ingestion.** Deferred to a later spec
+- **Statecraft-side session ingestion.** Deferred to a later spec
   per §3.4. INTENT §4.2's "disambiguable session streams at the
-  stagecraft level" aspiration is a downstream consumer surface,
+  statecraft level" aspiration is a downstream consumer surface,
   not part of the OPC-local session model.
 - **Claude Code's own session writer.** Out of scope by definition;
   OPC is downstream of Claude Code, not upstream.
@@ -371,7 +371,7 @@ assertions about current reality, not future verifications:
 - **INTENT doc** —
   [`docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md`](../../docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md);
   §4.2 names the discipline (its third claim — "disambiguable
-  session streams at the stagecraft level" — is the one this spec
+  session streams at the statecraft level" — is the one this spec
   defers to a later spec); §4.4 contains the comparison table
   with AIDE-HARNESS's "one stable UUID per project" pattern that
   §3.2 inverts; §7.2 carries the ASI09 posture cited in §5.

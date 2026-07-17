@@ -1,7 +1,7 @@
-# Spec: 077-stagecraft-factory-api
+# Spec: 077-statecraft-factory-api
 # Spec: 078-platform-completion-plan
 #
-# CD for stagecraft: build Docker image, push to GHCR, deploy to Hetzner K3s.
+# CD for statecraft: build Docker image, push to GHCR, deploy to Hetzner K3s.
 #
 # Required GitHub secrets:
 #   KUBECONFIG_HETZNER  — contents of platform/infra/hetzner/kubeconfig (base64-encoded)
@@ -9,14 +9,14 @@
 # Required GitHub environment:
 #   "production"         — create with protection rules for manual approval on deploy
 
-name: CD stagecraft
+name: CD statecraft
 
 on:
   push:
     branches: [main]
     paths:
-      - 'platform/services/stagecraft/**'
-      - 'platform/charts/stagecraft/**'
+      - 'platform/services/statecraft/**'
+      - 'platform/charts/statecraft/**'
   workflow_dispatch:
     inputs:
       deploy:
@@ -27,19 +27,19 @@ on:
         options: ['true', 'false']
 
 concurrency:
-  group: cd-stagecraft-${{ github.ref }}
+  group: cd-statecraft-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   # ghcr.io repo path is derived from github.repository (lowercased per OCI
   # registry rules) so a repo rename doesn't require a workflow edit.
-  IMAGE: ghcr.io/${{ github.repository }}/stagecraft
+  IMAGE: ghcr.io/${{ github.repository }}/statecraft
   ENCORE_VERSION: '1.57.9'
 
 jobs:
   # ── CI gate ────────────────────────────────────────────────
   ci:
-    uses: ./.github/workflows/ci-stagecraft.yml
+    uses: ./.github/workflows/ci-statecraft.yml
 
   # ── Build & push Docker image ─────────────────────────────
   build-and-push:
@@ -58,11 +58,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: platform/services/stagecraft/package-lock.json
+          cache-dependency-path: platform/services/statecraft/package-lock.json
 
       - name: Install dependencies
         run: npm ci
-        working-directory: platform/services/stagecraft
+        working-directory: platform/services/statecraft
 
       - name: Compute image tags
         id: meta
@@ -109,17 +109,17 @@ jobs:
       - name: Deploy to Hetzner
         uses: ./.github/actions/helm-deploy
         with:
-          namespace: stagecraft-system
-          release-name: stagecraft
-          chart-path: platform/charts/stagecraft
-          values-files: platform/charts/stagecraft/values.yaml,platform/charts/stagecraft/values-hetzner.yaml
+          namespace: statecraft-system
+          release-name: statecraft
+          chart-path: platform/charts/statecraft
+          values-files: platform/charts/statecraft/values.yaml,platform/charts/statecraft/values-hetzner.yaml
           helm-set-args: >-
             --set image.repository=${{ env.IMAGE }}
             --set image.tag=${{ needs.build-and-push.outputs.image-tag }}
             --set "ingress.host=${{ vars.DOMAIN }}"
             --set "oidc.endpoint=https://auth.${{ vars.DOMAIN }}"
             --set "oidc.deploydAudience=https://deploy.${{ vars.DOMAIN }}"
-          app-label: stagecraft-api
+          app-label: statecraft-api
           kubeconfig-b64: ${{ secrets.KUBECONFIG_HETZNER }}
           ghcr-pat: ${{ secrets.GHCR_PAT }}
           ghcr-username: ${{ github.actor }}

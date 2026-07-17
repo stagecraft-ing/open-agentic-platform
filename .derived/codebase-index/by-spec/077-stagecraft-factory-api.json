@@ -2,7 +2,7 @@
   "mapping": {
     "implementingPaths": [
       {
-        "path": "platform/services/stagecraft/api/factory",
+        "path": "platform/services/statecraft/api/factory",
         "source": "spec-edge"
       }
     ],
@@ -10,18 +10,18 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory"
+            "file": "platform/services/statecraft/api/factory"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "directory",
-          "path": "platform/services/stagecraft/api/factory"
+          "path": "platform/services/statecraft/api/factory"
         }
       }
     ],
-    "specId": "077-stagecraft-factory-api",
+    "specId": "077-statecraft-factory-api",
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",

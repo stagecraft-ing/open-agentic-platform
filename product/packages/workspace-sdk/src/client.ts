@@ -1,5 +1,5 @@
 /**
- * Typed HTTP client for the Stagecraft Platform API (spec 087).
+ * Typed HTTP client for the Statecraft Platform API (spec 087).
  *
  * Provides workspace CRUD, knowledge intake, connector management,
  * and sync event posting. Consumed by OPC desktop and the web UI.
@@ -22,12 +22,12 @@ import type { OpcEvent } from "./sync";
 // Client factory
 // ---------------------------------------------------------------------------
 
-export interface StagecraftClientOptions {
+export interface StatecraftClientOptions {
   baseUrl: string;
   token: string;
 }
 
-export interface StagecraftClient {
+export interface StatecraftClient {
   // -- Knowledge objects --
   listKnowledgeObjects(projectId: string): Promise<KnowledgeObject[]>;
   getKnowledgeObject(projectId: string, id: string): Promise<KnowledgeObject>;
@@ -49,7 +49,7 @@ export interface StagecraftClient {
   bindToProject(projectId: string, knowledgeObjectId: string): Promise<DocumentBinding>;
   unbindFromProject(projectId: string, bindingId: string): Promise<void>;
 
-  // -- Sync (OPC → Stagecraft) --
+  // -- Sync (OPC → Statecraft) --
   postOpcEvent(event: OpcEvent): Promise<void>;
 }
 
@@ -64,7 +64,7 @@ export interface CreateConnectorRequest {
 // Implementation
 // ---------------------------------------------------------------------------
 
-export function createStagecraftClient(opts: StagecraftClientOptions): StagecraftClient {
+export function createStatecraftClient(opts: StatecraftClientOptions): StatecraftClient {
   const { baseUrl, token } = opts;
 
   async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -79,7 +79,7 @@ export function createStagecraftClient(opts: StagecraftClientOptions): Stagecraf
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new Error(`Stagecraft API ${method} ${path} returned ${res.status}: ${text}`);
+      throw new Error(`Statecraft API ${method} ${path} returned ${res.status}: ${text}`);
     }
     if (res.status === 204) return undefined as T;
     return res.json() as Promise<T>;

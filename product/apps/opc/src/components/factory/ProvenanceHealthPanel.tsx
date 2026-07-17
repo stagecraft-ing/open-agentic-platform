@@ -10,7 +10,7 @@ import * as React from "react";
  * Spec 121 §FR-042 reserves this panel: per-project rejection +
  * assumption rates aggregated across runs. Phase 6 lands the route +
  * empty state + data shape only; aggregation is deferred to a
- * follow-up once stagecraft exposes the per-run metric table.
+ * follow-up once statecraft exposes the per-run metric table.
  */
 
 export interface ProvenanceHealthAggregation {
@@ -55,7 +55,7 @@ export function ProvenanceHealthPanel({
         </p>
         <p className="provenance-health__hint">
           Spec 121 reserves this panel surface; per-project rejection and
-          assumption-rate trends will appear here once stagecraft exposes
+          assumption-rate trends will appear here once statecraft exposes
           the per-run aggregation feed.
         </p>
       </section>
@@ -76,7 +76,7 @@ export function ProvenanceHealthPanel({
       </p>
       <p className="provenance-health__placeholder">
         TODO(spec-121 follow-up): chart `rejectionRateSeries` and
-        `assumptionRateSeries` here once stagecraft's aggregation
+        `assumptionRateSeries` here once statecraft's aggregation
         endpoint lands.
       </p>
     </section>

@@ -80,7 +80,7 @@ const _factorySub = new Subscription(FactoryEventTopic, "sync-outbox-relay", {
 
 /**
  * Window after `requestedAt` during which a dispatched factory run request is
- * still actionable. After this deadline stagecraft considers the pipeline
+ * still actionable. After this deadline statecraft considers the pipeline
  * `abandoned` if the desktop has not transitioned it (spec 110 §2.1, open
  * question 2). One hour is conservative: longer than the 30s ack SLA by
  * enough margin to cover a desktop coming back online after a brief outage.
@@ -112,7 +112,7 @@ export interface PublishFactoryRunRequestResult {
  * round-trip.
  *
  * Callers (factory.initPipeline) MUST gate this on
- * `pipeline.source === "stagecraft"` — OPC-direct runs do not use the
+ * `pipeline.source === "statecraft"` — OPC-direct runs do not use the
  * envelope path.
  */
 export async function publishFactoryRunRequest(

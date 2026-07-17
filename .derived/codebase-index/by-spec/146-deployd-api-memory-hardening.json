@@ -10,7 +10,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/test/spec146-deployd-memory.config.test.ts",
+        "path": "platform/services/statecraft/test/spec146-deployd-memory.config.test.ts",
         "source": "spec-edge"
       }
     ],
@@ -18,14 +18,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/test/spec146-deployd-memory.config.test.ts"
+            "file": "platform/services/statecraft/test/spec146-deployd-memory.config.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/test/spec146-deployd-memory.config.test.ts"
+          "path": "platform/services/statecraft/test/spec146-deployd-memory.config.test.ts"
         }
       },
       {

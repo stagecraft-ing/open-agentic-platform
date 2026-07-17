@@ -3,7 +3,7 @@
 // A tiny CLI that writes (or clears) an OS-keychain entry via the SAME
 // `keyring` crate and version the OPC app links (`Cargo.toml` dep at the crate
 // root), so a value it stores is guaranteed to read back identically through
-// `StagecraftClient::load_token_from_keychain` / `auth_get_status` /
+// `StatecraftClient::load_token_from_keychain` / `auth_get_status` /
 // `resolve_token`. That "same crate" guarantee is why this helper lives inside
 // the opc crate rather than in a standalone helper crate: a re-declared
 // dependency could drift and silently break Secret-Service attribute
@@ -26,21 +26,21 @@
 // The seed VALUE (a fake, unsigned session JWT) is produced test-side by the
 // harness helper `tests-e2e/harness/seed_session.ts` and piped in on stdin, so
 // it never appears in argv / the process table. OPC decodes the JWT's claims
-// but never verifies its signature (`stagecraft_client.rs::decode_jwt_claims`),
+// but never verifies its signature (`statecraft_client.rs::decode_jwt_claims`),
 // so a self-signed payload with an `exp` in the future and a `custom.oap_org_id`
 // claim is a complete "signed-in" seed.
 //
 // Usage:
 //   printf '%s' "<jwt>" | e2e_seed_session set   [--service S] [--account A]
 //                         e2e_seed_session clear [--service S] [--account A]
-// Defaults: service "dev.opc.stagecraft", account "session" (mirrors
+// Defaults: service "dev.opc.statecraft", account "session" (mirrors
 // `keychain.rs::SERVICE_NAME` / `DEFAULT_USER` and the hard-coded slots in
-// `stagecraft_client.rs`).
+// `statecraft_client.rs`).
 
 use std::io::Read;
 use std::process::ExitCode;
 
-const DEFAULT_SERVICE: &str = "dev.opc.stagecraft";
+const DEFAULT_SERVICE: &str = "dev.opc.statecraft";
 const DEFAULT_ACCOUNT: &str = "session";
 
 fn main() -> ExitCode {

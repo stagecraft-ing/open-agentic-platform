@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: stagecraft-api
+  name: statecraft-api
 spec:
   replicas: 1
   strategy:
     type: Recreate
   selector:
     matchLabels:
-      app: stagecraft-api
+      app: statecraft-api
   template:
     metadata:
       labels:
-        app: stagecraft-api
+        app: statecraft-api
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -28,7 +28,7 @@ spec:
         runAsGroup: 10001
         fsGroup: 10001
       containers:
-        - name: stagecraft-api
+        - name: statecraft-api
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
           securityContext:
@@ -64,7 +64,7 @@ spec:
               value: /usr/local/bin/factory-project-detect
             # Spec 112 §5.3 — scaffold workspace mount; ensureTemplateCache /
             # ensurePrebuilts read and write under this path.
-            - name: STAGECRAFT_WORKSPACE_DIR
+            - name: STATECRAFT_WORKSPACE_DIR
               value: {{ .Values.workspace.dir | quote }}
             {{- with .Values.nodeOptions }}
             # Spec 143 FU-015 — V8 heap ceiling. Without an explicit
@@ -76,7 +76,7 @@ spec:
             {{- end }}
           envFrom:
             - secretRef:
-                name: stagecraft-api-secrets
+                name: statecraft-api-secrets
                 optional: true
           readinessProbe:
             httpGet:
@@ -113,17 +113,17 @@ spec:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: stagecraft-api-secrets
+              secretProviderClass: statecraft-api-secrets
           {{- else }}
           secret:
-            secretName: stagecraft-api-secrets
+            secretName: statecraft-api-secrets
           {{- end }}
         - name: tmp
           emptyDir: {}
         - name: workspace
           {{- if .Values.workspace.persistence.enabled }}
           persistentVolumeClaim:
-            claimName: stagecraft-api-workspace
+            claimName: statecraft-api-workspace
           {{- else }}
           # Persistence disabled — warmup re-runs every restart on node
           # ephemeral storage. emptyDir size limit defaults to ~ephemeral

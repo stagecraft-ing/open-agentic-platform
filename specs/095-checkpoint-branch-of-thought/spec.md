@@ -111,7 +111,7 @@ When a gate is reached in `evaluate_gate()`:
 2. Bind the approval to that checkpoint ID
 3. Include `checkpoint_id` and `merkle_root` in the gate event payload
 
-The approval event emitted to Stagecraft includes checkpoint evidence.
+The approval event emitted to Statecraft includes checkpoint evidence.
 
 **Files**: `crates/orchestrator/src/gates.rs`,
 `crates/orchestrator/src/manifest.rs`

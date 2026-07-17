@@ -1,9 +1,9 @@
-# Implementation Plan: Stagecraft Projects Rename + In-Org Project Clone
+# Implementation Plan: Statecraft Projects Rename + In-Org Project Clone
 
 **Spec**: [spec.md](./spec.md)
-**Feature**: `113-stagecraft-projects-rename-and-clone`
+**Feature**: `113-statecraft-projects-rename-and-clone`
 **Date**: 2026-04-27
-**Branch**: `113-stagecraft-projects-rename-and-clone`
+**Branch**: `113-statecraft-projects-rename-and-clone`
 
 ## Summary
 
@@ -48,15 +48,15 @@ Phases 1a, 1b, and 2 can begin in parallel once Phase 0 lands; the dialog can st
 
 - Spec: [`./spec.md`](./spec.md)
 - Existing primitives this spec reuses:
-  - `platform/services/stagecraft/api/projects/import.ts:782-792` — `cloneRepo()` shell pattern (we extend with `--mirror`)
-  - `platform/services/stagecraft/api/projects/scaffold/githubRepoCreate.ts` — `createRepoWithBranchProtection`
-  - `platform/services/stagecraft/api/projects/scaffold/githubPushInitial.ts` — initial-push pattern (we substitute `git push --mirror`)
-  - `platform/services/stagecraft/api/projects/importArtifacts.ts` — `registerRawArtifactsFromRepo`
-  - `platform/services/stagecraft/api/projects/tokenResolver.ts` — `resolveProjectToken`
-  - `platform/services/stagecraft/api/github/repoInit.ts` — `createGitHubRepo`, `configureBranchProtection`, `brokerInstallationToken`
-  - `platform/services/stagecraft/api/auth/membership.ts` — `hasOrgPermission`
-  - `platform/services/stagecraft/web/app/routes/app._index.tsx:46-79` — header to rename
-  - `platform/services/stagecraft/web/app/routes/app._index.tsx:211-248` — row affordances + Copy-icon stub to wire
-  - `platform/services/stagecraft/web/app/routes/app.tsx:42-46` — top-nav `NAV_ITEMS` to relabel
-  - `platform/services/stagecraft/web/app/lib/projects-api.server.ts:75-110` — pattern for new helper functions
+  - `platform/services/statecraft/api/projects/import.ts:782-792` — `cloneRepo()` shell pattern (we extend with `--mirror`)
+  - `platform/services/statecraft/api/projects/scaffold/githubRepoCreate.ts` — `createRepoWithBranchProtection`
+  - `platform/services/statecraft/api/projects/scaffold/githubPushInitial.ts` — initial-push pattern (we substitute `git push --mirror`)
+  - `platform/services/statecraft/api/projects/importArtifacts.ts` — `registerRawArtifactsFromRepo`
+  - `platform/services/statecraft/api/projects/tokenResolver.ts` — `resolveProjectToken`
+  - `platform/services/statecraft/api/github/repoInit.ts` — `createGitHubRepo`, `configureBranchProtection`, `brokerInstallationToken`
+  - `platform/services/statecraft/api/auth/membership.ts` — `hasOrgPermission`
+  - `platform/services/statecraft/web/app/routes/app._index.tsx:46-79` — header to rename
+  - `platform/services/statecraft/web/app/routes/app._index.tsx:211-248` — row affordances + Copy-icon stub to wire
+  - `platform/services/statecraft/web/app/routes/app.tsx:42-46` — top-nav `NAV_ITEMS` to relabel
+  - `platform/services/statecraft/web/app/lib/projects-api.server.ts:75-110` — pattern for new helper functions
 - Related specs: 087 (workspace-as-atom), 108 (factory adapters), 109 (token resolver), 112 (import flow we mirror)

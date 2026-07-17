@@ -20,7 +20,7 @@ use super::factory_platform::{
     platform_context, prepare_run_root, FactoryError, RunEmitter,
 };
 use super::keychain::clone_token_load;
-use super::stagecraft_client::{StagecraftClient, StagecraftState};
+use super::statecraft_client::{StatecraftClient, StatecraftState};
 use super::sync_client::{
     FactoryAgentRef, FactoryRunTokenSpend, FactoryStageOutcome, FnHandler,
     KnowledgeBundle as WireKnowledgeBundle, ServerEnvelopeWire, SyncClientState,
@@ -40,7 +40,7 @@ const DEFAULT_PROCESS_NAME: &str = "";
 /// keychain and surface it as `{ GITHUB_TOKEN: <value> }` for the
 /// factory engine subprocess. Empty map when:
 ///   * no `project_id` is supplied (local-only pipeline run, no
-///     stagecraft binding),
+///     statecraft binding),
 ///   * no clone token is stored (public repo, anonymous run), or
 ///   * the keychain read errors (logged once, run continues
 ///     anonymously — surfaces as 401 from GitHub if the run actually
@@ -318,7 +318,7 @@ pub struct PipelineRunSummary {
 
 /// Normalise a factory stage id to its `sN` prefix so ids that differ only by
 /// their descriptive suffix join across vocabularies. OPC's local step ids are
-/// `s4-api-specification` / `s5-ui-specification`; stagecraft's `PIPELINE_STAGES`
+/// `s4-api-specification` / `s5-ui-specification`; statecraft's `PIPELINE_STAGES`
 /// use `s4-api-spec` / `s5-ui-spec`; the human sign-off surface labels them
 /// `s1`/`s2`/`s3`. All share the leading `sN` token, which is the stable join
 /// key. Returns `None` for anything that is not `s<digits>` (optionally
@@ -335,7 +335,7 @@ fn stage_prefix(stage_id: &str) -> Option<String> {
 
 /// Given the currently-pending gate step ids, find the one whose stage-prefix
 /// matches `stage_id` (see `stage_prefix`). This is the join that lets a
-/// stagecraft-web `stage_confirmed` (carrying `s4-api-spec` or the `s1` label)
+/// statecraft-web `stage_confirmed` (carrying `s4-api-spec` or the `s1` label)
 /// resolve the OPC-local gate keyed `s4-api-specification`. When several
 /// pending gates share a prefix (not expected), the lexically smallest is
 /// chosen so the selection is deterministic.
@@ -387,8 +387,8 @@ impl TauriGateHandler {
 
     /// Resolve a pending gate matched by stage-prefix rather than exact step id
     /// (see `match_pending_stage`), returning the local step id that resolved.
-    /// This is the path a gate approved on the stagecraft web surface takes: the
-    /// `stage_confirmed` `factory.event` carries stagecraft's stage id, which
+    /// This is the path a gate approved on the statecraft web surface takes: the
+    /// `stage_confirmed` `factory.event` carries statecraft's stage id, which
     /// only prefix-matches the OPC-local gate key.
     fn approve_by_prefix(&self, stage_id: &str) -> Result<String, String> {
         let mut pending = self.pending.lock().map_err(|e| e.to_string())?;
@@ -493,12 +493,12 @@ struct FactoryRunContext {
     /// names. `build_status_response` iterates this so the status it returns
     /// reflects the platform process definition, not a hardcoded skeleton.
     stage_defs: Vec<StageDef>,
-    /// When set, lifecycle events are dual-written to this Stagecraft project.
-    stagecraft_project_id: Option<String>,
-    /// The Stagecraft-assigned pipeline ID, captured from init_pipeline response.
-    stagecraft_pipeline_id: Mutex<Option<String>>,
+    /// When set, lifecycle events are dual-written to this Statecraft project.
+    statecraft_project_id: Option<String>,
+    /// The Statecraft-assigned pipeline ID, captured from init_pipeline response.
+    statecraft_pipeline_id: Mutex<Option<String>>,
     /// Tab/execution session that owns this run (spec 110 §2.4). Minted on
-    /// tab creation for stagecraft-triggered runs; a fresh UUID for OPC-direct
+    /// tab creation for statecraft-triggered runs; a fresh UUID for OPC-direct
     /// runs. Surfaces back on `factory.run.ack` and on every `execution.status`
     /// the run emits.
     session_id: String,
@@ -526,7 +526,7 @@ static FACTORY_RUNS: LazyLock<Mutex<HashMap<String, Arc<FactoryRunContext>>>> =
 /// envelope wins and subsequent retries for the same `pipeline_id` become
 /// no-ops. Entries live for the life of the OPC process — a retry after a
 /// process restart is treated as a fresh request (the prior run persisted its
-/// state to disk and stagecraft correlates by pipeline_id regardless).
+/// state to disk and statecraft correlates by pipeline_id regardless).
 static FACTORY_RUN_REQUESTS_SEEN: LazyLock<Mutex<HashSet<String>>> =
     LazyLock::new(|| Mutex::new(HashSet::new()));
 
@@ -619,9 +619,9 @@ fn now_iso() -> String {
     Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string()
 }
 
-/// Fire-and-forget: update pipeline status in Stagecraft.
+/// Fire-and-forget: update pipeline status in Statecraft.
 fn sc_update_status(
-    sc: &StagecraftClient,
+    sc: &StatecraftClient,
     project_id: &str,
     pipeline_id: &str,
     status: &str,
@@ -648,37 +648,37 @@ fn sc_update_status(
             )
             .await
         {
-            log::warn!("Stagecraft status update failed ({status}): {e}");
+            log::warn!("Statecraft status update failed ({status}): {e}");
         }
     });
 }
 
-/// Resolve the Stagecraft client + project_id + pipeline_id triple if dual-write is active.
+/// Resolve the Statecraft client + project_id + pipeline_id triple if dual-write is active.
 fn resolve_sc_context(
     ctx: &FactoryRunContext,
-    sc_client: &Option<Arc<StagecraftClient>>,
-) -> Option<(Arc<StagecraftClient>, String, String)> {
+    sc_client: &Option<Arc<StatecraftClient>>,
+) -> Option<(Arc<StatecraftClient>, String, String)> {
     let sc = sc_client.as_ref()?;
-    let project_id = ctx.stagecraft_project_id.as_ref()?;
-    let pipeline_id = ctx.stagecraft_pipeline_id.lock().ok()?.clone()?;
+    let project_id = ctx.statecraft_project_id.as_ref()?;
+    let pipeline_id = ctx.statecraft_pipeline_id.lock().ok()?.clone()?;
     Some((sc.clone(), project_id.clone(), pipeline_id))
 }
 
-/// Fire-and-forget: post step-level events from a dispatch summary to Stagecraft.
+/// Fire-and-forget: post step-level events from a dispatch summary to Statecraft.
 /// When a `SyncTracker` is provided, records ack/fail for promotion eligibility (099 Slice 1).
 fn sc_ingest_step_events(
-    sc: &StagecraftClient,
+    sc: &StatecraftClient,
     project_id: &str,
     pipeline_id: &str,
     summary: &orchestrator::RunSummary,
     phase: &str,
     sync_tracker: Option<&SyncTracker>,
 ) {
-    let events: Vec<super::stagecraft_client::OrchestratorEventReport> = summary
+    let events: Vec<super::statecraft_client::OrchestratorEventReport> = summary
         .steps
         .iter()
         .flat_map(|step| {
-            let mut evts = vec![super::stagecraft_client::OrchestratorEventReport {
+            let mut evts = vec![super::statecraft_client::OrchestratorEventReport {
                 event_type: "step_completed".into(),
                 step_id: Some(step.step_id.clone()),
                 timestamp: now_iso(),
@@ -716,7 +716,7 @@ fn sc_ingest_step_events(
                 }
             }
             Err(e) => {
-                log::warn!("Stagecraft event ingestion failed: {e}");
+                log::warn!("Statecraft event ingestion failed: {e}");
                 if let Some(ref t) = tracker {
                     t.record_events_fail(e.to_string());
                 }
@@ -725,9 +725,9 @@ fn sc_ingest_step_events(
     });
 }
 
-/// Record step output artifacts to Stagecraft for promotion eligibility (099).
+/// Record step output artifacts to Statecraft for promotion eligibility (099).
 fn sc_record_artifacts(
-    sc: &StagecraftClient,
+    sc: &StatecraftClient,
     project_id: &str,
     pipeline_id: &str,
     summary: &orchestrator::RunSummary,
@@ -752,7 +752,7 @@ fn sc_record_artifacts(
                 .extension()
                 .map(|e| e.to_string_lossy().to_string())
                 .unwrap_or_else(|| "unknown".to_string());
-            artifacts.push(super::stagecraft_client::ArtifactRecord {
+            artifacts.push(super::statecraft_client::ArtifactRecord {
                 artifact_type: ext,
                 content_hash: hash.clone(),
                 storage_path: filename.clone(),
@@ -783,7 +783,7 @@ fn sc_record_artifacts(
                 }
             }
             Err(e) => {
-                log::warn!("Stagecraft artifact recording failed: {e}");
+                log::warn!("Statecraft artifact recording failed: {e}");
                 if let Some(ref t) = tracker {
                     t.record_artifacts_fail(e.to_string());
                 }
@@ -1105,7 +1105,7 @@ pub async fn list_factory_adapters(app: AppHandle) -> Result<Vec<FactoryAdapterO
 ///
 /// A run surfaced from the platform run list carries no local filesystem path:
 /// `list_factory_runs` now leaves `project_path` empty rather than emitting the
-/// stagecraft project UUID, which the old code canonicalised straight into a
+/// statecraft project UUID, which the old code canonicalised straight into a
 /// raw `No such file or directory (os error 2)` when the user clicked Resume on
 /// a project that has no local copy on this machine. Resume genuinely needs the
 /// local directory that holds the run's `.factory/runs/<id>` artifacts, so when
@@ -1138,7 +1138,7 @@ pub async fn start_factory_pipeline(
     adapter_name: String,
     process_name: Option<String>,
     business_doc_paths: Vec<String>,
-    stagecraft_project_id: Option<String>,
+    statecraft_project_id: Option<String>,
     session_id: Option<String>,
 ) -> Result<StartPipelineResponse, String> {
     let process_name = process_name
@@ -1168,7 +1168,7 @@ pub async fn start_factory_pipeline(
         &ctx_pf,
         &adapter_name,
         &process_name,
-        stagecraft_project_id.as_deref(),
+        statecraft_project_id.as_deref(),
     )
     .await
     .map_err(FactoryError::into_user_message)?;
@@ -1267,9 +1267,9 @@ pub async fn start_factory_pipeline(
         audit_trail: Mutex::new(vec![initial_audit]),
         stage_status: Mutex::new(initial_stages),
         stage_defs,
-        stagecraft_project_id: stagecraft_project_id.clone(),
-        stagecraft_pipeline_id: Mutex::new(None),
-        // Tab/execution session (spec 110 §2.4). Stagecraft-triggered runs
+        statecraft_project_id: statecraft_project_id.clone(),
+        statecraft_pipeline_id: Mutex::new(None),
+        // Tab/execution session (spec 110 §2.4). Statecraft-triggered runs
         // pass the minted id from the envelope handler; OPC-direct runs
         // generate a fresh one so the invariant "every run has a session"
         // holds uniformly.
@@ -1291,16 +1291,16 @@ pub async fn start_factory_pipeline(
     // here on; no on-disk state.json is written.
     let _ = platform_run_id;
 
-    // Dual-write: register pipeline with Stagecraft (fire-and-forget).
-    if let Some(sc_project_id) = &stagecraft_project_id {
-        let sc_opt: Option<Arc<StagecraftClient>> =
-            app.try_state::<StagecraftState>().and_then(|s| s.current());
+    // Dual-write: register pipeline with Statecraft (fire-and-forget).
+    if let Some(sc_project_id) = &statecraft_project_id {
+        let sc_opt: Option<Arc<StatecraftClient>> =
+            app.try_state::<StatecraftState>().and_then(|s| s.current());
         if let Some(sc) = sc_opt {
             let pid = sc_project_id.clone();
             let adapter = adapter_name.clone();
             let docs: Vec<_> = business_doc_paths
                 .iter()
-                .map(|p| super::stagecraft_client::BusinessDocRef {
+                .map(|p| super::statecraft_client::BusinessDocRef {
                     name: PathBuf::from(p)
                         .file_name()
                         .and_then(|n| n.to_str())
@@ -1317,32 +1317,32 @@ pub async fn start_factory_pipeline(
                         // Log the id triad so a repro can correlate the three
                         // identities in play: the OPC-local run_id, the platform
                         // reservation row (`platform_run_id`, the id the web UI
-                        // shows), and the stagecraft `pipeline_id` that inbound
+                        // shows), and the statecraft `pipeline_id` that inbound
                         // `factory.event` gate approvals are keyed on
                         // (find_run_by_pipeline). A web run_id that differs from
                         // this pipeline_id is the "gates approved on web, nothing
                         // happens locally" correlation miss.
                         log::info!(
-                            "Stagecraft pipeline registered: pipeline_id={} (local run_id={}, platform_run_id={})",
+                            "Statecraft pipeline registered: pipeline_id={} (local run_id={}, platform_run_id={})",
                             resp.pipeline_id, ctx_init.run_id, ctx_init.platform_run_id
                         );
-                        if let Ok(mut guard) = ctx_init.stagecraft_pipeline_id.lock() {
+                        if let Ok(mut guard) = ctx_init.statecraft_pipeline_id.lock() {
                             *guard = Some(resp.pipeline_id);
                         }
                     }
                     Err(e) => {
-                        // Fail loud, not a silent warn: with no stagecraft
+                        // Fail loud, not a silent warn: with no statecraft
                         // pipeline_id recorded, find_run_by_pipeline can never
                         // match this run, so every web-side gate approval for it
                         // is silently undeliverable (spec 076/124). Surface it in
                         // the UI so the operator sees that governance sign-off
                         // will not reach this run.
                         log::error!(
-                            "Stagecraft init_pipeline failed for local run_id={}: web gate approvals will NOT reach this run: {e}",
+                            "Statecraft init_pipeline failed for local run_id={}: web gate approvals will NOT reach this run: {e}",
                             ctx_init.run_id
                         );
                         let _ = app_for_init.emit(
-                            "factory:stagecraft_correlation_failed",
+                            "factory:statecraft_correlation_failed",
                             &serde_json::json!({
                                 "runId": ctx_init.run_id.to_string(),
                                 "platformRunId": ctx_init.platform_run_id,
@@ -1372,10 +1372,10 @@ pub async fn start_factory_pipeline(
     let manifest = start.manifest;
     let adapter_for_spawn = adapter_name.clone();
     let ctx_for_spawn = ctx.clone();
-    let project_id_for_spawn = stagecraft_project_id.clone();
-    let sc_client: Option<Arc<StagecraftClient>> = stagecraft_project_id
+    let project_id_for_spawn = statecraft_project_id.clone();
+    let sc_client: Option<Arc<StatecraftClient>> = statecraft_project_id
         .as_ref()
-        .and_then(|_| app.try_state::<StagecraftState>())
+        .and_then(|_| app.try_state::<StatecraftState>())
         .and_then(|s| s.current());
     // Spec 124 §6.1 — per-stage agent triple captured at reservation time
     // is stamped onto every `factory.run.stage_started` envelope by the
@@ -1425,12 +1425,12 @@ pub async fn start_factory_pipeline(
 
     tokio::spawn(async move {
         // Mark the start of the governance+execution task. Without this the
-        // OPC log jumped straight from "Stagecraft pipeline registered" to
+        // OPC log jumped straight from "Statecraft pipeline registered" to
         // silence whenever governance stalled, giving no signal the local
         // executor ever began (the UI sat at "Waiting for agent output").
         log::info!("factory run {run_id}: governance+execution task started");
 
-        // Dual-write: mark pipeline as "running" in Stagecraft.
+        // Dual-write: mark pipeline as "running" in Statecraft.
         if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
             sc_update_status(
                 &sc,
@@ -1450,7 +1450,7 @@ pub async fn start_factory_pipeline(
         // project binding / platform client) proceeds ungoverned and is
         // visibly logged; its factory content already passed the
         // admission-gated bundle, and its certificate stays unsealed.
-        let governance = match (&sc_client, ctx_for_spawn.stagecraft_project_id.as_deref()) {
+        let governance = match (&sc_client, ctx_for_spawn.statecraft_project_id.as_deref()) {
             (Some(sc), Some(project_id)) => {
                 let run_dir =
                     super::run_governance::run_dir_for(&project_path, &run_id.to_string());
@@ -1696,7 +1696,7 @@ pub async fn start_factory_pipeline(
             )
             .ok();
 
-        // Dual-write: report Phase 1 token spend per stage to Stagecraft.
+        // Dual-write: report Phase 1 token spend per stage to Statecraft.
         if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
             let rid = run_id.to_string();
             for step in &summary1.steps {
@@ -1717,7 +1717,7 @@ pub async fn start_factory_pipeline(
                         .await
                     {
                         log::warn!(
-                            "Stagecraft token-spend report failed for {}: {e}",
+                            "Statecraft token-spend report failed for {}: {e}",
                             step.step_id
                         );
                     }
@@ -1812,7 +1812,7 @@ pub async fn start_factory_pipeline(
             )
             .ok();
 
-        // Dual-write: transition to scaffolding phase in Stagecraft.
+        // Dual-write: transition to scaffolding phase in Statecraft.
         if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
             sc_update_status(
                 &sc,
@@ -1978,7 +1978,7 @@ pub async fn start_factory_pipeline(
         )
         .await;
 
-        // Dual-write: report Phase 2 (scaffolding) token spend and scaffold progress to Stagecraft.
+        // Dual-write: report Phase 2 (scaffolding) token spend and scaffold progress to Statecraft.
         if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
             let rid = run_id.to_string();
             let mut scaffold_total: u64 = 0;
@@ -1999,18 +1999,18 @@ pub async fn start_factory_pipeline(
                     )
                     .await
                 {
-                    log::warn!("Stagecraft token-spend report failed for s6-scaffolding: {e}");
+                    log::warn!("Statecraft token-spend report failed for s6-scaffolding: {e}");
                 }
             }
 
             // Report scaffold feature progress.
-            let features: Vec<super::stagecraft_client::ScaffoldFeatureReport> = summary2
+            let features: Vec<super::statecraft_client::ScaffoldFeatureReport> = summary2
                 .steps
                 .iter()
                 .map(|step| {
                     let tokens = step.tokens_used.unwrap_or(0);
                     let half = tokens / 2;
-                    super::stagecraft_client::ScaffoldFeatureReport {
+                    super::statecraft_client::ScaffoldFeatureReport {
                         feature_id: step.step_id.clone(),
                         category: infer_scaffold_category(&step.step_id),
                         status: match step.status {
@@ -2029,14 +2029,14 @@ pub async fn start_factory_pipeline(
             if !features.is_empty()
                 && let Err(e) = sc.report_scaffold_progress(&pid, &plid, &features).await
             {
-                log::warn!("Stagecraft scaffold-progress report failed: {e}");
+                log::warn!("Statecraft scaffold-progress report failed: {e}");
             }
 
             // Ingest step-level events for audit trail.
             sc_ingest_step_events(&sc, &pid, &plid, &summary2, "scaffold", Some(&sync_tracker));
             sc_record_artifacts(&sc, &pid, &plid, &summary2, "scaffold", Some(&sync_tracker));
 
-            // Mark pipeline as completed in Stagecraft.
+            // Mark pipeline as completed in Statecraft.
             sc_update_status(&sc, &pid, &plid, "completed", None, None, None);
         }
 
@@ -2183,18 +2183,18 @@ pub async fn confirm_factory_stage(
             feedback: None,
         });
 
-        sc_project_id = ctx.stagecraft_project_id.clone();
+        sc_project_id = ctx.statecraft_project_id.clone();
     }
 
-    // Dual-write: confirm stage in Stagecraft (fire-and-forget).
+    // Dual-write: confirm stage in Statecraft (fire-and-forget).
     if let Some(pid) = sc_project_id {
-        let sc_opt: Option<Arc<StagecraftClient>> =
-            app.try_state::<StagecraftState>().and_then(|s| s.current());
+        let sc_opt: Option<Arc<StatecraftClient>> =
+            app.try_state::<StatecraftState>().and_then(|s| s.current());
         if let Some(sc) = sc_opt {
             let sid = stage_id;
             tokio::spawn(async move {
                 if let Err(e) = sc.confirm_stage(&pid, &sid, None).await {
-                    log::warn!("Stagecraft confirm_stage failed for {sid}: {e}");
+                    log::warn!("Statecraft confirm_stage failed for {sid}: {e}");
                 }
             });
         }
@@ -2228,7 +2228,7 @@ pub async fn reject_factory_stage(
             feedback: Some(feedback.clone()),
         });
 
-        sc_project_id = ctx.stagecraft_project_id.clone();
+        sc_project_id = ctx.statecraft_project_id.clone();
     }
 
     app.emit(
@@ -2241,16 +2241,16 @@ pub async fn reject_factory_stage(
     )
     .map_err(|e| format!("emit factory:stage_rejected failed: {e}"))?;
 
-    // Dual-write: reject stage in Stagecraft (fire-and-forget).
+    // Dual-write: reject stage in Statecraft (fire-and-forget).
     if let Some(pid) = sc_project_id {
-        let sc_opt: Option<Arc<StagecraftClient>> =
-            app.try_state::<StagecraftState>().and_then(|s| s.current());
+        let sc_opt: Option<Arc<StatecraftClient>> =
+            app.try_state::<StatecraftState>().and_then(|s| s.current());
         if let Some(sc) = sc_opt {
             let sid = stage_id;
             let fb = feedback;
             tokio::spawn(async move {
                 if let Err(e) = sc.reject_stage(&pid, &sid, &fb).await {
-                    log::warn!("Stagecraft reject_stage failed for {sid}: {e}");
+                    log::warn!("Statecraft reject_stage failed for {sid}: {e}");
                 }
             });
         }
@@ -2284,7 +2284,7 @@ pub async fn cancel_factory_pipeline(
             feedback: None,
         });
 
-        (ctx.stagecraft_project_id.clone(), ctx)
+        (ctx.statecraft_project_id.clone(), ctx)
     };
 
     // Spec 124 §6 — terminal `factory.run.cancelled`.
@@ -2299,14 +2299,14 @@ pub async fn cancel_factory_pipeline(
     )
     .map_err(|e| format!("emit factory:workflow_cancelled failed: {e}"))?;
 
-    // Dual-write: cancel in Stagecraft
+    // Dual-write: cancel in Statecraft
     if let Some(pid) = sc_project_id {
-        let sc_opt: Option<Arc<StagecraftClient>> =
-            app.try_state::<StagecraftState>().and_then(|s| s.current());
+        let sc_opt: Option<Arc<StatecraftClient>> =
+            app.try_state::<StatecraftState>().and_then(|s| s.current());
         if let Some(sc) = sc_opt {
             tokio::spawn(async move {
                 if let Err(e) = sc.cancel_pipeline(&pid, &reason).await {
-                    log::warn!("Stagecraft cancel_pipeline failed: {e}");
+                    log::warn!("Statecraft cancel_pipeline failed: {e}");
                 }
             });
         }
@@ -2394,7 +2394,7 @@ pub async fn list_factory_runs(
                 run_id: row.id,
                 adapter: String::new(),
                 // The platform run list has no local filesystem path; it only
-                // knows the stagecraft project UUID. Emitting that UUID here
+                // knows the statecraft project UUID. Emitting that UUID here
                 // made Resume run `PathBuf::from(uuid).canonicalize()` -> ENOENT
                 // ("resolve project path failed"). Leave it empty so the
                 // frontend falls back to the open project's real clone path, or
@@ -2526,7 +2526,7 @@ pub async fn resume_factory_pipeline(
     project_path: String,
     adapter_name: String,
     process_name: Option<String>,
-    stagecraft_project_id: Option<String>,
+    statecraft_project_id: Option<String>,
 ) -> Result<(), String> {
     let process_name = process_name
         .filter(|s| !s.trim().is_empty())
@@ -2559,7 +2559,7 @@ pub async fn resume_factory_pipeline(
         adapter_name
     };
 
-    // Spec 124 §5/§6 — authenticate against stagecraft, reserve a new
+    // Spec 124 §5/§6 — authenticate against statecraft, reserve a new
     // platform row for the resumed attempt, and materialise the cache
     // root from the platform-fed adapter/process bodies.
     let ctx_pf = platform_context(&app).map_err(FactoryError::into_user_message)?;
@@ -2567,7 +2567,7 @@ pub async fn resume_factory_pipeline(
         &ctx_pf,
         &adapter_name,
         &process_name,
-        stagecraft_project_id.as_deref(),
+        statecraft_project_id.as_deref(),
     )
     .await
     .map_err(FactoryError::into_user_message)?;
@@ -2605,7 +2605,7 @@ pub async fn resume_factory_pipeline(
     let lookup = Arc::new(BridgeLookup(bridge.clone()));
     // Spec 112 §6.4.5 — thread the project's clone token through resumed runs
     // too, so re-entry after a pause does not silently downgrade to anon.
-    let extra_env = clone_token_env_for_project(stagecraft_project_id.as_deref());
+    let extra_env = clone_token_env_for_project(statecraft_project_id.as_deref());
     let resume_emitter = RunEmitter::new(&app, platform_run_id.clone())
         .map_err(FactoryError::into_user_message)?;
     let stage_agents: Arc<HashMap<String, FactoryAgentRef>> = Arc::new(
@@ -2671,10 +2671,10 @@ pub async fn resume_factory_pipeline(
     // handler treats a re-request after restart as chain extension; the
     // capsule is deterministic (same goal text → same goal id), so a
     // resume that quietly changed objective would refuse as goal-shift.
-    let sc_for_resume: Option<Arc<StagecraftClient>> = app
-        .try_state::<StagecraftState>()
+    let sc_for_resume: Option<Arc<StatecraftClient>> = app
+        .try_state::<StatecraftState>()
         .and_then(|s| s.current());
-    let resume_project_id = stagecraft_project_id.clone();
+    let resume_project_id = statecraft_project_id.clone();
     let adapter_for_resume = adapter_name.clone();
     let project_path_for_resume = project_path.clone();
     let platform_run_id_for_resume = platform_run_id.clone();
@@ -2915,7 +2915,7 @@ pub async fn resume_factory_pipeline(
 // ---------------------------------------------------------------------------
 
 /// Reasons a knowledge-bundle materialisation can fail. Each variant maps to
-/// a distinct decline_reason on `factory.run.ack` so stagecraft can record
+/// a distinct decline_reason on `factory.run.ack` so statecraft can record
 /// why the run never started.
 #[derive(Debug, thiserror::Error)]
 pub enum KnowledgeMaterializationError {
@@ -3142,19 +3142,19 @@ pub fn register_factory_run_handler(app: AppHandle, opc_instance_id: String) {
     log::info!("sync_client: factory.run.request dispatch handler registered");
 }
 
-/// Find the live run whose `stagecraft_pipeline_id` matches `pipeline_id`.
+/// Find the live run whose `statecraft_pipeline_id` matches `pipeline_id`.
 ///
 /// `factory.event` frames are org-scoped broadcasts, so most desktops (and most
 /// runs on this desktop) will not match: a `None` result is the common,
 /// non-error case. The `FACTORY_RUNS` lock is released before the per-run
-/// `stagecraft_pipeline_id` mutexes are read so the two never nest.
+/// `statecraft_pipeline_id` mutexes are read so the two never nest.
 fn find_run_by_pipeline(pipeline_id: &str) -> Option<(String, Arc<FactoryRunContext>)> {
     let candidates: Vec<(String, Arc<FactoryRunContext>)> = {
         let runs = FACTORY_RUNS.lock().ok()?;
         runs.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
     };
     candidates.into_iter().find(|(_, ctx)| {
-        ctx.stagecraft_pipeline_id
+        ctx.statecraft_pipeline_id
             .lock()
             .ok()
             .and_then(|g| g.clone())
@@ -3188,12 +3188,12 @@ fn extract_factory_event(envelope: &ServerEnvelopeWire) -> Option<InboundFactory
 
 /// Apply a decoded `factory.event` to the matching local run.
 ///
-/// The load-bearing case is a gate approved/rejected on the stagecraft web
+/// The load-bearing case is a gate approved/rejected on the statecraft web
 /// surface: `confirm`/`reject` there publish `stage_confirmed`/`stage_rejected`
-/// (`platform/services/stagecraft/api/factory/factory.ts`), which is the only
+/// (`platform/services/statecraft/api/factory/factory.ts`), which is the only
 /// path by which a web-side sign-off can resolve the OPC local pipeline's
 /// pending gate oneshot. The symmetric OPC-side path (`confirm_factory_stage`)
-/// already dual-writes to stagecraft; this closes the loop the other direction.
+/// already dual-writes to statecraft; this closes the loop the other direction.
 /// An echo of a gate already resolved locally simply finds no pending gate and
 /// no-ops (logged at debug, not error).
 fn apply_factory_event(event: &InboundFactoryEvent) {
@@ -3202,8 +3202,8 @@ fn apply_factory_event(event: &InboundFactoryEvent) {
         // frames are for runs on other desktops. But this is ALSO the signature
         // of a correlation miss: a gate approved on the web for a run THIS
         // desktop is executing, under a pipeline_id that never got recorded in
-        // its stagecraft_pipeline_id. Logged at debug so a repro can compare
-        // this id against the "Stagecraft pipeline registered: pipeline_id=..."
+        // its statecraft_pipeline_id. Logged at debug so a repro can compare
+        // this id against the "Statecraft pipeline registered: pipeline_id=..."
         // line and tell the two cases apart.
         log::debug!(
             "factory.event {} for pipeline_id={} matched no local run",
@@ -3233,7 +3233,7 @@ fn apply_factory_event(event: &InboundFactoryEvent) {
                 log::warn!("factory.event stage_rejected without stage_id (run {run_id})");
                 return;
             };
-            let feedback = event.feedback.as_deref().unwrap_or("rejected on stagecraft");
+            let feedback = event.feedback.as_deref().unwrap_or("rejected on statecraft");
             match ctx.gate_handler.reject_by_prefix(stage_id, feedback) {
                 Ok(resolved) => log::info!(
                     "factory.event: remote stage_rejected '{stage_id}' resolved local gate '{resolved}' (run {run_id})"
@@ -3256,7 +3256,7 @@ fn apply_factory_event(event: &InboundFactoryEvent) {
 /// Mirrors `register_factory_run_handler`. `factory.event` frames were already
 /// decoded by `ServerEnvelopeWire` but had no registered handler, so every one
 /// was dropped with "no handler registered", including the `stage_confirmed`
-/// frames that carry a stagecraft-web gate approval back to the OPC run. The
+/// frames that carry a statecraft-web gate approval back to the OPC run. The
 /// handler body is synchronous (a fast oneshot resolve under a brief lock), so
 /// unlike the run-request handler it does not spawn.
 pub fn register_factory_event_handler(app: AppHandle) {
@@ -3282,7 +3282,7 @@ pub fn register_factory_event_handler(app: AppHandle) {
 /// duplex subscription lands in Phase 6 hardening), and returns the path to
 /// the rendered `s1-context.md` artifact as the sole input for the LLM
 /// stages. When the bundle contains a non-deterministic object the stage
-/// fails fast with `NoStagecraftClient`; the caller surfaces it via the
+/// fails fast with `NoStatecraftClient`; the caller surfaces it via the
 /// run-ack channel.
 async fn run_orchestrated_s_minus_1_extract(
     run: &InboundFactoryRun,
@@ -3340,7 +3340,7 @@ async fn handle_factory_run_request(
     // not a presigned `download_url` like knowledge bundles), so they are
     // excluded from this run's inputs, but the exclusion is now visible in the
     // log instead of invisible. Full support requires presigning these in the
-    // stagecraft relay (as knowledge is) and materialising them here.
+    // statecraft relay (as knowledge is) and materialising them here.
     if !run.business_doc_names.is_empty() {
         log::warn!(
             "factory.run.request pipeline_id={} carries {} explicit business_docs OPC cannot yet materialise (storage_ref not presigned); excluded from inputs: {:?}",
@@ -3351,7 +3351,7 @@ async fn handle_factory_run_request(
     }
 
     // Step 1: materialise knowledge bundles. Hash mismatch is a trust-boundary
-    // failure — decline the run and let stagecraft mark it failed.
+    // failure — decline the run and let statecraft mark it failed.
     let mut materialised: Vec<(WireKnowledgeBundle, std::path::PathBuf)> =
         Vec::with_capacity(run.knowledge.len());
     for bundle in &run.knowledge {
@@ -3573,7 +3573,7 @@ mod tests {
             "s0-preflight".to_string(),
             "s4-api-specification".to_string(),
         ];
-        // stagecraft's PIPELINE_STAGES id joins the drifted OPC key.
+        // statecraft's PIPELINE_STAGES id joins the drifted OPC key.
         assert_eq!(
             match_pending_stage(keys.iter(), "s4-api-spec").as_deref(),
             Some("s4-api-specification")
@@ -3918,11 +3918,11 @@ mod tests {
     //
     // The full integration assertion (platform row reaches `status: ok`
     // with all stages recorded) is gated on `OAP_INTEGRATION=1` because
-    // it requires a running stagecraft + Postgres. The test below covers
+    // it requires a running statecraft + Postgres. The test below covers
     // the desktop's contribution to that path: the order, identity, and
     // payload of every `factory.run.*` envelope a successful run emits.
     // The platform-side assertion lives in
-    // `platform/services/stagecraft/api/factory/runs.test.ts` and the
+    // `platform/services/statecraft/api/factory/runs.test.ts` and the
     // duplex handler tests under spec 124 Phase 3.
     // -----------------------------------------------------------------
 

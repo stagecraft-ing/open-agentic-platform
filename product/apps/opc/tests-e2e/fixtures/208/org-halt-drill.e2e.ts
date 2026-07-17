@@ -5,7 +5,7 @@ import { launchOpc, type OpcSession } from "../_session";
 //
 // "A kill switch that has never been pulled is decoration" (FR-005). This drill
 // pulls an org halt against a live, seeded cockpit over the spec-187
-// mock-stagecraft seam and asserts the REAL client-side propagation bound: the
+// mock-statecraft seam and asserts the REAL client-side propagation bound: the
 // OPC duplex client (on_org_halt_activated, live_sessions.rs) acknowledges the
 // halt and, after the lift, the reintegration. Those per-engine ack timestamps
 // are what FR-003/FR-004 make "an audited fact after every pull".
@@ -21,18 +21,18 @@ import { launchOpc, type OpcSession } from "../_session";
 //  - disconnected leg: modeled. The OPC sync client has no local halt-awareness
 //    (it retries any non-101 handshake with backoff, sync_client.rs), so
 //    "refused at the reconnect handshake" is the server's job. The mock refuses
-//    the handshake (standing in for a halted stagecraft) and the drill asserts
+//    the handshake (standing in for a halted statecraft) and the drill asserts
 //    the boot gate stays sticky.
 //  - idle "next action refused" (AC-1): OUT OF SCOPE for a client drill. That is
-//    a stagecraft-side grant/registration refusal (AC-2), covered by
-//    platform/services/stagecraft/api/factory/orgHalt.test.ts.
+//    a statecraft-side grant/registration refusal (AC-2), covered by
+//    platform/services/statecraft/api/factory/orgHalt.test.ts.
 //
 // Runs in the spec-187 nightly lane, auto-discovered by the fixtures/**/*.e2e.ts
 // glob (vitest.e2e.config.ts), so no workflow edit is required (T021).
 
 const ORG_ID = "org_drill";
 const HALT_ID = "halt-drill-1";
-// MUST equal ENVELOPE_SCHEMA_VERSION (sync_client.rs / mock_stagecraft.ts). The
+// MUST equal ENVELOPE_SCHEMA_VERSION (sync_client.rs / mock_statecraft.ts). The
 // desktop client silently drops any frame whose meta.v differs.
 const ENVELOPE_V = 2;
 
@@ -115,7 +115,7 @@ describe("208 FR-005: org kill-switch pull-and-lift drill", () => {
   });
 
   it("disconnected engine stays refused at the reconnect handshake while halted", async () => {
-    // FR-003 disconnected leg. A halted stagecraft refuses the handshake fail-
+    // FR-003 disconnected leg. A halted statecraft refuses the handshake fail-
     // closed (no sync.hello served). The OPC client has no local halt state, so
     // from its side this is indistinguishable from any handshake refusal: it
     // never flips org_session_ready (= has_org && sync_hello) and the boot gate

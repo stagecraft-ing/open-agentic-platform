@@ -28,13 +28,13 @@ remainder the spec requires before 198 may be declared complete:
 
 ## Technical context
 
-**Languages**: TypeScript (Encore.ts stagecraft, npm not pnpm), Rust
+**Languages**: TypeScript (Encore.ts statecraft, npm not pnpm), Rust
 (`crates/factory-engine`, OPC `src-tauri`).
-**Wire**: stagecraft duplex (`api/sync/types.ts` flat wire union ↔
+**Wire**: statecraft duplex (`api/sync/types.ts` flat wire union ↔
 `product/apps/opc/src-tauri/src/commands/sync_client.rs`), governed by the
 schema-parity walker (specs 125/191) and duplex envelope version parity
 (spec 189).
-**Storage**: stagecraft Postgres via drizzle (next migrations: 44+).
+**Storage**: statecraft Postgres via drizzle (next migrations: 44+).
 **Crypto**: `node:crypto` platform-side (precedent: `api/github/appJwt.ts`
 RS256 — no `jose` dependency today, keep it that way); `ed25519-dalek`
 engine-side (must stay `cargo-deny` green, spec 116).
@@ -62,7 +62,7 @@ engine-side (must stay `cargo-deny` green, spec 116).
   `platform_countersign` + `admitted_envelope_hash` fields, both excluded
   from the certificate's self-hash so sealing never invalidates the offline
   chain). `factory.run.completed` is augmented with `certificate_sha256` +
-  final grant `seq`; stagecraft verifies the grant chain it issued
+  final grant `seq`; statecraft verifies the grant chain it issued
   (`factory_run_grants` rows for the run match count + capsule/envelope
   hashes), countersigns `{certificate_sha256, run_id, grant_chain_hash,
   kid}`, persists on `factory_runs`, replies with a new targeted
@@ -71,7 +71,7 @@ engine-side (must stay `cargo-deny` green, spec 116).
   verifies the seal offline (`--platform-jwks <file>`) or online
   (`--jwks-url`); a missing countersign prints *verifiable-but-unsealed*
   and stays exit 0 unless `--require-sealed`.
-- **PD-5 Admission seal.** At admission write, stagecraft signs the canonical
+- **PD-5 Admission seal.** At admission write, statecraft signs the canonical
   composed record; `{kid, signature, sealed_at}` is stored on
   `factory_admissions` and served with the OPC bundle's admission block. The
   engine verifies the seal against JWKS before trusting factory content
@@ -116,32 +116,32 @@ engine-side (must stay `cargo-deny` green, spec 116).
 
 ```text
 PR-A (seal + grants + countersign)
-platform/services/stagecraft/api/factory/
+platform/services/statecraft/api/factory/
 ├── signing.ts                      # NEW — key load, sign/verify, JWK export
 ├── jwks.ts                         # NEW — /api/factory/.well-known/jwks.json
 ├── grantDuplexHandlers.ts          # NEW — grant_request / grant_renew
 ├── admission.ts                    # MOD — seal at admission write
 ├── runDuplexHandlers.ts            # MOD — countersign on run.completed
 ├── revocations.ts                  # MOD — consult at grant issue/renew
-platform/services/stagecraft/api/sync/
+platform/services/statecraft/api/sync/
 ├── types.ts                        # MOD — new client/server envelope kinds
 ├── service.ts                      # MOD — dispatch new kinds
-platform/services/stagecraft/api/db/
+platform/services/statecraft/api/db/
 ├── migrations/44_factory_run_grants.{up,down}.sql   # NEW
 ├── schema.ts                       # MOD — factoryRunGrants table
 product/apps/opc/src-tauri/src/commands/sync_client.rs  # MOD — frames + kinds
 crates/factory-engine/src/
-├── stagecraft_client.rs            # MOD — grant request/renew, countersign rx
+├── statecraft_client.rs            # MOD — grant request/renew, countersign rx
 ├── governance_certificate.rs       # MOD — 1.4.0 fields + verify step
 ├── bin/verify_certificate.rs       # MOD — --platform-jwks / --jwks-url /
 │                                   #       --require-sealed
 Makefile                            # MOD — verify-certificate target args
 
 PR-B (override gate + closure)
-platform/services/stagecraft/api/factory/
+platform/services/statecraft/api/factory/
 ├── overrideGate.ts                 # NEW — FR-013(a) deterministic rules
 ├── artifacts.ts                    # MOD — gate + provenance + verify endpoint
-platform/services/stagecraft/api/db/migrations/45_user_body_verified.*  # NEW
+platform/services/statecraft/api/db/migrations/45_user_body_verified.*  # NEW
 specs/198-factory-governance-envelope/spec.md   # MOD — compliance: block,
 │                                   # establishes: for new files, ASI table refresh
 specs/200-substrate-override-async-scanner/     # NEW — draft stub (ASI06, FR-013 d)
@@ -172,7 +172,7 @@ commit; `make ci` for the Rust legs (pr-prep alone misses clippy).
 | AC-11 (gate + provenance + require_verified refusal) | PR-B phases D–E |
 
 End-to-end runtime verification (first real ADMIT → sealed grant chain →
-countersigned certificate) additionally requires the Stagecraft-side
+countersigned certificate) additionally requires the Statecraft-side
 `chore/envelope-schema-1.0.0-v2` merge + org re-sync — user-side
 preconditions tracked outside this plan. Until then the admission gate
 correctly REFUSES, and all new paths are covered by handler/engine tests.

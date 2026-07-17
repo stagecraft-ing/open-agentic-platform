@@ -12,7 +12,7 @@ risk: medium
 depends_on:
   - "106-rauthy-native-oidc-and-membership"  # rauthy-native-oidc-and-membership — runtime dependency: Grafana authenticates via Rauthy OIDC (client created manually; see FR-004)
   - "151-declarative-cluster-reconciliation"  # declarative-cluster-reconciliation — the Hetzner deploy mechanism (Flux HelmRelease) this rides on
-  - "078-platform-completion-plan"  # platform-completion-plan — stagecraft deployment + infra.config surface this refines
+  - "078-platform-completion-plan"  # platform-completion-plan — statecraft deployment + infra.config surface this refines
 code_aliases: ["METRICS_STACK", "PROMETHEUS_REMOTE_WRITE", "GRAFANA_OIDC"]
 # Implementation PR (2026-06-12) — the deferred edges land here, exactly as
 # the filing PR's frontmatter comment staged: an edge lands in the PR that
@@ -26,7 +26,7 @@ establishes:
   # 1. The metrics stack HelmRelease (FR-001/002/004/005/007/008/010).
   - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/infrastructure/monitoring.yaml }
   # 2. Monitoring-ns NetworkPolicies: default-deny + remote_write ingress ←
-  #    stagecraft-system ONLY + Grafana ingress ← ingress-nginx + bounded
+  #    statecraft-system ONLY + Grafana ingress ← ingress-nginx + bounded
   #    egress (FR-006 (a)/(b)/(c), SC-008/SC-009).
   - unit: { kind: file, path: platform/k8s/policies/monitoring/networkpolicy-monitoring.yaml }
   # (withdrawn 2026-06-12) Cross-namespace flow halves
@@ -51,7 +51,7 @@ refines:
   # Azure-metric-free split (FR-009, SC-004) no longer holds; the block now
   # lives in infra.config.json. (Supersession flagged for a formal amendment.)
   - aspect: "metrics-export"
-    unit: { kind: file, path: platform/services/stagecraft/infra.config.json }
+    unit: { kind: file, path: platform/services/statecraft/infra.config.json }
   # FR-003 — enable the controller's exporter + scrape annotations in the
   # spec-151 HelmRelease (metrics were NOT enabled at filing time).
   - aspect: "metrics-export"
@@ -88,21 +88,21 @@ extends:
 #   The Grafana OIDC client is created manually in the Rauthy admin UI (FR-004),
 #   following the documented [manual] OIDC-client convention in
 #   platform/infra/hetzner/.env.example ("[manual] OIDC clients … create in
-#   Rauthy admin … re-run ./setup.sh"), exactly like stagecraft-server and the
+#   Rauthy admin … re-run ./setup.sh"), exactly like statecraft-server and the
 #   GitHub/Google upstream providers. 196's only identity relationship is the
 #   runtime dependency carried by depends_on: 106 — no owned edge into the
 #   seeder or the Rauthy chart, hence no co-authorship and no collision surface.
 summary: >
   Stand up a Prometheus + Grafana metrics stack for the platform control plane.
-  Stagecraft (Encore.ts) already auto-instruments every API, PubSub, cron, and
+  Statecraft (Encore.ts) already auto-instruments every API, PubSub, cron, and
   DB call but emits nowhere; deployd-api, Flux, and ingress-nginx already carry
   scrape annotations nobody consumes. This spec wires a full kube-prometheus-stack
   (Prometheus server + Grafana + node-exporter + kube-state-metrics) that
-  RECEIVES stagecraft's Prometheus remote_write, SCRAPES the annotated pull
+  RECEIVES statecraft's Prometheus remote_write, SCRAPES the annotated pull
   targets, and SERVES Grafana — with Grafana fronted by native Rauthy OIDC.
   Metrics only: logs and distributed tracing (Encore's other two pillars) are
   out of scope and owned by later specs. Hetzner is implemented; the Azure
-  binding is declared-but-deferred. Zero stagecraft application-code change.
+  binding is declared-but-deferred. Zero statecraft application-code change.
 ---
 
 # Feature Specification: Platform metrics stack (Prometheus + Grafana)
@@ -110,7 +110,7 @@ summary: >
 **Feature Branch**: `196-platform-metrics-stack`
 **Created**: 2026-06-02
 **Status**: Draft
-**Input**: Wire Prometheus + Grafana into OAP. Stagecraft (Encore.ts) is
+**Input**: Wire Prometheus + Grafana into OAP. Statecraft (Encore.ts) is
 already capable of the integration; evaluate whether this is spec-worthy or a
 de-facto infra-config change.
 
@@ -132,7 +132,7 @@ scope (§Out of scope) and left to later specs.
 
 **What exists today:**
 
-- **Stagecraft auto-instruments but emits nowhere.** Encore.ts instruments
+- **Statecraft auto-instruments but emits nowhere.** Encore.ts instruments
   every API endpoint, PubSub topic, cron job, and DB query automatically — no
   application code is required. There is no `metrics` block in either
   `infra.config.json` or `infra.config.hetzner.json`, so nothing is exported.
@@ -142,7 +142,7 @@ scope (§Out of scope) and left to later specs.
   annotations describe an intent with no collector behind it.
   *(Corrected at implementation — see §Current-state corrections below:
   this held only for the Flux controllers.)*
-- **The two stagecraft infra configs are byte-identical.** They sit on
+- **The two statecraft infra configs are byte-identical.** They sit on
   different deploy paths (`infra.config.json` → Azure/default
   `encore build docker`; `infra.config.hetzner.json` → the Hetzner build) and
   exist precisely so per-cloud infrastructure can diverge. They coincide only
@@ -177,16 +177,16 @@ honest description of the starting state and the work needed to reach it:
    nowhere. FR-006's "preserved" posture and SC-005's original negative
    probe assumed otherwise. Resolution: the `monitoring` namespace ships
    with the deployment's **first enforced default-deny** plus the named
-   flows; the stagecraft-system egress allow lands as a
+   flows; the statecraft-system egress allow lands as a
    **declared, dormant-additive** flow (it changes nothing until that
    namespace gains default-deny under its own spec, at which point
    remote_write keeps flowing instead of silently dropping). SC-005 is
-   rescoped accordingly. Bringing default-deny to `stagecraft-system`
+   rescoped accordingly. Bringing default-deny to `statecraft-system`
    itself — which requires enumerating that service's full legitimate
    egress (DNS, Rauthy, postgres, NSQ, GitHub, S3, Slack, Anthropic) —
    is explicitly **not** this spec's scope.
 
-**Intent:** a single Prometheus server that receives stagecraft's remote_write,
+**Intent:** a single Prometheus server that receives statecraft's remote_write,
 scrapes the annotated targets, and serves Grafana; Grafana behind Rauthy OIDC;
 deployed declaratively via Flux on Hetzner. The first field to make the two
 infra configs **diverge** is the `metrics` block this spec adds.
@@ -201,10 +201,10 @@ Encore.ts metrics export is **push-only via Prometheus `remote_write`**. The
 
 | Source | Path | Mechanism |
 |---|---|---|
-| stagecraft (Encore.ts) | **push** | Prometheus `remote_write` → in-cluster receiver |
+| statecraft (Encore.ts) | **push** | Prometheus `remote_write` → in-cluster receiver |
 | deployd-api-rs, Flux controllers, ingress-nginx, node-exporter, kube-state-metrics | **pull** | Prometheus scrape (annotations / ServiceMonitor) |
 
-Because stagecraft pushes and the rest are scraped, the collector MUST be a
+Because statecraft pushes and the rest are scraped, the collector MUST be a
 full **Prometheus server** running with `--web.enable-remote-write-receiver`,
 which can simultaneously (a) receive remote_write, (b) scrape pull targets, and
 (c) answer Grafana queries. Prometheus **agent mode** cannot satisfy this — it
@@ -214,22 +214,22 @@ infeasible against these requirements.
 
 ## User Scenarios & Testing
 
-### User Story 1 — Operator sees stagecraft health (Priority: P1)
+### User Story 1 — Operator sees statecraft health (Priority: P1)
 
 An operator opens Grafana, signs in with their Rauthy identity, and sees
-stagecraft request rates, error rates, latency, PubSub backlog, and DB query
-timings — without stagecraft having shipped a single line of metrics code.
+statecraft request rates, error rates, latency, PubSub backlog, and DB query
+timings — without statecraft having shipped a single line of metrics code.
 
-**Why this priority**: this is the core gap. Stagecraft is the busiest service
+**Why this priority**: this is the core gap. Statecraft is the busiest service
 and currently emits nothing observable.
 
-**Independent Test**: deploy the stack on Hetzner, confirm stagecraft series
+**Independent Test**: deploy the stack on Hetzner, confirm statecraft series
 appear in Grafana within one `collection_interval` of a request.
 
 **Acceptance Scenarios**:
 
-1. **Given** the stack is deployed and stagecraft has the `metrics` block,
-   **When** a request hits a stagecraft endpoint, **Then** its series is
+1. **Given** the stack is deployed and statecraft has the `metrics` block,
+   **When** a request hits a statecraft endpoint, **Then** its series is
    queryable in Prometheus and rendered in Grafana within ~`collection_interval`.
 
 ### User Story 2 — Previously-unconsumed scrape targets become visible (Priority: P1)
@@ -249,11 +249,11 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
 
 ### Edge Cases
 
-- **remote_write receiver unreachable at stagecraft boot** — stagecraft MUST
+- **remote_write receiver unreachable at statecraft boot** — statecraft MUST
   start and serve regardless; metrics export is best-effort, never a readiness
   dependency.
 - **Default-deny blocks the push** — without an explicit egress allow,
-  stagecraft's remote_write is dropped silently. FR-006 covers this.
+  statecraft's remote_write is dropped silently. FR-006 covers this.
 - **Operator CRDs absent** — a `ServiceMonitor`/`PrometheusRule` applied before
   the Operator's CRDs exist fails. CRD install ordering is part of FR-007.
 
@@ -261,7 +261,7 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
 
 ### Functional Requirements
 
-- **FR-001 (stagecraft export, Hetzner):** `infra.config.hetzner.json` MUST
+- **FR-001 (statecraft export, Hetzner):** `infra.config.hetzner.json` MUST
   gain a `metrics` block: `type: prometheus`, a bounded `collection_interval`
   (target ~`60s`; MUST NOT be sub-`15s`, which fans out abusive high-frequency
   remote_write), and a `remote_write_url` set to the **literal** in-cluster Prometheus
@@ -286,7 +286,7 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
   ingress-nginx exporter, then consumes all three via an
   annotation-keyed pod scrape job over an enumerated namespace allowlist
   (`flux-system`, `deployd-system`, `ingress-nginx`). This closes the
-  emitted-but-unconsumed gap, not just the stagecraft gap.
+  emitted-but-unconsumed gap, not just the statecraft gap.
 
 - **FR-004 (Grafana auth via Rauthy OIDC):** Grafana MUST authenticate via
   **native generic OIDC against Rauthy** (spec 106), mapping the Rauthy
@@ -298,7 +298,7 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
   documented `[manual]` OIDC-client convention
   (`platform/infra/hetzner/.env.example`: "[manual] OIDC clients … create in
   Rauthy admin … fill these in and re-run ./setup.sh") — exactly as
-  `stagecraft-server`, the SPA/M2M clients, and the GitHub/Google upstream
+  `statecraft-server`, the SPA/M2M clients, and the GitHub/Google upstream
   providers already are. The client MUST pin the **exact** redirect URI
   `https://grafana.<DOMAIN>/login/generic_oauth` — no wildcards, path-prefix, or
   trailing-slash variants (open-redirect / token-harvest prevention). Its
@@ -318,7 +318,7 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
   disabled/randomized default admin — with proxy/JWT/API-key/service-account
   paths and the exhaustive set pinned at implementation. The **contract** is the
   property (no credential authenticates outside OIDC); the full knob enumeration
-  is implementation detail. 196 therefore touches **no** stagecraft code — and the seeder
+  is implementation detail. 196 therefore touches **no** statecraft code — and the seeder
   not at all; its only identity relationship is the runtime `depends_on: 106`
   (Relationships §).
 
@@ -333,8 +333,8 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
 - **FR-006 (network policy, fail-safe):** the namespace default-deny posture
   MUST be preserved. This spec adds **additive** allow flows, in the directions
   the actual traffic takes:
-  - **(a) remote_write (push):** `stagecraft-system` egress → Prometheus, and
-    Prometheus ingress ← `stagecraft-system` **only**. The unauthenticated
+  - **(a) remote_write (push):** `statecraft-system` egress → Prometheus, and
+    Prometheus ingress ← `statecraft-system` **only**. The unauthenticated
     receiver's inbound surface is reachable from nowhere else (SC-008).
   - **(b) scrape (pull):** Prometheus *initiates* the connection — so
     `monitoring` egress → each scrape-target namespace's metrics port, and each
@@ -349,7 +349,7 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
     Encrypt certificate. Scoped to the solver label and port; receiver
     isolation (SC-008) is untouched.
   The global default-deny is not weakened; only these named flows open. Because
-  they span `stagecraft-system`, `monitoring`, and the target namespaces,
+  they span `statecraft-system`, `monitoring`, and the target namespaces,
   implementation creates **multiple NetworkPolicy objects across namespaces**
   (≥2 `establishes:` edges; see the deferred-establishes note in frontmatter).
 
@@ -359,7 +359,7 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
   There is no such thing as a "dormant-additive" allow in a namespace
   without default-deny — applying one IS applying a deny-all-except for
   the selected pods and direction. The halves of (a)/(b) that live
-  **outside `monitoring`** (stagecraft-system egress, deployd-system /
+  **outside `monitoring`** (statecraft-system egress, deployd-system /
   ingress-nginx ingress) therefore MUST NOT ship before their namespace
   gains an enforced default-deny under its own spec; until then 196 ships
   only the `monitoring`-namespace objects, whose source/destination halves
@@ -386,7 +386,7 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
   declared now (so no future amendment must *add* it to a frozen registry); its
   *type* is deferred (the genuinely uncertain half).
   - **Reopening trigger (forcing function):** the Azure type resolves when
-    stagecraft is first deployed to Azure with metrics required, **or** when
+    statecraft is first deployed to Azure with metrics required, **or** when
     Azure-dev is promoted to a long-lived/validated environment — whichever
     comes first. Absent a named trigger, "deferred" and "forgotten" are
     indistinguishable at registry-read time; this clause makes them distinct.
@@ -412,14 +412,14 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
   validated promotion trigger as FR-009**, so the pre-alpha defaults cannot
   silently persist into a production-grade deployment.
 
-- **FR-011 (zero stagecraft application-code change — invariant):** this spec
-  MUST NOT add or modify stagecraft application code. Instrumentation is
+- **FR-011 (zero statecraft application-code change — invariant):** this spec
+  MUST NOT add or modify statecraft application code. Instrumentation is
   Encore-native; the only change to the *running service* is the `infra.config`
-  metrics block (FR-001). Any diff to `platform/services/stagecraft/api/**`
+  metrics block (FR-001). Any diff to `platform/services/statecraft/api/**`
   attributed to this spec is a contract violation, proven by SC-004 via
   `git diff`. The Grafana OIDC client is created manually in Rauthy (FR-004), so
-  196 touches **no** stagecraft file at all — not `api/**`, and not the
-  `scripts/seed-rauthy.mjs` seeder. The only stagecraft-side artifact 196 edits
+  196 touches **no** statecraft file at all — not `api/**`, and not the
+  `scripts/seed-rauthy.mjs` seeder. The only statecraft-side artifact 196 edits
   is the `infra.config` metrics block; Grafana's own OIDC config lives in its
   HelmRelease values under gitops, which 196 owns.
 
@@ -435,10 +435,10 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
 
 ## Success Criteria *(mandatory)*
 
-- **SC-001 (Phase 1):** stagecraft series are queryable in **Prometheus** within
+- **SC-001 (Phase 1):** statecraft series are queryable in **Prometheus** within
   ~one `collection_interval` of a request (remote_write path works); the
   validating run MUST **name and record the concrete series** it confirmed — e.g.
-  an Encore-emitted stagecraft request-count series — as the evidence anchor that
+  an Encore-emitted statecraft request-count series — as the evidence anchor that
   **SC-010** reuses verbatim (the spec does not guess Encore's exact metric name;
   the validated name is captured at test time). This gates
   the Prometheus (push) half only; end-to-end visibility in **Grafana** is a
@@ -460,11 +460,11 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
   `plan.md` (owner decision, 2026-06-04), so SC-003 is verifiable at Phase 2 with
   no pending precondition.
 - **SC-004 (Phase 2):** `git diff` for the implementing branch shows the **only**
-  changed file anywhere under `platform/services/stagecraft/**` is
+  changed file anywhere under `platform/services/statecraft/**` is
   `infra.config.hetzner.json` (and only its `metrics` block) — **zero** changes
   elsewhere in the service tree, explicitly including `api/**`, `encore.app`,
   `package.json`, and `scripts/seed-rauthy.mjs`. FR-011's invariant is
-  service-wide ("no stagecraft file at all" except the metrics block), so the
+  service-wide ("no statecraft file at all" except the metrics block), so the
   check is scoped to the whole service root, not `api/**` alone — `infra.config.*`
   and the seeder live at the service root, outside `api/**`, and an `api/**`-only
   glob would pass silently on a stray edit to any of them (proves FR-011).
@@ -475,7 +475,7 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
   `monitoring`'s default-deny actually drops an un-allowed flow (e.g. a
   generic-namespace pod cannot reach an arbitrary monitoring port that no
   allow names). The original wording probed egress from
-  `stagecraft-system`, which presumed a default-deny that namespace has
+  `statecraft-system`, which presumed a default-deny that namespace has
   never had applied (post-create.sh skips it "for MVP") — unverifiable as
   filed. *(Corrected 2026-06-12: the first implementation also shipped
   cross-namespace allow halves it called "dormant-additive" — a premise
@@ -496,7 +496,7 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
   the deployed `collection_interval` honours the FR-001 floor (≥`15s`) — proving
   FR-005, FR-007, FR-010, and guarding FR-001's bound against later drift.
 - **SC-008 (receiver inbound isolation — Phase 1):** Prometheus's remote_write
-  ingest port is reachable **only** from `stagecraft-system`. The negative test
+  ingest port is reachable **only** from `statecraft-system`. The negative test
   confirms pods in a generic namespace **and in each scrape-target namespace to
   which `monitoring` holds egress under FR-006 (b)** (`flux-system`, deployd-api,
   ingress-nginx) **cannot initiate connections to** the receiver port — those
@@ -508,7 +508,7 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
 - **SC-009 (Grafana inbound isolation — Phase 2):** Grafana's port is reachable
   **only** from ingress-nginx (FR-006 (c)); a pod in any other namespace cannot
   initiate a connection to it. Verifiable in **Phase 2** (Grafana lands there).
-- **SC-010 (end-to-end visibility — Phase 2):** the **exact stagecraft series
+- **SC-010 (end-to-end visibility — Phase 2):** the **exact statecraft series
   named and recorded in SC-001** **renders in a Grafana dashboard panel** —
   confirming the Prometheus datasource is wired and the full push → store →
   visualize pipeline works, not merely that Grafana is up and OIDC-gated (SC-003).
@@ -532,7 +532,7 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
 - **→ spec 106 (identity) — runtime dependency only, no owned edge.** Grafana
   authenticates via Rauthy OIDC (FR-004). The Grafana OIDC client is **created
   manually in the Rauthy admin UI** — the documented `[manual]` convention used
-  for every other client (`stagecraft-server`, SPA, M2M) and the upstream
+  for every other client (`statecraft-server`, SPA, M2M) and the upstream
   GitHub/Google providers (`platform/infra/hetzner/.env.example`). 196 therefore
   edits **no** identity-subsystem code path — not the seeder, not the Rauthy
   chart — so its sole identity relationship is the runtime `depends_on: 106`.
@@ -544,7 +544,7 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
   dispatches client config by per-`clientId` branching spread across both 106's
   and 107's functions, and it does not even *create* clients (it converges drift
   on manually-created ones); and (2) this is an **admin-only, single, fixed**
-  client, exactly the manual-creation profile of `stagecraft-server` and the
+  client, exactly the manual-creation profile of `statecraft-server` and the
   upstream providers. Routing it through the per-client seeder machinery was
   never warranted. The one trade-off — a manually-created client's
   redirect/flows/scope are not seeder-drift-protected — is low-value here: a
@@ -560,7 +560,7 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
   The Azure config is never refined by 196 (FR-009 deferred-null).
 - **establishes** (at implementation, not in this draft's frontmatter) the
   gitops monitoring HelmRelease and **≥2 NetworkPolicy objects across two
-  namespaces** (monitoring-ns ingress + stagecraft-system egress; see FR-006 and
+  namespaces** (monitoring-ns ingress + statecraft-system egress; see FR-006 and
   the frontmatter deferred-establishes note). The compiler existence-checks
   `kind: file` units (V-023), so these edges land in the PR that creates the
   files — the same PR where the coupling gate wants the spec↔code link.
@@ -596,7 +596,7 @@ load-bearing choices that benefit from one reviewer pass before lock-in. (The
 Grafana OIDC client is created manually in Rauthy — FR-004 / Relationships § —
 so 196 owns no identity-subsystem code path and the question of seeder
 co-authorship does not arise.) Until this body locks, the gitops monitoring
-HelmRelease, the monitoring + stagecraft-system NetworkPolicy objects, and the
+HelmRelease, the monitoring + statecraft-system NetworkPolicy objects, and the
 `infra.config` `metrics` blocks **MUST NOT be created** — the spec's body drives
 the implementation, not the other way around (CONST-005). This filing PR
 declares **no** code-path edge except the mechanical featuregraph-golden
@@ -646,7 +646,7 @@ second code drop. What landed, by FR:
   `http://monitoring-prometheus.monitoring.svc.cluster.local:9090/api/v1/write`.
   The two infra configs now diverge for the first time, as §Current state
   intended; SC-004's service-wide guard holds (this is the only
-  `platform/services/stagecraft/**` change).
+  `platform/services/statecraft/**` change).
 - **FR-002** — kube-prometheus-stack `86.2.2` (pinned), server mode,
   `enableRemoteWriteReceiver: true`, `enableAdminAPI: false` explicit.
 - **FR-003** — per §Current-state corrections: deployd-api `/metrics`
@@ -669,7 +669,7 @@ second code drop. What landed, by FR:
   DR-stage2 bundle imports the new tier by reference (parity invariant).
 - **FR-006** — `monitoring` ships with the deployment's first enforced
   default-deny + the named flows ((a) push, (b) pull, (c) Grafana UI);
-  receiver inbound is stagecraft-system-only (SC-008's probe set). The
+  receiver inbound is statecraft-system-only (SC-008's probe set). The
   first landing also shipped cross-namespace halves outside `monitoring`
   under the false "dormant-additive" premise; they were withdrawn the
   same day (§Incident addendum) and FR-006 now forbids shipping them
@@ -693,20 +693,20 @@ second code drop. What landed, by FR:
   true` shortens the PVC to 48 chars; the chart-owned
   `monitoring-prometheus` Service — the FR-001 remote_write literal — is
   unaffected.)*
-- **FR-011** — holds: zero stagecraft application-code change.
+- **FR-011** — holds: zero statecraft application-code change.
 
 **Deploy-gated evidence (open):** SC-001…SC-010 are live-cluster criteria;
 `tasks.md` §Deploy-time validation checklist (V001–V010) is the runbook.
 SC-001 must record the concrete Encore series name — the dashboard's
-stagecraft panel carries a provisional expression until then.
+statecraft panel carries a provisional expression until then.
 `implementation:` stays `pending` until that checklist closes.
 
 ## Incident addendum (2026-06-12) — cross-namespace allows withdrawn
 
 Within minutes of the implementation merge reconciling, **all four public
 hosts went down with Cloudflare 521 (origin connection refused)**:
-`stagecraft.ing`, `auth.`, `deploy.`, and `minio.stagecraft.ing`. The
-`CD stagecraft` deploy failed at its `seed-rauthy` job (Rauthy
+`statecraft.ing`, `auth.`, `deploy.`, and `minio.statecraft.ing`. The
+`CD statecraft` deploy failed at its `seed-rauthy` job (Rauthy
 unreachable through the public URL) and the
 `knowledge-orphan-imported-sweeper` cron failed every cycle.
 
@@ -720,13 +720,13 @@ invalidates. A NetworkPolicy isolates every pod it selects, so:
    inbound except monitoring→10254, **including 80/443 from the Hetzner
    LB**. k3s's embedded netpol controller REJECTs rather than drops,
    hence 521 (refused) rather than 522 (timeout).
-2. `stagecraft-system/allow-remote-write-egress-to-monitoring`
-   (`podSelector: {}`, Egress) — every stagecraft pod lost all egress
+2. `statecraft-system/allow-remote-write-egress-to-monitoring`
+   (`podSelector: {}`, Egress) — every statecraft pod lost all egress
    except monitoring:9090: DNS, in-namespace Postgres, Rauthy, GitHub.
    The seeder's `TypeError: fetch failed` was this object.
 3. `deployd-system/allow-metrics-ingress-from-monitoring`
    (`app=deployd-api`, Ingress) — blocked ingress-nginx→deployd-api on
-   the shared :8080, breaking `deploy.stagecraft.ing` independently.
+   the shared :8080, breaking `deploy.statecraft.ing` independently.
 
 **Mitigation** (operator, out-of-band): suspend the `policies` Flux
 Kustomization, delete the three objects, verify the public endpoints,
@@ -772,7 +772,7 @@ design change to FR-009/SC-004, not a drift correction.
 
 ## Security hardening amendment (2026-07-02)
 
-Wired the new per-namespace default-deny NetworkPolicies into the policies kustomization so the stagecraft, deployd, and rauthy namespaces are covered alongside monitoring.
+Wired the new per-namespace default-deny NetworkPolicies into the policies kustomization so the statecraft, deployd, and rauthy namespaces are covered alongside monitoring.
 
 Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.
 
@@ -796,7 +796,7 @@ needed.
 
 Evidence, by success criterion:
 
-- **SC-001 / SC-002 (data plane):** stagecraft's Encore `remote_write` series
+- **SC-001 / SC-002 (data plane):** statecraft's Encore `remote_write` series
   (`e_requests_total`, `e_sys_memory_used_bytes`) are queryable in Prometheus,
   and one known series each from deployd-api (`deployd_api_build_info`), Flux
   (`controller_runtime_reconcile_total`), and ingress-nginx
@@ -822,12 +822,12 @@ Evidence, by success criterion:
   PVC-bounded TSDB, `enableAdminAPI: false`, `collection_interval` 60s (≥15s).
 - **SC-008 (receiver isolation):** probe matrix confirms the unauthenticated
   remote_write receiver (`:9090`) is reachable **only** from
-  `stagecraft-system`; blocked from a generic namespace and from every
+  `statecraft-system`; blocked from a generic namespace and from every
   scrape-target namespace (`flux-system`, `deployd-system`, `ingress-nginx`).
 - **SC-009 (Grafana isolation):** Grafana (`:3000`) reachable **only** from
   `ingress-nginx`; blocked from every other probed namespace.
 - **SC-010 (end-to-end visibility):** the SC-001 series renders live in the
-  "stagecraft requests/s (remote_write)" panel of the OAP Platform Overview
+  "statecraft requests/s (remote_write)" panel of the OAP Platform Overview
   dashboard, alongside the deployd-api / Flux / ingress-nginx / node panels.
 - **V011 / V012 (incident closure):** the three withdrawn cross-namespace
   policies stay absent, the `policies` Kustomization reconciles the reduced set
@@ -853,7 +853,7 @@ immediately.
 
 Out of scope, flagged as a follow-up: the same default-deny gap exists for the
 HTTP-01 solver in the namespaces the 2026-07-02 hardening covered
-(`stagecraft-system`, etc.), so certificate *renewal* for hosts like minio will
+(`statecraft-system`, etc.), so certificate *renewal* for hosts like minio will
 fail the same way until each owning spec adds the equivalent solver allow. That
 is not `monitoring`'s policy and is left to those specs.
 

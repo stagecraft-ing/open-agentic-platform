@@ -181,7 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // to the give-up threshold. Best-effort and desktop-only — a failed
       // reconnect must never block the sign-in transition.
       if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
-        void api.reconnectStagecraftDuplex().catch(() => {});
+        void api.reconnectStatecraftDuplex().catch(() => {});
       }
     } else if (result.type === 'org_selection') {
       setUser(result.user);

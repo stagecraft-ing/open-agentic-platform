@@ -25,7 +25,7 @@ import type { SafetyTier } from "./SafetyTier";
  * - `tier` (u8) → `safety_tier`
  *
  * Unknown fields are preserved via `serde(flatten)` for forward compatibility (FR-013).
- * The TS mirror omits `extra`; stagecraft re-adds an open index signature
+ * The TS mirror omits `extra`; statecraft re-adds an open index signature
  * in the `CatalogFrontmatter` alias in `frontmatter/index.ts` so JSONB
  * round-trips stay loss-free.
  *
@@ -34,103 +34,103 @@ import type { SafetyTier } from "./SafetyTier";
  * would close the JSDoc comment early and break TypeScript compilation, so
  * path globs here are described in prose rather than with asterisks.
  */
-export type UnifiedFrontmatter = { 
+export type UnifiedFrontmatter = {
 /**
  * Unique identifier (kebab-case enforced by linter). Alias: `id`.
  */
-name: string, 
+name: string,
 /**
  * What the agent does. Minimum 50 characters recommended (linter check).
  */
-description?: string | null, 
+description?: string | null,
 /**
  * Execution type. Default: `prompt`.
  */
-type: AgentType, 
+type: AgentType,
 /**
  * LLM model identifier. Alias: `model_hint`.
  */
-model?: string | null, 
+model?: string | null,
 /**
  * Catalog tags (replaces `category`).
  */
-tags?: Array<string>, 
+tags?: Array<string>,
 /**
  * Human-friendly display name. Alias: `role`.
  */
-display_name?: string | null, 
+display_name?: string | null,
 /**
  * Trigger condition for automatic routing.
  */
-trigger?: string | null, 
+trigger?: string | null,
 /**
  * Tool allow-list. Alias: `tools`. Default: wildcard `"*"`.
  * On the wire this is either the string `"*"` (all tools) or a list of
  * tool names. The Rust `AllowedTools` enum is `#[serde(untagged)]`; the
- * TS mirror expresses that directly as a union literal so stagecraft
+ * TS mirror expresses that directly as a union literal so statecraft
  * payloads round-trip through serde_json without an intermediate wrapper.
  */
-allowed_tools: "*" | string[], 
+allowed_tools: "*" | string[],
 /**
  * Safety tier classification. Alias: `tier` (accepts u8: 1/2/3).
  */
-safety_tier?: SafetyTier | null, 
+safety_tier?: SafetyTier | null,
 /**
  * Mutation capability. Derived from `safety_tier` when absent.
  */
-mutation?: MutationCapability | null, 
+mutation?: MutationCapability | null,
 /**
  * Write-scope globs, required iff `mutation: scoped-write` (spec 198
  * FR-003). The governance-envelope admission gate reconciles these
  * against the owning envelope's `file_write_scope`.
  */
-mutation_scope?: Array<string>, 
+mutation_scope?: Array<string>,
 /**
  * Admitted-but-optional agent (spec 198 FR-003/FR-006). Allowlist
  * membership still applies — a run may skip the agent, but only listed
  * agents may ever run.
  */
-optional?: boolean, 
+optional?: boolean,
 /**
  * Hook declarations keyed by event name.
  */
-hooks?: { [key in string]: Array<HookDeclaration> }, 
+hooks?: { [key in string]: Array<HookDeclaration> },
 /**
  * Governance requirement. Connects to spec 098.
  */
-governance?: GovernanceRequirement | null, 
+governance?: GovernanceRequirement | null,
 /**
  * Maximum spec risk level. Connects to spec 093.
  */
-max_spec_risk?: string | null, 
+max_spec_risk?: string | null,
 /**
  * Semantic version.
  */
-version?: string | null, 
+version?: string | null,
 /**
  * Attribution.
  */
-author?: string | null, 
+author?: string | null,
 /**
  * Trigger ordering priority.
  */
-priority?: number | null, 
+priority?: number | null,
 /**
  * Desktop display icon.
  */
-icon?: string | null, 
+icon?: string | null,
 /**
  * Factory pipeline stage number.
  */
-stage?: number | null, 
+stage?: number | null,
 /**
  * Factory token budget hint.
  */
-context_budget?: string | null, 
+context_budget?: string | null,
 /**
  * Standards category filter (spec 055).
  */
-standards_category?: string | null, 
+standards_category?: string | null,
 /**
  * Standards tag filter (spec 055).
  */

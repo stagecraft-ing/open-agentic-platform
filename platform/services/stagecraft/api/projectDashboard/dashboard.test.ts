@@ -52,30 +52,30 @@ describe("pickAuthSource", () => {
 });
 
 describe("staleExtractionCutoffMs", () => {
-  const originalEnv = process.env.STAGECRAFT_EXTRACT_STALE_AFTER_SEC;
+  const originalEnv = process.env.statecraft_EXTRACT_STALE_AFTER_SEC;
   afterEach(() => {
     if (originalEnv === undefined) {
-      delete process.env.STAGECRAFT_EXTRACT_STALE_AFTER_SEC;
+      delete process.env.statecraft_EXTRACT_STALE_AFTER_SEC;
     } else {
-      process.env.STAGECRAFT_EXTRACT_STALE_AFTER_SEC = originalEnv;
+      process.env.statecraft_EXTRACT_STALE_AFTER_SEC = originalEnv;
     }
   });
   it("defaults to 600s when the env knob is unset", () => {
-    delete process.env.STAGECRAFT_EXTRACT_STALE_AFTER_SEC;
+    delete process.env.statecraft_EXTRACT_STALE_AFTER_SEC;
     expect(staleExtractionCutoffMs()).toBe(600_000);
   });
   it("honours the env knob in seconds", () => {
-    process.env.STAGECRAFT_EXTRACT_STALE_AFTER_SEC = "120";
+    process.env.statecraft_EXTRACT_STALE_AFTER_SEC = "120";
     expect(staleExtractionCutoffMs()).toBe(120_000);
   });
   it("falls back to default on a malformed env value", () => {
-    process.env.STAGECRAFT_EXTRACT_STALE_AFTER_SEC = "not-a-number";
+    process.env.statecraft_EXTRACT_STALE_AFTER_SEC = "not-a-number";
     expect(staleExtractionCutoffMs()).toBe(600_000);
   });
   it("falls back to default when the env value is non-positive", () => {
-    process.env.STAGECRAFT_EXTRACT_STALE_AFTER_SEC = "0";
+    process.env.statecraft_EXTRACT_STALE_AFTER_SEC = "0";
     expect(staleExtractionCutoffMs()).toBe(600_000);
-    process.env.STAGECRAFT_EXTRACT_STALE_AFTER_SEC = "-10";
+    process.env.statecraft_EXTRACT_STALE_AFTER_SEC = "-10";
     expect(staleExtractionCutoffMs()).toBe(600_000);
   });
 });

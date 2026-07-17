@@ -3,9 +3,9 @@ variable "environment" {
   default = "dev"
 }
 
-variable "stagecraft_host" {
+variable "statecraft_host" {
   type    = string
-  default = "stagecraft.localdev.online "
+  default = "statecraft.localdev.online "
 }
 
 variable "deployd_host" {

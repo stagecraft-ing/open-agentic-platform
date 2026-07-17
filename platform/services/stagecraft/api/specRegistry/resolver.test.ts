@@ -12,14 +12,14 @@ describe("resolveProjectRegistry", () => {
   let base: string;
 
   beforeEach(async () => {
-    base = await mkdtemp(join(tmpdir(), "stagecraft-spec-registry-"));
+    base = await mkdtemp(join(tmpdir(), "statecraft-spec-registry-"));
   });
 
   afterEach(async () => {
     await rm(base, { recursive: true, force: true });
   });
 
-  test("returns null when STAGECRAFT_PROJECT_REGISTRY_BASE is unset (FR-007)", async () => {
+  test("returns null when STATECRAFT_PROJECT_REGISTRY_BASE is unset (FR-007)", async () => {
     const res = await resolveProjectRegistry("any-project", { base: null });
     expect(res).toBeNull();
   });

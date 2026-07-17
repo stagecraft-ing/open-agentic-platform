@@ -1,7 +1,7 @@
 // Spec 112 §6.3 — Project context overview.
 //
 // Renders the OAP bundle (adapter + contracts + processes + agents)
-// resolved by stagecraft after Open-in-OPC handoff. Surfaced in the
+// resolved by statecraft after Open-in-OPC handoff. Surfaced in the
 // Factory cockpit's right pane before the user picks a stage to
 // inspect, so the cockpit lands on bundle context rather than an
 // empty placeholder.

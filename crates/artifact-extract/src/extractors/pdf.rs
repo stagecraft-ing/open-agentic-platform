@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Bartek Kus
 // Spec: specs/120-factory-extraction-stage/spec.md — FR-005, FR-006, FR-009
 
-//! Deterministic embedded-text PDF extractor. Mirrors stagecraft's
+//! Deterministic embedded-text PDF extractor. Mirrors statecraft's
 //! `deterministic-pdf-embedded.ts`.
 //!
 //! Below the per-page median text density threshold the extractor returns
@@ -22,7 +22,7 @@ const DEFAULT_MIN_MEDIAN_CHARS: u64 = 80;
 const PDF_FORM_FEED: char = '\u{C}';
 
 fn min_median_chars() -> u64 {
-    std::env::var("STAGECRAFT_EXTRACT_PDF_MIN_MEDIAN_CHARS")
+    std::env::var("STATECRAFT_EXTRACT_PDF_MIN_MEDIAN_CHARS")
         .ok()
         .and_then(|v| v.parse::<u64>().ok())
         .unwrap_or(DEFAULT_MIN_MEDIAN_CHARS)

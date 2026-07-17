@@ -114,7 +114,7 @@ Azure-specific resources are removed from chart templates and replaced with clou
 #### Values overlay structure
 
 ```
-charts/stagecraft/
+charts/statecraft/
   values.yaml              # Defaults (cloud-agnostic, no provider-specific values)
   values-azure.yaml        # Azure: ACR image, Azure-specific SA annotations
   values-aws.yaml          # AWS: ECR image, IRSA SA annotation
@@ -274,8 +274,8 @@ Phase 5 — Makefile + CI:
 
 Operator state (kubeconfig + .env) was relocated out of the repo tree to
 `$OAP_HETZNER_DIR` (`~/.config/oap/infra/hetzner`), so `cluster.yaml`
-(`kubeconfig_path`) and the `mirrord/` configs (`stagecraft-compile.sh`,
-`stagecraft.yaml`) are repointed accordingly. The two Encore infra configs were
+(`kubeconfig_path`) and the `mirrord/` configs (`statecraft-compile.sh`,
+`statecraft.yaml`) are repointed accordingly. The two Encore infra configs were
 also unified into a single `infra.config.json` (mirrord now compiles against
 it). Mechanical only; no change to the multi-cloud portability design.
 

@@ -18,7 +18,7 @@
 # whole-namespace deny-excepts and took down all public ingress. Those
 # flows return WITH each namespace's default-deny under its own spec.
 #
-# Security review fix: the stagecraft/deployd/rauthy default-deny plus
+# Security review fix: the statecraft/deployd/rauthy default-deny plus
 # allow sets below close that same "no default-deny at all" gap for
 # these three namespaces (monitoring was, until this fix, the only
 # namespace with an enforced NetworkPolicy in this deployment). Each file
@@ -31,6 +31,6 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - monitoring/networkpolicy-monitoring.yaml
-  - stagecraft/networkpolicy-stagecraft.yaml
+  - statecraft/networkpolicy-statecraft.yaml
   - deployd/networkpolicy-deployd.yaml
   - rauthy/networkpolicy-rauthy.yaml

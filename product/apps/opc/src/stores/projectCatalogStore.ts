@@ -47,7 +47,7 @@ interface ProjectCatalogState {
   byId: Record<string, ProjectCatalogEntry>;
   /** Set when the desktop has received either at least one upsert OR an
    *  explicit snapshot-complete frame. Lets the panel distinguish "no
-   *  projects yet" from "haven't heard from stagecraft yet". */
+   *  projects yet" from "haven't heard from statecraft yet". */
   hydrated: boolean;
   applyUpsert: (payload: ProjectCatalogUpsertEventPayload) => void;
   markSnapshotComplete: () => void;
@@ -122,7 +122,7 @@ export async function subscribeProjectCatalog(): Promise<() => void> {
   // after the boot gate opens, and the boot gate opens only after the
   // handshake (`sync.hello`). Tauri does not buffer events for listeners
   // attached later, so without this pull the store could stay
-  // un-hydrated forever ("Connecting to stagecraft…") until the next
+  // un-hydrated forever ("Connecting to statecraft…") until the next
   // duplex reconnect. The Rust side caches the catalog; we pull it AFTER
   // attaching the live listeners above, so any frame delivered between the
   // pull and now is still captured (applyUpsert is idempotent by id).

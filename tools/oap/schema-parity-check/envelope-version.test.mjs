@@ -7,7 +7,7 @@
 //   node tools/oap/schema-parity-check/envelope-version.test.mjs
 //
 // Pure JS — no .ts imports — so it runs under plain Node without bun and
-// without stagecraft's node_modules. Asserts the parser is precise (accepts
+// without statecraft's node_modules. Asserts the parser is precise (accepts
 // real declarations, ignores type aliases and comments) and that the
 // comparator surfaces drift.
 

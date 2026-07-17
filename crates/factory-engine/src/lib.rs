@@ -30,7 +30,7 @@ pub mod preflight;
 pub mod project_config;
 pub mod run_audit_chain;
 pub mod sandbox;
-pub mod stagecraft_client;
+pub mod statecraft_client;
 pub mod stages;
 pub mod standards_resolver;
 pub mod substrate_version;

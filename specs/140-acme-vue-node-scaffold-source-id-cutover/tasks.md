@@ -19,9 +19,9 @@ shape and the absence of the legacy field.
 
 ## Path Conventions
 
-- Stagecraft API: `platform/services/stagecraft/api/`
-- Stagecraft web: `platform/services/stagecraft/web/`
-- Stagecraft DB: `platform/services/stagecraft/api/db/`
+- Statecraft API: `platform/services/statecraft/api/`
+- Statecraft web: `platform/services/statecraft/web/`
+- Statecraft DB: `platform/services/statecraft/api/db/`
 
 ---
 
@@ -40,15 +40,15 @@ inline in PR description if any deviation surfaces.
 - [ ] T002 [P0] Verify `factory_upstreams` schema (composite-PK
       `(org_id, source_id)`, `role` enum admits `'orchestration'` /
       `'scaffold'`, `repo_url` / `ref` NOT NULL).
-      → `platform/services/stagecraft/api/db/schema.ts:759-785`.
+      → `platform/services/statecraft/api/db/schema.ts:759-785`.
 - [ ] T003 [P0] Verify `OAP_NATIVE_ADAPTERS["acme-vue-node"]
       .scaffoldSourceId === "acme-vue-node-template"` in
-      `platform/services/stagecraft/api/factory/oapNativeSanitise.ts`.
+      `platform/services/statecraft/api/factory/oapNativeSanitise.ts`.
       Grep production code for the literal `"acme-vue-node-template"`
       to confirm there are no other hardcoded copies.
 - [ ] T004 [P0] Re-run the inventory grep from spec §1:
       `grep -rn "template_remote\|templateRemote"
-      platform/services/stagecraft --include='*.ts' --exclude='*.test.ts'`
+      platform/services/statecraft --include='*.ts' --exclude='*.test.ts'`
       and confirm the five call sites (scaffoldReadiness,
       scheduler, templateCache, types, create) are exhaustive. List
       any test file that asserts the legacy field shape.
@@ -76,22 +76,22 @@ org substrate so deploy-time cutover requires no operator action.
 > implementation.**
 
 - [ ] T010 [P] [P1] Test:
-      `platform/services/stagecraft/api/factory/projection.test.ts`
+      `platform/services/statecraft/api/factory/projection.test.ts`
       asserts `buildAdapter` output for acme-vue-node carries
       `scaffold_source_id: "acme-vue-node-template"`,
       `orchestration_source_id`, `scaffold_runtime: "node-24"`, and
       does NOT carry `template_remote` / `template_default_branch`.
 - [ ] T011 [P] [P1] Test:
-      `platform/services/stagecraft/api/factory/projection.test.ts`
+      `platform/services/statecraft/api/factory/projection.test.ts`
       asserts the de-dup priority — when both a template-origin
       synthetic and an `oap-self` `adapter-manifest` row exist for
       `acme-vue-node`, the `oap-self` row wins.
 - [ ] T012 [P] [P1] Test:
-      `platform/services/stagecraft/api/factory/translator.test.ts`
+      `platform/services/statecraft/api/factory/translator.test.ts`
       asserts the translator no longer writes `template_remote` into
       any row's projected manifest.
 - [ ] T013 [P] [P1] Test (Encore):
-      `platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.test.ts`
+      `platform/services/statecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.test.ts`
       runs migration 36 twice; asserts second run is a no-op
       (identical row count + no audit row written by the second
       pass).
@@ -138,7 +138,7 @@ indirected lookup via `factory_upstreams`.
 ### Tests for Phase 2
 
 - [ ] T030 [P] [P2] New test:
-      `platform/services/stagecraft/api/projects/scaffold/scheduler.test.ts`
+      `platform/services/statecraft/api/projects/scaffold/scheduler.test.ts`
       covers `resolveWarmupContext`'s new branches:
       `"no-scaffold-source-id"` when no adapter declares the field,
       `"no-pat"` when the field is declared but PAT is missing,
@@ -182,11 +182,11 @@ indirected lookup via `factory_upstreams`.
 - [ ] T044 [P2] Update `syncWorker.ts:142` inline comment to
       reference the new field.
 - [ ] T045 [P2] Run T030–T032 → green; run full
-      `npm test --prefix platform/services/stagecraft` and ensure
+      `npm test --prefix platform/services/statecraft` and ensure
       no regressions.
 
 **Phase 2 exit:**
-`grep -r template_remote platform/services/stagecraft --include='*.ts' --exclude='*.test.ts'`
+`grep -r template_remote platform/services/statecraft --include='*.ts' --exclude='*.test.ts'`
 returns zero hits in production code (only schema/migration
 historical comments remain). (AC-1.)
 
@@ -234,7 +234,7 @@ old field and no consumer reads it. Align UI copy and CLAUDE.md.
       a sync — once it completes the warmup will start automatically
       and the form will unlock."
 - [ ] T063 [P3] Update
-      `platform/services/stagecraft/CLAUDE.md`: in the "Factory
+      `platform/services/statecraft/CLAUDE.md`: in the "Factory
       project scaffold" section, change the scaffold-warmup
       paragraph to reference `scaffold_source_id` instead of
       `template_remote`. Update the phase-tracking note to call out
@@ -312,4 +312,4 @@ PR open. The remaining work is review + merge.
 | `api/projects/scaffoldReadiness.ts` | 33-37, 53-58, 62-64, 90-105, 165-200 | 3 | Drop legacy fallback |
 | `web/app/lib/projects-api.server.ts` | 304 | 3 | Drop hasTemplateRemote type field |
 | `web/app/routes/app.projects.new.tsx` | 655-670 | 3 | Simplify banner |
-| `platform/services/stagecraft/CLAUDE.md` | "Factory project scaffold" section | 3 | Update field name |
+| `platform/services/statecraft/CLAUDE.md` | "Factory project scaffold" section | 3 | Update field name |

@@ -11,7 +11,7 @@ across six phases, guided by a validated gap analysis against actual implementat
 
 **Language/Version**: Rust 1.x (crates), TypeScript (desktop + platform)
 **Primary Dependencies**: Tauri v2, Encore.ts, hiqlite, axiomregent, tokio, sha2
-**Storage**: SQLite (orchestrator, checkpoints), PostgreSQL (Stagecraft), S3-compatible (knowledge objects)
+**Storage**: SQLite (orchestrator, checkpoints), PostgreSQL (Statecraft), S3-compatible (knowledge objects)
 **Testing**: cargo test, vitest, integration tests
 **Target Platform**: macOS (primary), Linux, Windows (axiomregent cross-compile)
 **Project Type**: Desktop app + platform services + CLI tools
@@ -142,7 +142,7 @@ Critical path: ~31.5 days
 | `crates/policy-kernel/src/lib.rs` | 090, 093 |
 | `product/apps/opc/src-tauri/src/commands/analysis.rs` | 093, 096 |
 | `product/apps/opc/src-tauri/src/governed_claude.rs` | 090, 092 |
-| `platform/services/stagecraft/api/factory/factory.ts` | 092, 094, 097 |
+| `platform/services/statecraft/api/factory/factory.ts` | 092, 094, 097 |
 | `tools/spec-spine/spec-compiler/src/lib.rs` | 091 |
 | `crates/featuregraph/src/preflight.rs` | 093, 096 |
 
@@ -154,4 +154,4 @@ Critical path: ~31.5 days
 | `crates/featuregraph/src/enrichment.rs` | 096 | xray-featuregraph bridge |
 | `crates/orchestrator/src/promotion.rs` | 097 | Promotion eligibility checker |
 | `crates/axiomregent/src/router/oidc_client.rs` | 097 | OIDC client_credentials |
-| `platform/services/stagecraft/api/auth/m2mAuth.ts` | 097 | Shared JWT validation |
+| `platform/services/statecraft/api/auth/m2mAuth.ts` | 097 | Shared JWT validation |

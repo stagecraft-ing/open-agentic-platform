@@ -63,7 +63,7 @@ const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000000";
 const DEFAULT_GRACE_SEC = 3600;
 
 function getGraceSec(): number {
-  const v = process.env.STAGECRAFT_KNOWLEDGE_ORPHAN_AFTER_SEC;
+  const v = process.env.statecraft_KNOWLEDGE_ORPHAN_AFTER_SEC;
   if (!v) return DEFAULT_GRACE_SEC;
   const n = Number.parseInt(v, 10);
   return Number.isFinite(n) && n > 0 ? n : DEFAULT_GRACE_SEC;
@@ -86,7 +86,7 @@ export type OrphanSweepResult = {
  * based on `headObject`. Returns a per-class summary so the cron
  * wrapper can log it.
  *
- * Tunable via `STAGECRAFT_KNOWLEDGE_ORPHAN_AFTER_SEC` (default 3600s).
+ * Tunable via `STATECRAFT_KNOWLEDGE_ORPHAN_AFTER_SEC` (default 3600s).
  */
 export async function runOrphanSweep(
   now: Date = new Date(),

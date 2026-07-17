@@ -2,8 +2,8 @@
 # This workflow runs the encore-lane coverage guard, but the sibling
 # divergent Makefile has NO mirroring recipe → check_parity MUST report
 # drift on the lane-guard script token. Proves the run-mirror gate detects
-# a missing ci-stagecraft-encore mirror.
-name: CI stagecraft encore
+# a missing ci-statecraft-encore mirror.
+name: CI statecraft encore
 on: [push]
 jobs:
   encore-test:

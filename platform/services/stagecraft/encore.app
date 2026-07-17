@@ -13,10 +13,10 @@
       "allow_origins_without_credentials": ["*"],
 
       // Authenticated requests (cookies or Authorization header)
-      // TODO: Replace stagecraft.ing entries with your own domain(s) before deploying
+      // TODO: Replace statecraft.ing entries with your own domain(s) before deploying
       "allow_origins_with_credentials": [
-        "https://stagecraft.ing",
-        "https://*.stagecraft.ing",
+        "https://statecraft.ing",
+        "https://*.statecraft.ing",
       ],
 
       // Let the browser send these request headers

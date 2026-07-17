@@ -64,22 +64,22 @@ depends_on:
 establishes:
   - unit: { kind: file, path: standards/schemas/factory/governance-envelope.schema.yaml }
   - unit: { kind: file, path: crates/factory-contracts/src/governance_envelope.rs }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/admission.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/revocations.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/admission.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/revocations.ts }
   # Phase 4 (FR-005/FR-014) — signing authority, run-grants, countersign:
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/signing-pure.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/signing.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/jwks.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/grantDuplexHandlers.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/signing-pure.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/signing.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/jwks.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/grantDuplexHandlers.ts }
   - unit: { kind: file, path: crates/factory-engine/src/platform_jws.rs }
   - unit: { kind: file, path: crates/factory-engine/src/intent_capsule.rs }
   - unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/run_governance.rs }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/signing.test.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/grantDuplexHandlers.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/signing.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/grantDuplexHandlers.test.ts }
   # Phase 5 (FR-013 a–c) — override gate + trust class:
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideGate.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideGate.test.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideTrustClass.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/overrideGate.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/overrideGate.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/overrideTrustClass.test.ts }
   # FR-013 audit-action correction (discovered during spec 201 phase 1):
 extends:
   - spec: "074-factory-ingestion"
@@ -95,25 +95,25 @@ extends:
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
   - aspect: "admission-time-governance"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/syncPipeline.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/syncPipeline.ts }
   # FR-012 enforcement (2026-06-11) — a snapshot-absent adapter refuses
   # pipeline init fail-closed; the DEFAULT_SCOPE invented-allowlist
   # fallback is retired:
   - aspect: "adapter-scopes-fail-closed"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/factory.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/factory.ts }
   - aspect: "governance-sub-envelope-section"
     unit: { kind: file, path: standards/schemas/factory/adapter-manifest.schema.yaml }
   # Phase 4 — the run-grant trust fabric tightens these existing surfaces:
   - aspect: "run-grant-envelope-family"
-    unit: { kind: file, path: platform/services/stagecraft/api/sync/types.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/sync/types.ts }
   - aspect: "run-grant-envelope-family"
-    unit: { kind: file, path: platform/services/stagecraft/api/sync/service.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/sync/service.ts }
   - aspect: "certificate-countersign-on-completion"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/runDuplexHandlers.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/runDuplexHandlers.ts }
   - aspect: "admission-seal-in-bundle"
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/opcBundle.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/opcBundle.ts }
   - aspect: "admission-seal-in-bundle"
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/opcBundleHelpers.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/opcBundleHelpers.ts }
   - aspect: "platform-countersign-binding"
     unit: { kind: file, path: crates/factory-engine/src/governance_certificate.rs }
   - aspect: "platform-countersign-binding"
@@ -127,27 +127,27 @@ refines:
   - aspect: "run-grant-envelope-family"
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/factory_platform.rs }
   - aspect: "admission-seal-in-bundle"
-    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/stagecraft_client.rs }
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/statecraft_client.rs }
   - aspect: "run-grant-records"
-    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/db/schema.ts }
   - aspect: "run-grant-records"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/auditActions.ts }
   # Phase 5 (FR-013) — the override gate tightens every user_body write
   # path and the trust-class columns ride the substrate row shape:
   - aspect: "override-write-gate"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/artifacts.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/artifacts.ts }
   - aspect: "override-write-gate"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/conflicts.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/conflicts.ts }
   - aspect: "override-write-gate"
-    unit: { kind: file, path: platform/services/stagecraft/api/agents/catalog.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/agents/catalog.ts }
   - aspect: "override-trust-class"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/substrate.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/substrate.ts }
   - aspect: "override-trust-class"
     unit: { kind: file, path: crates/factory-engine/src/substrate_version.rs }
   - aspect: "override-verify-ui"
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.factory.artifacts.tsx }
   - aspect: "override-verify-ui"
-    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/factory-api.server.ts }
+    unit: { kind: file, path: platform/services/statecraft/web/app/lib/factory-api.server.ts }
 references:
   - role: enforcer
     unit: { kind: crate, id: factory-engine }
@@ -156,7 +156,7 @@ references:
   - role: design-record
     unit: { kind: file, path: docs/analysis/governance-envelope-unification.md }
   - role: context
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/substrateBrowser.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/substrateBrowser.ts }
 ---
 
 # Feature Specification: Factory Governance Envelope (ASI Admission Contract)
@@ -166,7 +166,7 @@ references:
 **Status**: Draft
 **Input**: Establishing the owned factory sources (factory +
 template) as an OAP-controlled open standard forced a foundational
-question: when stagecraft consumes a factory, what must it *understand and
+question: when statecraft consumes a factory, what must it *understand and
 enforce* versus merely *store*? The answer is a governance envelope — a
 contract the factory files and OAP validates fail-closed before admitting any
 of its agent content. This spec is the **prior** that the thin-consumer cutover
@@ -419,7 +419,7 @@ so no un-revoke path exists for content). Two modes: `revoked` and
 `quarantined` — quarantine preserves the admission record for forensics, and
 reintegration from quarantine requires fresh two-sided validation (FR-003)
 plus human approval (ASI10 m7), never an automatic flip. Checks are enforced
-fail-closed at three times: **serve** (the stagecraft read path, spec 199
+fail-closed at three times: **serve** (the statecraft read path, spec 199
 FR-006), **bind**, and **run-grant issuance/renewal** (FR-005 — which is what
 propagates revocation to in-flight runs within one stage boundary; ASI04 m6
 continuous revalidation). Implementation may phase, but the contract MUST
@@ -498,17 +498,17 @@ untrusted-model-output). Phasing: (a)+(b) land with the admission gate,
 > `ArtifactAuditAction` vocabulary. The encore-test CI gap is a separate
 > process finding, filed as [spec 211](../211-encore-test-ci-job/spec.md).
 
-### FR-014 — Signing authority: stagecraft seals, OPC is keyless (resolves OQ-4; ASI10 m6)
+### FR-014 — Signing authority: statecraft seals, OPC is keyless (resolves OQ-4; ASI10 m6)
 
-Stagecraft is the signing authority — the judge owns the seal. Private keys
+Statecraft is the signing authority — the judge owns the seal. Private keys
 live platform-side (Encore secrets; K8s Secret / KeyVault by deployment
 profile — HSM/KMS custody is a deployment obligation documented with the
 schema, not a contract field); public keys are published JWKS-style at a
-well-known stagecraft endpoint with `kid` rotation. Three signature classes,
+well-known statecraft endpoint with `kid` rotation. Three signature classes,
 one custody model: the **admission seal** over the composed envelope record
 (verified by the OPC engine before trusting any factory content — ASI04 m1);
 the **run-grant** (FR-005); and the **emission countersign** — on sync-back,
-stagecraft verifies the engine's locally-maintained tamper-evident hash chain
+statecraft verifies the engine's locally-maintained tamper-evident hash chain
 against the grant sequence it issued and countersigns the governance
 certificate, so `verify-certificate` proves two independent things: the
 artifact hash chain (fully offline, producer-untrusted, unchanged from spec
@@ -630,7 +630,7 @@ flip is gated on its AC suites running in CI, not just locally).
   schema 1.1.0, frontmatter for all six adapter agents, and the cd
   orchestrator's mutation normalized to the FR-003 grammar. Its merge is
   **gated on phase 1 here** (factory-contracts accepting adapter-manifest
-  1.1.0), since stagecraft syncs the upstream `main`. This is the "valid
+  1.1.0), since statecraft syncs the upstream `main`. This is the "valid
   factory must exist" precondition for spec 199's admission gate.
 - **docs/owasp-agentic-top-10-2026.md** is the law of record; this spec is the
   encoding. The stale `docs/owasp/factory/AIDE-*` blueprints (older ASI
@@ -655,7 +655,7 @@ the FRs:
 - **OQ-3 — kill-switch granularity** → resolved by **FR-010**: not a choice —
   all four nodes of the admission graph (factory / adapter / agent /
   content-hash), two modes, checked at serve / bind / grant-renewal.
-- **OQ-4 — signing keys** → resolved by **FR-014 + FR-005**: stagecraft is
+- **OQ-4 — signing keys** → resolved by **FR-014 + FR-005**: statecraft is
   the signing authority (JWKS + `kid` rotation, platform-side custody); the
   capsule is realised as a short-lived run-grant renewed per stage boundary;
   OPC and agents are keyless, categorically.
@@ -663,17 +663,17 @@ the FRs:
 ## Implementation log
 
 - **2026-06-11 — FR-014 signing authority live; first SEALED admission.**
-  The deployed Hetzner stagecraft gained `FACTORY_SIGNING_PRIVATE_KEY` /
+  The deployed Hetzner statecraft gained `FACTORY_SIGNING_PRIVATE_KEY` /
   `FACTORY_SIGNING_KID` (`fk-2026-06`, Ed25519) under the documented
   K8s-Secret custody profile; the keyset serves at
   `/api/factory/.well-known/jwks.json`. The next org re-sync produced the
-  first sealed admission for `Stagecraft-ing/factory`
+  first sealed admission for `statecrafting/factory`
   (record `7cf82fae…`, factory sha `cc1139f…`, envelope hash `549c1350…`,
   14 agent digests, 0 violations). The seal's compact JWS
   (`typ: oap-admission-seal+jws`) was verified independently against the
   published JWKS — signature valid, claims bind the envelope hash, the
   `acme-vue-encore` manifest hash (`57f43e1a…`), every agent digest, and the
-  scaffold resolution to `Stagecraft-ing/template @ main`. Three
+  scaffold resolution to `statecrafting/template @ main`. Three
   earlier admissions (2026-06-10/11) were admitted-but-UNSEALED — exactly
   the fail-closed posture this FR prescribes for the engine side.
 - **2026-06-11 — FR-012 enforcement: snapshot-absent adapters fail closed.**
@@ -687,7 +687,7 @@ the FRs:
 - **2026-06-11 — FR-012 first derivation ran (AC-10 closes).**
   `adapter-scopes-compiler` (spec 105, amended same date) now projects the
   manifest `governance:` sub-envelope verbatim; the committed snapshot
-  `platform/services/stagecraft/api/factory/adapter-scopes.json` was
+  `platform/services/statecraft/api/factory/adapter-scopes.json` was
   regenerated from the admitted manifest (hash-equal to the sealed
   admission's `adapter_manifest_hashes` entry) and re-derivation is
   byte-identical. The interim hand-regenerated snapshot (spec 199 FR-007)
@@ -722,9 +722,9 @@ the FRs:
   field. Comment/doc-only correction on the schema path and Rust type this
   spec refines; no wire or behavior change.
 - **2026-06-12 — `implementation: complete` flip.** The tasks.md
-  completion gate ("runtime AC verification after the Stagecraft-side
+  completion gate ("runtime AC verification after the Statecraft-side
   envelope merge + org re-sync (first real ADMIT)") is discharged: the
-  Stagecraft-side envelope merge is on `factory` main
+  Statecraft-side envelope merge is on `factory` main
   (`process/governance-envelope.yaml`, manifest 1.1.0 `governance:`
   section, all 14 agents carrying `safety_tier`/`mutation` frontmatter),
   and the first real ADMIT is the sealed admission `7cf82fae…` recorded

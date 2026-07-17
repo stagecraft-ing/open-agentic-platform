@@ -7,10 +7,10 @@ const config: Config = {
   tagline: 'A governed operating system for AI-native software delivery.',
   favicon: 'img/favicon.ico',
 
-  url: 'https://stagecraft-ing.github.io',
+  url: 'https://statecrafting.github.io',
   baseUrl: '/open-agentic-platform/',
 
-  organizationName: 'stagecraft-ing',
+  organizationName: 'statecrafting',
   projectName: 'open-agentic-platform',
 
   onBrokenLinks: 'throw',
@@ -34,7 +34,7 @@ const config: Config = {
         docs: {
           sidebarPath: './sidebars.ts',
           editUrl:
-            'https://github.com/stagecraft-ing/open-agentic-platform/tree/main/website/',
+            'https://github.com/statecrafting/open-agentic-platform/tree/main/website/',
         },
         blog: false,
         theme: {
@@ -55,7 +55,7 @@ const config: Config = {
           label: 'Docs',
         },
         {
-          href: 'https://github.com/stagecraft-ing/open-agentic-platform',
+          href: 'https://github.com/statecrafting/open-agentic-platform',
           label: 'GitHub',
           position: 'right',
         },
@@ -86,7 +86,7 @@ const config: Config = {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/stagecraft-ing/open-agentic-platform',
+              href: 'https://github.com/statecrafting/open-agentic-platform',
             },
             {
               label: 'spec-spine CLI (crates.io)',
@@ -94,7 +94,7 @@ const config: Config = {
             },
             {
               label: 'Releases',
-              href: 'https://github.com/stagecraft-ing/open-agentic-platform/releases',
+              href: 'https://github.com/statecrafting/open-agentic-platform/releases',
             },
           ],
         },
@@ -103,15 +103,15 @@ const config: Config = {
           items: [
             {
               label: 'factory-encore',
-              href: 'https://github.com/stagecraft-ing/factory-encore',
+              href: 'https://github.com/statecrafting/factory-encore',
             },
             {
               label: 'template-encore',
-              href: 'https://github.com/stagecraft-ing/template-encore',
+              href: 'https://github.com/statecrafting/template-encore',
             },
             {
               label: 'oap-bootstrap',
-              href: 'https://github.com/stagecraft-ing/oap-bootstrap',
+              href: 'https://github.com/statecrafting/oap-bootstrap',
             },
           ],
         },

@@ -63,7 +63,7 @@ This spec defines how Factory enters the OAP repository, how its contract schema
 
 - Orchestrator workflow changes (spec 075)
 - Desktop UI panels (spec 076)
-- Stagecraft API endpoints (spec 077)
+- Statecraft API endpoints (spec 077)
 - Verification harness execution (spec 075)
 
 ## Requirements
@@ -365,7 +365,7 @@ Spec 108 §8 retired the in-tree `factory/` tree, which removed the canonical
 from. The OAP-owned schemas now live under
 `standards/schemas/factory/` (four top-level: `adapter-manifest`,
 `build-spec`, `pipeline-state`, `verification`; five under `stage-outputs/`).
-The stagecraft sync pipeline reads them via `api/factory/oapContracts.ts`,
+The statecraft sync pipeline reads them via `api/factory/oapContracts.ts`,
 which walks up looking for `standards/schemas/factory/` and
 respects an `OAP_FACTORY_SCHEMAS_DIR` env override for production
 containers.
@@ -384,7 +384,7 @@ containers.
 |------|-------------|
 | 075-factory-workflow-engine | Consumes contract types for manifest generation |
 | 076-factory-desktop-panel | Consumes contract types for UI rendering |
-| 077-stagecraft-factory-api | Consumes adapter registry for project init |
+| 077-statecraft-factory-api | Consumes adapter registry for project init |
 | 067-tool-registry | Factory agents register as tool-registry entries |
 
 ## Risks

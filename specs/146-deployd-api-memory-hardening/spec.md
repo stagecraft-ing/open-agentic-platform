@@ -15,7 +15,7 @@ depends_on:
   - "143-presigned-upload-public-endpoint"  # presigned-upload-public-endpoint (FU-021 diagnostic chair)
 code_aliases: ["DEPLOYD_API_MEMORY_HARDENING"]
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/test/spec146-deployd-memory.config.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/test/spec146-deployd-memory.config.test.ts }
 co_authority:
   - with_specs:
       - "145-deployd-durability"
@@ -104,7 +104,7 @@ the steady-state hiqlite WAL workload with cold-start headroom.
 Operators that need a different budget can override per-environment;
 operators that don't get a sane floor that prevents node-level OOM
 reaping. This is the same posture spec 143 FU-015 lands on
-`platform/charts/stagecraft/values.yaml` for stagecraft-api: a chart-
+`platform/charts/statecraft/values.yaml` for statecraft-api: a chart-
 default `resources` block, with per-environment overrides only when
 the workload demands a different shape.
 
@@ -143,8 +143,8 @@ Three concrete choices:
    init has been observed taking 5+ minutes (`values-hetzner.yaml:8-10`
    notes this) with intermittent allocation spikes. 1Gi gives ~750MB
    headroom over steady-state — same shape FU-015 picked for
-   stagecraft-api, which is workload-comparable on the WAL/SQLite
-   axis though stagecraft-api also runs Node+V8.
+   statecraft-api, which is workload-comparable on the WAL/SQLite
+   axis though statecraft-api also runs Node+V8.
 2. **`requests.memory: 256Mi`** — admits the pod onto a Hetzner
    node with at least 256Mi free. Comfortably above steady-state.
    Lower than the limit so the kubelet schedules generously.
@@ -158,7 +158,7 @@ Three concrete choices:
 
 ### 2.2 No managed-heap env-var (documented N/A)
 
-FU-015's leg (b) on stagecraft-api set
+FU-015's leg (b) on statecraft-api set
 `NODE_OPTIONS=--max-old-space-size=896` to cap V8's old generation
 below the cgroup. deployd-api-rs is Rust (axum + tokio + hiqlite);
 there is no managed heap to cap. The cgroup `limits.memory` IS the
@@ -182,7 +182,7 @@ the deferred tail is unchanged.
 
 ### 2.3 No request-fan-out concurrency cap (documented N/A)
 
-FU-015's leg (c) on stagecraft-api set a literal-integer
+FU-015's leg (c) on statecraft-api set a literal-integer
 `maxConcurrency` on the extraction Subscription
 (`extractionWorker.ts:35-46`) because the worker fans out N
 concurrent extractions per Pub/Sub batch with no built-in cap.
@@ -243,7 +243,7 @@ container's `command.args`); merge-conflict surface is empty.
 ### 2.5 CI regression assertions
 
 A new test file at
-`platform/services/stagecraft/test/spec146-deployd-memory.config.test.ts`
+`platform/services/statecraft/test/spec146-deployd-memory.config.test.ts`
 mirrors the shape of spec 143's
 `spec143-fu015.config.test.ts` for the deployd-api chart:
 
@@ -259,13 +259,13 @@ mirrors the shape of spec 143's
   not declare `NODE_OPTIONS` or `--max-old-space-size` anywhere.
   Static N/A assertion: documents the documented-N/A leg in
   enforced form so a future drive-by edit ("let's add NODE_OPTIONS
-  for parity with stagecraft") fails CI loudly. Mirror of spec 143
+  for parity with statecraft") fails CI loudly. Mirror of spec 143
   FU-015's NODE_OPTIONS-presence assertion in inverse polarity.
 
-The file lives under `platform/services/stagecraft/test/` because
+The file lives under `platform/services/statecraft/test/` because
 that is where the analog spec 143 test file lives and the vitest
 runner already picks up that directory; co-locating the deployd-api
-chart-config assertion next to the stagecraft chart-config
+chart-config assertion next to the statecraft chart-config
 assertion keeps the entire chart-values regression layer in one
 runner. Spec 146 primary-owns the new file via `implements:` line 17.
 
@@ -284,9 +284,9 @@ runner. Spec 146 primary-owns the new file via `implements:` line 17.
   `values-aws.yaml`, `values-gcp.yaml`, `values-do.yaml`,
   `values-local.yaml` renders the same defaults (no env override
   drops the block).
-- **AC-4.** `platform/services/stagecraft/test/spec146-deployd-memory.config.test.ts`
+- **AC-4.** `platform/services/statecraft/test/spec146-deployd-memory.config.test.ts`
   exists, parses, and asserts (1)/(2)/(3) per §2.5. The vitest
-  runner against `platform/services/stagecraft/` picks it up.
+  runner against `platform/services/statecraft/` picks it up.
 - **AC-5.** `make ci` (warm) is green.
 - **AC-6.** Spec/code coupling gate accepts the change against this
   spec's `implements:` list (no warnings beyond the shared-claimant
@@ -364,7 +364,7 @@ runner. Spec 146 primary-owns the new file via `implements:` line 17.
   leg + two-documented-N/A-legs; pins the
   `dont-soften-done-when` second invocation as precedent;
   surfaces cold-start hiqlite WAL coordination point with spec 145.
-- **Spec 143 FU-015** — three-leg fix on stagecraft-api; the
+- **Spec 143 FU-015** — three-leg fix on statecraft-api; the
   template that FU-021 was filed from; the empirical reference
   for "1Gi limit covers WAL+SQLite cold-start headroom" on a
   workload-comparable axis.
@@ -455,7 +455,7 @@ Set in `values.yaml` rather than per-cloud overrides because:
   spec-spine concern. Defer to platform observability work; not
   scoped here.
 - **OQ-3 — should the test file co-locate with deployd-api-rs?**
-  The test lives under `platform/services/stagecraft/test/` for
+  The test lives under `platform/services/statecraft/test/` for
   vitest-runner-affinity reasons (the analog spec 143 test lives
   there; one runner picks up both). A future Rust integration test
   in `platform/services/deployd-api-rs/tests/` could read the

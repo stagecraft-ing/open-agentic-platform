@@ -112,7 +112,7 @@ export const auth = authHandler<AuthParams, AuthData>(async (params) => {
   // that carries an Authorization header, including requests to the platform's
   // `expose: true` M2M endpoints (audit, policy, grants, knowledge-sweep) that
   // present a `client_credentials` token. Those tokens carry a different
-  // audience than the `stagecraft-server` session client, so `validateJwt`
+  // audience than the `statecraft-server` session client, so `validateJwt`
   // returns null for them, and the endpoints validate them themselves via
   // `validateM2mRequest` (scope-checked, no audience check). Returning null
   // (instead of throwing) makes Encore treat the request as unauthenticated:

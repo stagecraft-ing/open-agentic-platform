@@ -671,7 +671,7 @@ demand.
 
 - **CLAUDE.md spec-traceability.** Whether the three CLAUDE.md files
   (`./CLAUDE.md`, `./platform/CLAUDE.md`,
-  `./platform/services/stagecraft/CLAUDE.md`) should be spec-traceable
+  `./platform/services/statecraft/CLAUDE.md`) should be spec-traceable
   is a real but separate question. Future-work pointer:
   `[[claude-md-spec-traceability]]`. This codification does not
   resolve it; the seam map flagged it as adjacent.

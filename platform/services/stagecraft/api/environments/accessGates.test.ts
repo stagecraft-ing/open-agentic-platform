@@ -1,4 +1,4 @@
-// Spec 137 Phase 2 / T025 — Stagecraft API access-gate handler tests.
+// Spec 137 Phase 2 / T025 — Statecraft API access-gate handler tests.
 //
 // Two test surfaces:
 //

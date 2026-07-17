@@ -2,11 +2,11 @@
 // Copyright (C) 2026 Bartek Kus
 // Spec: specs/120-factory-extraction-stage/spec.md — FR-001, FR-002
 
-//! Rust mirror of stagecraft's `ExtractionOutput` schema (spec 115 source of
-//! truth: `platform/services/stagecraft/api/knowledge/extractionOutput.ts`).
+//! Rust mirror of statecraft's `ExtractionOutput` schema (spec 115 source of
+//! truth: `platform/services/statecraft/api/knowledge/extractionOutput.ts`).
 //!
 //! Field names are camelCase via `serde(rename_all)` so a serialised
-//! `ExtractionOutput` round-trips through stagecraft's Zod parser without
+//! `ExtractionOutput` round-trips through statecraft's Zod parser without
 //! transformation. The schema version is a compile-time const on both sides;
 //! drift fails CI via `tools/oap/schema-parity-check`.
 

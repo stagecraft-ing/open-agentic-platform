@@ -67,7 +67,7 @@ refines:
   # governance_certificate.rs refines above.
 references:
   - role: context
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/translator.ts }
   - role: context
     unit: { kind: file, path: docs/owasp-agentic-top-10-2026.md }
 ---
@@ -213,8 +213,8 @@ separate leg. A code trace resolved the plan's open question F2: the Rust
 edge points at is **unwired in production** (spec 167 §2.4/§7 leaves it unwired
 to avoid a double-emit; only tests call it). The production born-with emission,
 and the only point at which a committed `package-lock.json` provably exists in
-the produced tree, is stagecraft's TypeScript scaffold path
-(`platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts`),
+the produced tree, is statecraft's TypeScript scaffold path
+(`platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts`),
 which runs at project creation before any s0-s6 factory stage. Within the Rust
 pipeline the earliest lockfile-bearing stage is `s6a-scaffold-init`
 (post-`npm install`); the terminal scaffold stage is `s6h-final-validation`.
@@ -224,12 +224,12 @@ site when that leg is implemented (plan F3). This mirrors the corpus-binding
 split (spec 218): factory-engine reads and binds artifacts it is given, an
 upstream step generates them.
 
-**Generation home (decided): the tenant CI, not the stagecraft scaffold.** A
-second trace weighed the two candidate hooks. The stagecraft scaffold
+**Generation home (decided): the tenant CI, not the statecraft scaffold.** A
+second trace weighed the two candidate hooks. The statecraft scaffold
 (`perRequestScaffold.ts`) is the earliest point a committed lockfile exists, but
 running `@cyclonedx/cyclonedx-npm` there means a network-fetching tool executing
 inside the scaffold pod's `readOnlyRootFilesystem` posture (the tool is not a
-stagecraft dependency and would fetch on demand into a writable cache), a real
+statecraft dependency and would fetch on demand into a writable cache), a real
 risk to production project creation. The tenant CI (the prebuilt template's
 external `spec-spine.yml`, where spec 209's `verify-certificate` step and this
 spec's FR-004 parity gate already live) has network and a writable filesystem,
@@ -271,7 +271,7 @@ The external CI author (template-encore `spec-spine.yml`) implemented point 1
 as **deterministic regeneration** rather than a mandatory committed sidecar. A
 code trace surfaced a conflict with the "first run generates and commits" model:
 the scaffold sets branch protection (required PR reviews) on the produced repo
-(stagecraft `configureBranchProtection`), so the CI cannot push a commit-back of
+(statecraft `configureBranchProtection`), so the CI cannot push a commit-back of
 `.factory/sbom.cdx.json` to the default branch. The gate therefore:
 
 1. regenerates the BOM twice per run and asserts the two are byte-identical

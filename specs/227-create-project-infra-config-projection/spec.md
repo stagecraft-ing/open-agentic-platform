@@ -10,7 +10,7 @@ created: "2026-07-06"
 authors: ["open-agentic-platform"]
 language: en
 summary: >
-  The stagecraft "Create New Project" surface hand-mirrors the factory
+  The statecraft "Create New Project" surface hand-mirrors the factory
   adapter's module catalog in two independently-maintained hardcoded copies
   (the frontend route and a backend module) that have drifted: they still
   offer a "Redis" module whose factory-encore source is an inert marker with a
@@ -37,9 +37,9 @@ summary: >
   changes this surface projects.
 code_aliases: ["previewRedis", "MODULE_CATALOG", "ENCORE_INFRA_CONFIG"]
 depends_on:
-  - "138-stagecraft-create-realised-scaffold"  # owns the create/scaffold flow (create.ts, scaffoldFromPrebuilt, pickProfileFromModules) and the moduleCatalog this spec derives instead of hand-mirrors
-  - "199-factory-thin-consumer-sync"  # owns the stagecraft thin-consumer mirror of the factory manifest; the hand-mirrored MODULE_CATALOG is exactly the drift-prone copy this spec replaces with a derived catalog
-  - "160-factory-adapter-stagecraft-relocation"  # owns the stagecraft-resident adapter surface (adapter-scopes.json) the derived infra/feature vocabulary reads from
+  - "138-statecraft-create-realised-scaffold"  # owns the create/scaffold flow (create.ts, scaffoldFromPrebuilt, pickProfileFromModules) and the moduleCatalog this spec derives instead of hand-mirrors
+  - "199-factory-thin-consumer-sync"  # owns the statecraft thin-consumer mirror of the factory manifest; the hand-mirrored MODULE_CATALOG is exactly the drift-prone copy this spec replaces with a derived catalog
+  - "160-factory-adapter-statecraft-relocation"  # owns the statecraft-resident adapter surface (adapter-scopes.json) the derived infra/feature vocabulary reads from
   - "213-tenant-repo-image-build"  # owns the seeded oap-build.yml and `encore build docker --config ./infra.config.json`; Option A rides on this single build path
   - "214-tenant-app-chart-supersession"  # owns the acme-vue-encore chart and the previewDatabase dev-provisioning path previewRedis mirrors
   - "225-deployd-selfprovision-rbac"  # owns the current deployd provisioning/RBAC surface previewRedis extends
@@ -54,30 +54,30 @@ establishes:
   # module-catalog loader + GET /api/factory/module-catalog that projects the
   # feature-module list from the adapter's substrate module manifests, replacing
   # the two hand-mirrored MODULE_CATALOG copies (FR-001).
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/moduleCatalog.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/moduleCatalog.ts }
   # Interim (post-Stage 1): the two Stage-2-deferred ai-review nits from #533,
   # pulled forward. Net-new files, so they enter establishes directly rather
   # than promoting a references: pointer: the pure per-org catalog cache behind
   # loadModuleCatalogForOrg, and the pure transitive module-selection helper the
   # picker's toggle now delegates to (each with its unit test).
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/moduleCatalogCache.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/moduleCatalogCache.test.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/module-selection.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/module-selection.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/moduleCatalogCache.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/moduleCatalogCache.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/module-selection.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/module-selection.test.ts }
   # Stage 2 (form reframe) landed this net-new pure helper: patchEnvExample
   # plumbs the Base-app config knobs (FR-007) into the scaffolded app's committed
   # apps/api/.env.example.
-  - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/envExample.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/envExample.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/envExample.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/envExample.test.ts }
   # Stage 2 review follow-up: the pure two-axis (Topology x Auth) to variant
   # mapping, extracted from the route so it is unit-testable.
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/create-project-variant.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/create-project-variant.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/create-project-variant.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/create-project-variant.test.ts }
   # Stage 4 (end-to-end Redis): net-new migration adding the projects
   # uses_redis column. Under Option A the topology is build-time, so the opt-in
   # Redis selection is fixed at scaffold; the deploy trigger reads the column to
   # auto-provision a dev preview Redis (mirrors the default-on preview Postgres).
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/4_project_uses_redis.up.sql }
+  - unit: { kind: file, path: platform/services/statecraft/api/db/migrations/4_project_uses_redis.up.sql }
 extends:
   # A new spec adds a node to the featuregraph golden (same precedent as specs
   # 214, 222, 223, 224, 225, 226); claimed additively against spec 034 so the
@@ -117,49 +117,49 @@ extends:
   # 138 (the create/scaffold surface these paths belong to), 199 (the
   # thin-consumer factory browser whose admission gate the endpoint reuses), and
   # 112 (which owns the scaffold test files).
-  - spec: "138-stagecraft-create-realised-scaffold"
+  - spec: "138-statecraft-create-realised-scaffold"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts }
-  - spec: "138-stagecraft-create-realised-scaffold"
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/moduleCatalog.ts }
+  - spec: "138-statecraft-create-realised-scaffold"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/create.ts }
-  - spec: "138-stagecraft-create-realised-scaffold"
+    unit: { kind: file, path: platform/services/statecraft/api/projects/create.ts }
+  - spec: "138-statecraft-create-realised-scaffold"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts }
-  - spec: "138-stagecraft-create-realised-scaffold"
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts }
+  - spec: "138-statecraft-create-realised-scaffold"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx }
-  - spec: "138-stagecraft-create-realised-scaffold"
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.projects.new.tsx }
+  - spec: "138-statecraft-create-realised-scaffold"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/projects-api.server.ts }
-  # The #533 review follow-up refreshed the stagecraft CLAUDE.md scaffold
+    unit: { kind: file, path: platform/services/statecraft/web/app/lib/projects-api.server.ts }
+  # The #533 review follow-up refreshed the statecraft CLAUDE.md scaffold
   # `moduleCatalog.ts` description to the Stage 1 derived-catalog API this spec
   # introduced, so 227 additively co-authors that doc file (138 already claims
   # it via extends 112).
-  - spec: "138-stagecraft-create-realised-scaffold"
+  - spec: "138-statecraft-create-realised-scaffold"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/CLAUDE.md }
+    unit: { kind: file, path: platform/services/statecraft/CLAUDE.md }
   - spec: "199-factory-thin-consumer-sync"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/browse.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/browse.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/scaffold.test.ts }
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.test.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/perRequestScaffold.test.ts }
   # Stage 4 (end-to-end Redis): promoted from references: as the wiring landed.
   # deploy.ts now has an honest opt-in source (the project's fixed uses_redis
   # selection), so the preview_redis dev-provisioning trigger lands; additive
   # against 215, which refines the deploy trigger.
-  - spec: "215-stagecraft-deploy-trigger-ux"
+  - spec: "215-statecraft-deploy-trigger-ux"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/deploy/deploy.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/deploy/deploy.ts }
   # The projects table gains the uses_redis column (recording the opt-in Redis
   # selection at create); additive against 114, which establishes schema.ts.
   - spec: "114-async-project-clone-pipeline"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/db/schema.ts }
 ---
 
 # 227. Create Project as an Encore-infra-config projection
@@ -183,9 +183,9 @@ artifact that makes the produced app portable.
 The module catalog (list, group labels, prose descriptions) is hardcoded inline
 in two independently-maintained copies:
 
-- frontend `platform/services/stagecraft/web/app/routes/app.projects.new.tsx`
+- frontend `platform/services/statecraft/web/app/routes/app.projects.new.tsx`
   (the `MODULE_CATALOG` const)
-- backend `platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts`
+- backend `platform/services/statecraft/api/projects/scaffold/moduleCatalog.ts`
 
 Nothing reads the adapter manifest at runtime, so the prose rots. It has: the
 two copies already diverge in wording, and both still offer a **Redis** module.
@@ -309,7 +309,7 @@ prod, it is a separate spec.
 ### Functional Requirements
 
 - **FR-001**: The create-project feature-module catalog MUST be **derived from
-  the factory adapter manifest** (the stagecraft-resident adapter surface,
+  the factory adapter manifest** (the statecraft-resident adapter surface,
   spec 160) rather than hardcoded. The two hand-mirrored `MODULE_CATALOG`
   copies (`app.projects.new.tsx`, `moduleCatalog.ts`) MUST be eliminated so a
   drift like the retired-Redis label cannot recur.
@@ -374,7 +374,7 @@ prod, it is a separate spec.
 
 ## 4. Success Criteria
 
-- **SC-001**: No hardcoded feature-module catalog remains in stagecraft; the
+- **SC-001**: No hardcoded feature-module catalog remains in statecraft; the
   catalog matches the adapter manifest by construction. A regression like the
   retired-Redis false label is structurally impossible (there is no hand-copy to
   drift).
@@ -400,7 +400,7 @@ claimed additively against spec 034.
 
 `depends_on` edges cite the specs that own the surfaces this spec reframes:
 138 (create/scaffold + moduleCatalog), 199 (the thin-consumer mirror the
-derived catalog replaces), 160 (the stagecraft-resident adapter surface),
+derived catalog replaces), 160 (the statecraft-resident adapter surface),
 213 (the single build path Option A rides on), 214 (the chart + previewDatabase
 that previewRedis mirrors), and 225 (the deployd provisioning surface
 previewRedis extends).
@@ -410,10 +410,10 @@ previewRedis extends).
 Each stage is a separate PR that promotes the relevant `references:` paths to
 authoritative relationships:
 
-1. **Catalog derivation** (stagecraft): replace both `MODULE_CATALOG` copies
+1. **Catalog derivation** (statecraft): replace both `MODULE_CATALOG` copies
    with a derivation from the adapter manifest; refines 138/199. Satisfies
    FR-001 and removes the false Redis label at the source.
-2. **Form reframe** (stagecraft): the two-axis selector, the Infrastructure
+2. **Form reframe** (statecraft): the two-axis selector, the Infrastructure
    projection (read-only infra.config view), the Application-features section,
    and Base-app config fields; refines 138. Satisfies FR-002, FR-003, FR-007,
    FR-008.
@@ -424,7 +424,7 @@ authoritative relationships:
    selection through to the baked `redis` block; depends on factory-encore 008
    landing the adapter-side promotion. Satisfies FR-004, and FR-006 falls out of
    Option A with no per-env files.
-5. **Cron capability** (stagecraft): surface the factory-encore `cron` module
+5. **Cron capability** (statecraft): surface the factory-encore `cron` module
    (OAP spec 230, factory-encore spec 009) as an Application feature whose
    transitive `data-postgres` requires closure is submitted with the scaffold
    request. The Small (Postgres atomic-claim) tier is active; the large-scale
@@ -534,7 +534,7 @@ closure via `applyModuleToggle`; the per-org cache is keyed by `(namespace, org)
 the Topology/Auth-to-variant mapping (`create-project-variant.ts`) and the
 `scaffold.profiles` parse (`parseScaffoldProfiles`) are extracted into pure,
 unit-tested seams; the Base-app knobs are recorded in the create audit + scaffold
-job metadata; and stagecraft/CLAUDE.md is refreshed to the Stage 2 API.
+job metadata; and statecraft/CLAUDE.md is refreshed to the Stage 2 API.
 
 **Interim (post-Stage 1, 2026-07-08).** #533 ai-review follow-ups (the findings
 the Stage 1 PR adjudicated non-blocking), before the Stage 2 form reframe:
@@ -555,7 +555,7 @@ the Stage 1 PR adjudicated non-blocking), before the Stage 2 form reframe:
   and confirmed the order is a deterministic alphabetical-within-level contract,
   so the exact assertion is correct and is retained with a comment documenting
   the guarantee.
-- **stagecraft/CLAUDE.md** `moduleCatalog.ts` description refreshed to the
+- **statecraft/CLAUDE.md** `moduleCatalog.ts` description refreshed to the
   derived Stage 1 API (the stale `MODULE_CATALOG`/`INSTALL_ORDER` listing).
 
 A direct unit test for the new `deriveModuleCatalogFromView` seam is deferred: it
@@ -605,7 +605,7 @@ outstanding); this PR does not touch the form's regions or `deploy.ts`.
   (the postgres pod/Secret keep the `POSTGRES_*` keys the image itself needs).
   Redis follows the corrected convention (`REDIS_HOST`/`REDIS_PASSWORD`).
 
-The stagecraft trigger (`deploy.ts`) that sets `preview_redis` from a project's
+The statecraft trigger (`deploy.ts`) that sets `preview_redis` from a project's
 opt-in Redis selection, gated by `envKind`, lands with the Stage 2 form reframe
 and the Stage 4 end-to-end wiring (it has no honest opt-in source until the
 Infrastructure section exists), so `deploy.ts` stays under `references:`.
@@ -633,7 +633,7 @@ Infrastructure section exists), so `deploy.ts` stays under `references:`.
   `perRequestScaffold.readInstalledModules` keeps composition correct meanwhile,
   so behavior is unchanged. The false `data-redis` label is corrected by
   factory-encore 008 at the manifest source; Stage 1 removes the hand-copy so
-  stagecraft cannot drift from it.
+  statecraft cannot drift from it.
 
 ## 7. Out of scope
 

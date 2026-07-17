@@ -4,8 +4,8 @@
     "warnings": [
       {
         "code": "W-002",
-        "message": "spec '111-org-agent-catalog-sync' file unit 'platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx' does not exist",
-        "path": "platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx"
+        "message": "spec '111-org-agent-catalog-sync' file unit 'platform/services/statecraft/web/app/routes/app.workspace.agents.tsx' does not exist",
+        "path": "platform/services/statecraft/web/app/routes/app.workspace.agents.tsx"
       }
     ]
   },
@@ -16,39 +16,39 @@
       "068-permission-runtime",
       "087-unified-workspace-architecture",
       "090-governance-non-optionality",
-      "110-stagecraft-to-opc-factory-trigger"
+      "110-statecraft-to-opc-factory-trigger"
     ],
     "implementingPaths": [
       {
-        "path": "platform/services/stagecraft/api/agents",
+        "path": "platform/services/statecraft/api/agents",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/agents/catalog.ts",
+        "path": "platform/services/statecraft/api/agents/catalog.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/agents/frontmatter",
+        "path": "platform/services/statecraft/api/agents/frontmatter",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/agents/relay.ts",
+        "path": "platform/services/statecraft/api/agents/relay.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/sync/duplex.ts",
+        "path": "platform/services/statecraft/api/sync/duplex.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/sync/relay.ts",
+        "path": "platform/services/statecraft/api/sync/relay.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/sync/service.ts",
+        "path": "platform/services/statecraft/api/sync/service.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/sync/types.ts",
+        "path": "platform/services/statecraft/api/sync/types.ts",
         "source": "spec-edge"
       },
       {
@@ -60,7 +60,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs",
+        "path": "product/apps/opc/src-tauri/src/commands/statecraft_client.rs",
         "source": "spec-edge"
       }
     ],
@@ -68,105 +68,105 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/agents"
+            "file": "platform/services/statecraft/api/agents"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "directory",
-          "path": "platform/services/stagecraft/api/agents"
+          "path": "platform/services/statecraft/api/agents"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/agents/frontmatter"
+            "file": "platform/services/statecraft/api/agents/frontmatter"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "directory",
-          "path": "platform/services/stagecraft/api/agents/frontmatter"
+          "path": "platform/services/statecraft/api/agents/frontmatter"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/agents/catalog.ts"
+            "file": "platform/services/statecraft/api/agents/catalog.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/agents/catalog.ts"
+          "path": "platform/services/statecraft/api/agents/catalog.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/agents/relay.ts"
+            "file": "platform/services/statecraft/api/agents/relay.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/agents/relay.ts"
+          "path": "platform/services/statecraft/api/agents/relay.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync/duplex.ts"
+            "file": "platform/services/statecraft/api/sync/duplex.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/duplex.ts"
+          "path": "platform/services/statecraft/api/sync/duplex.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync/relay.ts"
+            "file": "platform/services/statecraft/api/sync/relay.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/relay.ts"
+          "path": "platform/services/statecraft/api/sync/relay.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync/service.ts"
+            "file": "platform/services/statecraft/api/sync/service.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/service.ts"
+          "path": "platform/services/statecraft/api/sync/service.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/sync/types.ts"
+            "file": "platform/services/statecraft/api/sync/types.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/types.ts"
+          "path": "platform/services/statecraft/api/sync/types.ts"
         }
       },
       {
@@ -198,14 +198,14 @@
       {
         "locations": [
           {
-            "file": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs"
+            "file": "product/apps/opc/src-tauri/src/commands/statecraft_client.rs"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs"
+          "path": "product/apps/opc/src-tauri/src/commands/statecraft_client.rs"
         }
       },
       {
@@ -214,7 +214,7 @@
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.workspace.agents.tsx"
         }
       }
     ],

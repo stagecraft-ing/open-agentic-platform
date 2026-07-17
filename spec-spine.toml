@@ -7,7 +7,7 @@
 # governance engine is no longer vendored in-tree (spec 217 collapse); it
 # is the published `spec-spine` package. OAP keeps only its overlay: the
 # compliance/factory/OWASP machinery, the 16-value `kind` enum +
-# shape/category, capability/registry/profile, the `stagecraft://`
+# shape/category, capability/registry/profile, the `statecraft://`
 # provenance scheme, and the domain lens.
 #
 # All keys are optional; this file writes out OAP's deviations from the
@@ -68,13 +68,13 @@ standalone_rust_workspaces = [
 # expand to /apps/* and /packages/* and discover nothing (spec 217 section 1.5
 # Track 1; upstream library fix tracked for spec-spine 0.5.1).
 npm_workspaces = ["product/package.json"]
-# stagecraft is an Encore.ts service deliberately outside the pnpm workspace
+# statecraft is an Encore.ts service deliberately outside the pnpm workspace
 # (npm, not pnpm). product/packages/* and product/apps/* enumerate the @opc/*
 # packages and the OPC desktop app.
 standalone_npm_packages = [
   "product/packages/*",
   "product/apps/*",
-  "platform/services/stagecraft/package.json",
+  "platform/services/statecraft/package.json",
 ]
 
 [index]
@@ -92,7 +92,7 @@ extra_hashed_inputs = [
   ".claude/skills/**",
   ".claude/settings.json",
   ".mcp.json",
-  "platform/services/stagecraft/api/factory/adapter-scopes.json",
+  "platform/services/statecraft/api/factory/adapter-scopes.json",
 ]
 resolver_exclusions = ["target", "node_modules", ".derived", "dist", "build", ".next"]
 
@@ -121,9 +121,9 @@ indexer_id  = "spec-spine"
 
 [provenance.uri_schemes]
 # Spec 156 references-edge provenance. OAP's knowledge URIs are
-# `stagecraft://project/<uuid>/knowledge/<uuid>`; code fingerprints are
+# `statecraft://project/<uuid>/knowledge/<uuid>`; code fingerprints are
 # `xray-fingerprint://<sha256>`.
-knowledge        = "stagecraft://"
+knowledge        = "statecraft://"
 code-fingerprint = "xray-fingerprint://"
 
 [frontmatter]

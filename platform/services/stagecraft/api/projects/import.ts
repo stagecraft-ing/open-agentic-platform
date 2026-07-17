@@ -9,7 +9,7 @@
 //   LegacyProduced   → if legacy_complete, translate + open PR; else reject
 //   AcpProduced      → register directly
 //
-// Follows the same governed-consumer posture as Create: stagecraft
+// Follows the same governed-consumer posture as Create: statecraft
 // never parses contract JSON on the Node side — it shells the detection
 // binary and reads its structured output.
 
@@ -914,7 +914,7 @@ async function cloneRepo(
   owner: string,
   repo: string
 ): Promise<string> {
-  const workDir = await mkdtemp(join(tmpdir(), "stagecraft-import-"));
+  const workDir = await mkdtemp(join(tmpdir(), "statecraft-import-"));
   const cloneTarget = join(workDir, "repo");
   const authUrl = `https://x-access-token:${installationToken}@github.com/${owner}/${repo}.git`;
   await runCmd("git", ["clone", "--depth", "1", authUrl, cloneTarget]);

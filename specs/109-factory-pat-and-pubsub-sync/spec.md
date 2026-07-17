@@ -20,22 +20,22 @@ depends_on:
   - "106-rauthy-native-oidc-and-membership"  # rauthy-native-oidc-and-membership (patCrypto, PAT primitives)
   - "108-factory-as-platform-feature"  # factory-as-platform-feature (tables, UI shell)
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/upstreamPat.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/syncWorker.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/syncRuns.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/syncRunsScheduler.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/tokenResolver.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/projects/projectPat.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/upstreamPat.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/syncWorker.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/syncRuns.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/syncRunsScheduler.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/tokenResolver.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projects/projectPat.ts }
 extends:
   - spec: "108-factory-as-platform-feature"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/factory.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/factory.ts }
   - spec: "108-factory-as-platform-feature"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.factory.upstreams.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.factory.upstreams.tsx }
   - spec: "106-rauthy-native-oidc-and-membership"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.github-pat.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId.settings.github-pat.tsx }
 ---
 
 # 109 — Factory PAT Broker + PubSub Sync Worker
@@ -54,7 +54,7 @@ Spec 108 shipped Factory as a platform feature but left two gaps:
 2. **No PAT pathway into repo access.** The sync worker resolves tokens only
    via `brokerInstallationToken` against the org's `github_installations`
    row. This is fine *if and only if* the factory upstream org has installed
-   the OAP GitHub App. It never has, and it won't — `Stagecraft-ing` is a
+   the OAP GitHub App. It never has, and it won't — `Statecraft-ing` is a
    third-party source controlled by another team. The silent anonymous
    fallback in `api/factory/sync.ts::resolveInstallationToken` covers public
    repos but dies on private ones. The same gap exists for project repos
@@ -251,7 +251,7 @@ sweeper covers only `factory_runs`).
 124 `runsScheduler.ts` pattern: a `factory-sync-runs-staleness-sweeper` cron
 (every 1 minute) flips any `(pending, running)` row whose
 `COALESCE(started_at, queued_at)` is older than
-`STAGECRAFT_FACTORY_SYNC_STALE_AFTER_SEC` (default 600s; the per-repo clone
+`STATECRAFT_FACTORY_SYNC_STALE_AFTER_SEC` (default 600s; the per-repo clone
 timeout is 120s, so a healthy sync finishes well inside the window) to
 `failed`, corrects the denormalised `factory_upstreams.last_sync_status` for
 the org's factory-side row so the Overview banner and Sync button re-arm, and

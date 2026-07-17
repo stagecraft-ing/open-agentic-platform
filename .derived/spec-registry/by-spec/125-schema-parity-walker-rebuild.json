@@ -31,7 +31,7 @@
         "aspect": "schema-parity-walker",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractionOutput.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractionOutput.ts"
         }
       }
     ],

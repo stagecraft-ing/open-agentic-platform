@@ -87,9 +87,9 @@ runs:
       #   "Apply failed with N conflict: conflict with kubectl-set
       #    using apps/v1: .spec.template.spec.containers[name=...].image"
       #
-      # Symptom seen 2026-05-08 on the spec-143 push: cd-stagecraft
+      # Symptom seen 2026-05-08 on the spec-143 push: cd-statecraft
       # failed because the 2026-05-07 hotfix used `kubectl set image
-      # deployment/stagecraft-api` to ship hotfix-2026-05-07-knowledge-list,
+      # deployment/statecraft-api` to ship hotfix-2026-05-07-knowledge-list,
       # leaving kubectl-set as a field manager that helm couldn't
       # reclaim.
       #
@@ -124,7 +124,7 @@ runs:
         # We preserve helm's Apply entry and k3s's Update entry on the
         # status subresource — those are legitimate.
         #
-        # Symptom history on cd-stagecraft, spec-143 push:
+        # Symptom history on cd-statecraft, spec-143 push:
         #   25549778525 — original kubectl-set Update conflict
         #   25550587712 — strip selector matched nothing
         #   25551135913 — JSON-patch nuke left empty managedFields,

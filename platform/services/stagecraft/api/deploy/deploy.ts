@@ -305,20 +305,20 @@ export const createDeployment = api.raw(
 
     const data = parsed.data;
 
-    // POC: when deployed (SECRETS_DIR set), validate CSI wiring by checking STAGECRAFT_DB_URL
+    // POC: when deployed (SECRETS_DIR set), validate CSI wiring by checking STATECRAFT_DB_URL
     const secretsDir = process.env.SECRETS_DIR;
     if (secretsDir) {
-      const stagecraftDbUrl =
-        (await readSecretFromDir("STAGECRAFT_DB_URL")) ?? process.env.STAGECRAFT_DB_URL ?? null;
+      const statecraftDbUrl =
+        (await readSecretFromDir("STATECRAFT_DB_URL")) ?? process.env.statecraft_DB_URL ?? null;
 
-      if (!stagecraftDbUrl) {
+      if (!statecraftDbUrl) {
         res.statusCode = 500;
         res.setHeader("Content-Type", "application/json");
         res.end(
           JSON.stringify({
             error: "missing_secret",
             message:
-              "STAGECRAFT_DB_URL not found in secrets mount or env; set Key Vault secret or env var",
+              "STATECRAFT_DB_URL not found in secrets mount or env; set Key Vault secret or env var",
           })
         );
         return;
@@ -328,7 +328,7 @@ export const createDeployment = api.raw(
     // region: access-gate-wire
     // Spec 137 Phase 4↔5 integration — load the per-env access-gate
     // descriptor and forward as `access_gate` to deployd-api. The
-    // descriptor lives in stagecraft Postgres; deployd-api only sees the
+    // descriptor lives in statecraft Postgres; deployd-api only sees the
     // rendered wire shape. Absent descriptor (no gate ever configured)
     // produces `null`, which deployd-api treats identically to
     // `enabled: false` (no auth-url annotation, no gate release).
@@ -373,7 +373,7 @@ export const createDeployment = api.raw(
     }
 
     // region: shape-and-routing
-    // Spec 214: enrich the dispatch from stagecraft's own records. Resolve the
+    // Spec 214: enrich the dispatch from statecraft's own records. Resolve the
     // chart shape from the project's factory adapter (FR-002), forward the
     // stored namespace (FR-008), and derive the tenant host from
     // org/project/env slugs when the caller supplied no routes (FR-007).
@@ -666,7 +666,7 @@ type BuildBodyResult =
 
 /**
  * Assemble the deployd-api dispatch body for a UI-triggered deploy, enriched
- * from stagecraft's own records (spec 214): chart from the project's adapter,
+ * from statecraft's own records (spec 214): chart from the project's adapter,
  * namespace from the environment, tenant host derived from org/project/env
  * slugs, and the per-env access-gate descriptor. Mirrors the enrichment the
  * raw /v1/deployments proxy does inline for external callers; kept separate

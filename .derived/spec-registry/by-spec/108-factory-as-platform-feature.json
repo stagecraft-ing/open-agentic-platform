@@ -35,7 +35,7 @@
     ],
     "specPath": "specs/108-factory-as-platform-feature/spec.md",
     "status": "approved",
-    "summary": "Removes the repo-rooted `factory/` directory and reimplements adapters, contracts, processes, and upstream-map configuration as first-class entities inside stagecraft. Factory becomes a governed, organisationally-scoped feature surfaced at `/app/factory`; Factory runs continue to execute via OPC but are orchestrated by the platform. Supersedes spec 088 for the upstream sync flow.\n",
+    "summary": "Removes the repo-rooted `factory/` directory and reimplements adapters, contracts, processes, and upstream-map configuration as first-class entities inside statecraft. Factory becomes a governed, organisationally-scoped feature surfaced at `/app/factory`; Factory runs continue to execute via OPC but are orchestrated by the platform. Supersedes spec 088 for the upstream sync flow.\n",
     "supersedes": [
       "088-factory-upstream-sync"
     ],

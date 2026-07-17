@@ -22,15 +22,15 @@ depends_on:
   - "198-factory-governance-envelope"
   - "139-factory-artifact-substrate"
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanCore.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanEvents.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanWorker.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanScheduler.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanPolicy.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanPrompts.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanRuns.test.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideQuarantineEnforcement.test.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanStructure.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/overrideScanCore.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/overrideScanEvents.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/overrideScanWorker.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/overrideScanScheduler.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/overrideScanPolicy.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/overrideScanPrompts.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/overrideScanRuns.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/overrideQuarantineEnforcement.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/overrideScanStructure.test.ts }
 extends:
   # Spec adds always bump the featuregraph golden (corpus convention —
   # specs 190/194/195 carry the same edge).
@@ -41,54 +41,54 @@ refines:
   # The write-path class the FR-013(a) gate already covers — every accepted
   # revision enqueues a scan (FR-001):
   - aspect: "override-write-async-scanning"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/artifacts.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/artifacts.ts }
   - aspect: "override-write-async-scanning"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/conflicts.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/conflicts.ts }
   - aspect: "override-write-async-scanning"
-    unit: { kind: file, path: platform/services/stagecraft/api/agents/catalog.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/agents/catalog.ts }
   # FR-006 — verify-override refuses while the revision is quarantined:
   - aspect: "verify-quarantine-interplay"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/artifacts.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/artifacts.ts }
   # FR-003 — consumed-override content hashes join the revocation sweep at
   # serve (bundle assembly) and grant issue/renew:
   - aspect: "consumed-override-revocation-sweep"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/admission.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/admission.ts }
   - aspect: "consumed-override-revocation-sweep"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/grantDuplexHandlers.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/grantDuplexHandlers.ts }
   # …including the approval summary's inline parity replica of the
   # consumed-overrides query (cycle-avoidance keeps it from importing
   # collectConsumedOverrides, so it is a second extension site):
   - aspect: "consumed-override-revocation-sweep"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalSummary.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/approvalSummary.ts }
   # FR-004 — mode-sensitive lift for content-hash quarantines:
   - aspect: "content-hash-quarantine-lift-mode"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/revocations.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/revocations.ts }
   # FR-003(c) — the exact read-path units serving user-authored agent
   # content, named by the implementing PR as the FR prescribes:
   - aspect: "consumed-override-revocation-sweep"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/runAgentRefs.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/runAgentRefs.ts }
   - aspect: "consumed-override-revocation-sweep"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/runs.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/runs.ts }
   - aspect: "consumed-override-revocation-sweep"
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/opcBundle.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/opcBundle.ts }
   # FR-008 — scan-run table + audit vocabulary ride the shared schema:
   - aspect: "scan-run-records"
-    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/db/schema.ts }
   # AC-8 — DB-bound suites join the spec 211 encore-test lane (the
   # exclude list IS the lane assignment):
   - aspect: "encore-test-lane-assignment"
-    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+    unit: { kind: file, path: platform/services/statecraft/vite.config.ts }
   # FR-001 — the scan-request topic must be declared in the self-host
   # infra configs (encore build fails closed on undeclared topics):
   - aspect: "override-scan-topic-declaration"
-    unit: { kind: file, path: platform/services/stagecraft/infra.config.json }
+    unit: { kind: file, path: platform/services/statecraft/infra.config.json }
 references:
   - role: context
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideGate.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/overrideGate.ts }
   - role: context
     unit: { kind: file, path: docs/owasp-agentic-top-10-2026.md }
   - role: analog
-    unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionCore.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/knowledge/extractionCore.ts }
 ---
 
 # Feature Specification: Substrate Override Async Scanner
@@ -176,7 +176,7 @@ the first two away.
   PubSub publish (`factory-override-scan-request`, at-least-once) happens
   after commit; a cron sweeper re-drives queued rows whose publish was
   lost and fails stale `running` rows
-  (`STAGECRAFT_OVERRIDE_SCAN_STALE_AFTER_SEC`, default 600). Idempotency:
+  (`STATECRAFT_OVERRIDE_SCAN_STALE_AFTER_SEC`, default 600). Idempotency:
   an existing `queued|running|completed` run for `(org, artifact,
   content_hash, scanner_version)` within the dedupe window absorbs
   re-enqueues; `skipped` and `failed` runs do NOT absorb, so a revision
@@ -226,7 +226,7 @@ the first two away.
   never auto-lifting.
 - **FR-005 — Cost and policy gates, org-scoped.** Model invocation honours
   an org policy slice resolved from a compiled snapshot
-  (`build/policy/orgs/{orgId}.json`; `STAGECRAFT_OVERRIDE_SCAN_POLICY_DIR`
+  (`build/policy/orgs/{orgId}.json`; `STATECRAFT_OVERRIDE_SCAN_POLICY_DIR`
   override) with shape `{ scanAllowed, modelPin?, costCeilingUsdPerCall,
   costCeilingUsdPerDay }`, 30s cache, and a deterministic fallback of
   scanning-disabled. Disabled or over-ceiling → the run row completes
@@ -315,7 +315,7 @@ the first two away.
   resolver contract above is fixed either way.
   **Resolved interim (2026-06-12, implementing PR):** the org slice starts
   as a hand-deployed snapshot at `build/policy/orgs/{orgId}.json`
-  (`STAGECRAFT_OVERRIDE_SCAN_POLICY_DIR` override). The resolver's
+  (`STATECRAFT_OVERRIDE_SCAN_POLICY_DIR` override). The resolver's
   fail-closed fallback makes the absent-snapshot state safe and audited
   (`skipped` runs are the operator's worklist). Growing the policy
   compiler an `orgs/` output remains open under spec 047's ownership —
@@ -350,7 +350,7 @@ refinement is the pre-implementation step the draft staged for itself
 eligible the moment the gate discharges.
 
 **Gate discharged (2026-06-12, later the same day):** spec 198 flipped
-`implementation: complete` (its tasks.md gate — Stagecraft-side envelope
+`implementation: complete` (its tasks.md gate — Statecraft-side envelope
 merge + first real ADMIT — was met by the sealed admission above; the
 flip records AC-5's bundle-boundary posture and the live-run AC-4
 caveat honestly in its implementation log). Implementation proceeded in

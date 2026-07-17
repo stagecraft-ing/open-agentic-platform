@@ -1,6 +1,6 @@
 // Spec 163 §2.4 / FR-005 / FR-006 — single-spec detail view.
 //
-// Renders one spec.md inside the project's stagecraft surface:
+// Renders one spec.md inside the project's statecraft surface:
 //   - frontmatter summary (kind, status, implementation, categories)
 //   - markdown body
 //   - outgoing + incoming relationship lists (spec 130 projection)

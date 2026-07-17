@@ -41,15 +41,15 @@ module "platform_bootstrap" {
   cloud_provider = "azure"
   registry_url   = local.core.acr_login_server
 
-  stagecraft_namespace = "stagecraft-system"
+  statecraft_namespace = "statecraft-system"
   deployd_namespace    = "deployd-system"
 
-  stagecraft_host = var.stagecraft_host
+  statecraft_host = var.statecraft_host
   deployd_host    = var.deployd_host
 
-  stagecraft_sa_name = local.core.stagecraft_serviceaccount_name
+  statecraft_sa_name = local.core.statecraft_serviceaccount_name
   deployd_sa_name    = local.core.deployd_serviceaccount_name
-  cloud_identity_id  = local.core.stagecraft_identity_client_id
+  cloud_identity_id  = local.core.statecraft_identity_client_id
 
   charts_root = "${path.module}/../../../../../charts"
 

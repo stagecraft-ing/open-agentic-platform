@@ -257,7 +257,7 @@ to this spec's claims; owned paths inherit the new prefix.
 
 ## Amendment 2026-06-29 (reset-prep housekeeping)
 
-`ci-stagecraft.yml` and `cd-stagecraft.yml` had their `encore build --config`
+`ci-statecraft.yml` and `cd-statecraft.yml` had their `encore build --config`
 repointed from the retired `infra.config.hetzner.json` to the unified
 `infra.config.json`. Mechanical filename change; no change to workflow
 traceability claims.

@@ -10,14 +10,14 @@ created: "2026-06-09"
 authors: ["open-agentic-platform"]
 language: en
 summary: >
-  Move the stagecraft factory sync off the retired legacy-factory layout
+  Move the statecraft factory sync off the retired legacy-factory layout
   and make it a thin CONSUMER of the owned factory/template
-  sources. Stagecraft stores upstream content verbatim in the substrate and
+  sources. Statecraft stores upstream content verbatim in the substrate and
   serves it by kind and by the adapter's own (schema-validated) manifest — it
   stops TRANSLATING content OAP authors and controls. Adapter identity comes
   from the manifest (acme-vue-encore self-declares), substrate origin derives
   from the configured source, and the categorical "7-stage-build" projection —
-  a stagecraft invention with no contract backing, coupled to the dead
+  a statecraft invention with no contract backing, coupled to the dead
   `Factory Agent/` directory shape — is retired. Process content is served
   opaque by kind; the run's governance lives in the admission envelope
   (spec 198), which this spec consumes. No backward compatibility is preserved;
@@ -29,7 +29,7 @@ depends_on:
   - "139-factory-artifact-substrate"
   - "197-factory-contract-open-standard-extensions"
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/adapterView.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/adapterView.ts }
 extends:
   - spec: "074-factory-ingestion"
     nature: additive
@@ -43,17 +43,17 @@ extends:
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
   - aspect: "thin-consumer-substrate-reads"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/browse.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/browse.ts }
   - aspect: "thin-consumer-substrate-reads"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/substrateBrowser.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/substrateBrowser.ts }
   - aspect: "owned-source-classification"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/translator.ts }
   - aspect: "binary-ingest-guard"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.test.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/translator.test.ts }
   - aspect: "binary-ingest-guard"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/syncPipeline.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/syncPipeline.ts }
   - aspect: "binary-ingest-guard"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/syncWorker.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/syncWorker.ts }
 supersedes:
   - spec: "108-factory-as-platform-feature"
     scope: partial
@@ -80,11 +80,11 @@ references:
   - role: consumer
     unit: { kind: crate, id: factory-engine }
   - role: context
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/opcBundle.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/opcBundle.ts }
   - role: context
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/scheduler.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/scheduler.ts }
   - role: historical
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/projection.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/projection.ts }
 ---
 
 # Feature Specification: Thin-Consumer Factory Sync for Owned Sources
@@ -93,12 +93,12 @@ references:
 **Created**: 2026-06-09
 **Status**: Draft
 **Input**: After repointing the factory upstreams to the owned
-`Stagecraft-ing/factory` + `template` repos, the stagecraft
+`statecrafting/factory` + `template` repos, the statecraft
 Factory UI shows: Processes count `0` with an empty `7-stage-build` body; the
 Adapters tab fails to load `acme-vue-node` with an internal (500) error; the
 Create New Project adapter dropdown shows a stale `acme-vue-node`. A full
 current-state investigation (`docs/analysis/factory-sync-current-state.md`,
-2026-06-09) established a single structural cause: stagecraft still **translates**
+2026-06-09) established a single structural cause: statecraft still **translates**
 content OAP now **owns**, against the retired `legacy-factory` directory
 layout, while the verbatim-mirror substrate that makes that translation
 unnecessary already exists underneath it.
@@ -110,7 +110,7 @@ what may be served at all.
 
 ## Purpose and charter
 
-Make stagecraft a **thin consumer** of the owned factory standard: mirror
+Make statecraft a **thin consumer** of the owned factory standard: mirror
 upstream bytes verbatim into the substrate, serve them by `kind` and by the
 adapter's own schema-validated manifest, and stop inventing categorical shapes
 the open standard never defined.
@@ -126,7 +126,7 @@ Non-negotiables fixed before drafting (operator decisions, 2026-06-09):
   configured `factory_upstreams` source, not a static constant.
 - **Process content opaque; governance via the envelope.** The process body is
   served by kind, uninterpreted; the run's governance obligations are the
-  admission envelope (spec 198), never a stagecraft-assembled "process" object.
+  admission envelope (spec 198), never a statecraft-assembled "process" object.
 - **The factory↔template split is permanent and domain-correct** (always ≥2).
   Multiple templates are already expressible at the adapter layer (each adapter
   declares its own scaffold source) — this spec adds **no** new mechanism.
@@ -150,7 +150,7 @@ Condensed:
    (`translator.ts:703-705` ← `oapNativeAdapters.ts:49,53`) do not track the
    configured source. Repointing the GitHub URL leaves a factually-wrong origin
    label on every substrate row.
-2. **Process is a stagecraft invention with no contract schema.**
+2. **Process is a statecraft invention with no contract schema.**
    `projection.ts::buildProcess` (lines 225-325) re-buckets factory rows using
    old `Factory Agent/…` path predicates (reads `row.path`, not stored `kind`).
    factory's `process/stages/*.md` match none → empty
@@ -173,7 +173,7 @@ Condensed:
 
 ## Requirements
 
-### FR-001 — Stagecraft is a thin consumer of owned factory content (normative)
+### FR-001 — Statecraft is a thin consumer of owned factory content (normative)
 
 For any source registered as an OAP-owned factory/template upstream, the sync
 pipeline MUST store upstream bytes verbatim and MUST NOT mutate, re-bucket, or
@@ -206,9 +206,9 @@ filter a third-party source using a different origin id.
 The categorical `buildProcess` projection, the `"7-stage-build"` name, and the
 `Factory Agent/…` path predicates MUST be removed. Process content
 (`process/stages|agents|skills/**`) is served by `kind` from the substrate,
-uninterpreted by stagecraft. **No process-shape schema is defined here** — the
+uninterpreted by statecraft. **No process-shape schema is defined here** — the
 run's governance is the admission envelope (spec 198), and "what is a process"
-is answered by "whatever files a valid envelope," not by a stagecraft-assembled
+is answered by "whatever files a valid envelope," not by a statecraft-assembled
 categorical object. (This resolves the design's OQ-1: content opaque here,
 contract-defined governance in 198.)
 
@@ -284,7 +284,7 @@ requires:
 The two-source model is preserved. No new multi-template abstraction:
 additional templates are expressed by an adapter declaring its own scaffold
 source **in its manifest** — `scaffold.source.{kind, remote, default_ref}`,
-which is org-agnostic and open-standard. At admission (spec 198), stagecraft
+which is org-agnostic and open-standard. At admission (spec 198), statecraft
 resolves `scaffold.source.remote` against the org's `factory_upstreams` rows
 by normalized repo URL and records the resolved `source_id` + pinned ref on
 the admission record; the create path and the scaffold scheduler read the
@@ -314,7 +314,7 @@ org-scoped id is org configuration and never enters the open contract (spec
   manifest lacking `schema_version`; content from a non-admitted factory (per
   spec 198) is not served/bound. (FR-006)
 - **AC-6 (no translation remains).** `git grep` for `acme-vue-node`,
-  `7-stage-build`, `Factory Agent/` in stagecraft source returns only history;
+  `7-stage-build`, `Factory Agent/` in statecraft source returns only history;
   `projection.ts` translation, the synthetic adapter, `oapNativeSanitise`, and
   the dead example-adapter ingest are gone. (FR-001/004/005/007)
 - **AC-7 (split preserved).** factory and template remain two sources; no new
@@ -353,20 +353,20 @@ org-scoped id is org configuration and never enters the open contract (spec
   AND files a conformant governance envelope (spec 198) — the latter is the
   admission precondition this spec's serve/bind path enforces. Closes spec
   197's deferred adapter rename (`acme-vue-node` → `acme-vue-encore`) on the
-  stagecraft side.
+  statecraft side.
 - **template**: the adapter's manifest-declared scaffold source points
   at it (FR-009), and its `template.json::templateName` reverts to its own
   true name `template` (plus the matching zod default in
   `scripts/lib/template-json.ts`) — the spec-141 alignment doctrine is retired
   by this spec. Authoring dispatched 2026-06-09; merge-safe anytime (nothing
-  in stagecraft runtime-reads `templateName`).
+  in statecraft runtime-reads `templateName`).
 - Sequencing (migration memory `project-template-lineage-research`): lands after
   the factory POC finalize + Windows handoff settle the owned-repo shape.
 
 ## Implementation log
 
 - **2026-06-11 — FR-007 module-catalog cutover; implementation: complete.**
-  The last FR-007 hygiene item lands: stagecraft's `moduleCatalog.ts` (and
+  The last FR-007 hygiene item lands: statecraft's `moduleCatalog.ts` (and
   the Create form's inline mirror) now reflect template's real
   `modules/` catalog — five modules, manifest-truthful descriptions,
   empty profile built-ins/presets (profiles select AUTH_DRIVER; modules
@@ -383,16 +383,16 @@ org-scoped id is org configuration and never enters the open contract (spec
 - **2026-06-11 — first real (and first sealed) ADMIT; runtime-AC evidence.**
   After the FR-014 signing cutover (spec 198 implementation log, same date),
   an org re-sync produced a sealed `admitted` record (0 violations) for
-  `Stagecraft-ing/factory` at sha `cc1139f…`. Evidence against the
+  `statecrafting/factory` at sha `cc1139f…`. Evidence against the
   runtime ACs: **AC-1** — the factory origin's substrate carries
   `governance-envelope` (1), `process-stage` (8), `adapter-manifest` (1),
   agents (14 digests in the seal), all served by kind; no synthetic
   projection. **AC-4** — origins are `legacy-mixed` / `legacy-template-mixed`
   (source-derived); the stale post-rename source row
-  `acme-vue-node → Stagecraft-ing/template` was deleted (audited
+  `acme-vue-node → statecrafting/template` was deleted (audited
   `factory.source.deleted`), leaving exactly the two configured sources.
   **AC-7** — the admission's `scaffold_resolutions` binds `acme-vue-encore`
-  to `legacy-template-mixed` / `Stagecraft-ing/template @ main`,
+  to `legacy-template-mixed` / `statecrafting/template @ main`,
   resolved at admission; no flat `scaffold_source_id` involved. **AC-5** —
   a sealed admission now exists for the serve/bind gate to honour
   (unevaluated/unsealed refusal verified during the cutover window).
@@ -421,13 +421,13 @@ org-scoped id is org configuration and never enters the open contract (spec
   `syncPipeline.ts::countByLegacyKind` stops counting the retired
   synthetic template-orchestrator adapter, and `repoInit.ts`'s
   `VALID_ADAPTERS` carries only the manifest-declared `acme-vue-encore`.
-  Test fixtures, doc-comment examples, the stagecraft CLAUDE.md
+  Test fixtures, doc-comment examples, the statecraft CLAUDE.md
   read-path/scheduler narratives, the factory web index tile, root
   README's adapter section, and `docs/factory/{how-to,architecture}.md`
-  (historical banners) follow. Remaining matches in stagecraft source are
+  (historical banners) follow. Remaining matches in statecraft source are
   history by construction: migrations 36/37, retirement notes, and the
   explicitly historical `adapter-agent-examples.md`. Runtime ACs (AC-1..AC-5) stay gated on the
-  first real ADMIT after the Stagecraft-side envelope merge + org re-sync —
+  first real ADMIT after the Statecraft-side envelope merge + org re-sync —
   `implementation:` stays `in-progress`.
 - **2026-06-11 — Rust-side fixture sweep (phasing item 4, FR-007).**
   The "Rust test fixtures" hygiene tail lands for `factory-engine` and

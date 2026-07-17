@@ -85,7 +85,7 @@ OAP is architecturally complete. A four-layer assessment on 2026-04-14 confirmed
 - **Orchestrator**: DAG validation with topological sort, JSON + SQLite state persistence, checkpoint + approval gates with escalation, verify+retry loop, SSE via Axum with replay. 50+ tests.
 - **Spec compiler**: deterministic (golden-tested), JSON Schema validated, 102 features compiled.
 - **Desktop**: 100+ Tauri commands, real PKCE auth, GateDialog (512 LOC), BuildSpecStructuredView (618 LOC), full factory pipeline UI.
-- **Platform**: Stagecraft with 16 DB migrations, 17 API modules, 28 web routes. deployd-api-rs functional. Azure infrastructure production-ready.
+- **Platform**: Statecraft with 16 DB migrations, 17 API modules, 28 web routes. deployd-api-rs functional. Azure infrastructure production-ready.
 
 However, ten validated gaps stand between "working system" and "the bridge the whole town can use on day one." This spec closes them, with the Governance Certificate as the central deliverable that creates a category of one.
 
@@ -328,9 +328,9 @@ The `verify-certificate` command independently re-derives all hashes from source
 
 - **FR-015**: The `ToolCallContext` passed to `policy-kernel evaluate()` MUST include `feature_ids` identifying which specs govern the current execution context, derived from the active workflow manifest or factory pipeline state.
 
-- **FR-016**: Platform's policy bundle endpoint (`platform/services/stagecraft/api/policy/policy.ts`) MUST enforce OIDC M2M JWT validation, rejecting unauthenticated requests with HTTP 401.
+- **FR-016**: Platform's policy bundle endpoint (`platform/services/statecraft/api/policy/policy.ts`) MUST enforce OIDC M2M JWT validation, rejecting unauthenticated requests with HTTP 401.
 
-- **FR-017**: Platform's grants endpoint (`platform/services/stagecraft/api/grants/grants.ts`) MUST enforce OIDC JWT validation, rejecting unauthenticated requests with HTTP 401.
+- **FR-017**: Platform's grants endpoint (`platform/services/statecraft/api/grants/grants.ts`) MUST enforce OIDC JWT validation, rejecting unauthenticated requests with HTTP 401.
 
 - **FR-018**: Every permission decision made through the `PolicyEvaluator` bridge MUST produce a `ProofRecord` in the proof chain, including the tool name, decision, and governing spec IDs.
 
@@ -726,7 +726,7 @@ Follow-up tracker (parking lot):
     verify path (non-fatal, informational). The verifier MUST NOT
     silently aggregate self-pinned and externally-reviewed decisions
     into a single "pinned" count.
-  - Downstream consumers of the certificate (OPC desktop, stagecraft
+  - Downstream consumers of the certificate (OPC desktop, statecraft
     governance UI, OWASP ASI compliance-report renderer) MUST be able
     to filter or sort by `reviewClass` without re-parsing source spec
     files. The certificate is the canonical surface; the field exists

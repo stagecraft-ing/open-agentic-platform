@@ -18,7 +18,7 @@ amendment_record: |
   suite) — none of it ever visible because nothing ran the lane. FR-001
   is refined from "full suite minus check.test.ts" to the DB-bound set
   derived from the vite.config.ts exclude list (the two lanes partition
-  the suite; pure suites already gate in ci-stagecraft.yml, and
+  the suite; pure suites already gate in ci-statecraft.yml, and
   mock-runtime suites like storage.dualClient.test.ts are bare-lane by
   design). FR-002's fast-lane decision is recorded: strict-only. Adds
   establishes: edges for the lane, the coverage-guard script, and the
@@ -30,7 +30,7 @@ authors: ["open-agentic-platform"]
 language: en
 summary: >
   Close the encore-test CI gap: the bare-vitest exclude list in
-  stagecraft's vite.config.ts assigns 22 DB-bound test files (specs 115,
+  statecraft's vite.config.ts assigns 22 DB-bound test files (specs 115,
   124, 137, 139–143, 198, 201) to the `encore test` lane, but no CI job
   runs that lane — CI runs bare vitest only, so DB-bound acceptance
   suites never execute before merge. The gap already shipped a real
@@ -55,16 +55,16 @@ depends_on:
 establishes:
   # The enforcing DB-bound lane (FR-001/FR-004), dispatched from the
   # spec-177 orchestrator. Same establishes shape as specs 191/212.
-  - unit: { kind: file, path: .github/workflows/ci-stagecraft-encore.yml }
+  - unit: { kind: file, path: .github/workflows/ci-statecraft-encore.yml }
   # The lane-coverage guard (FR-003): derives the DB-bound set from the
   # vite.config.ts exclude list and cross-checks reporter output so a file
   # can never silently skip both lanes.
-  - unit: { kind: file, path: platform/services/stagecraft/scripts/encore-test-lane.mjs }
+  - unit: { kind: file, path: platform/services/statecraft/scripts/encore-test-lane.mjs }
   # The ci-parity-check aligned/divergent fixtures proving the run-mirror
-  # detects a missing ci-stagecraft-encore mirror (AC-4) — spec 191/212
+  # detects a missing ci-statecraft-encore mirror (AC-4) — spec 191/212
   # precedent.
-  - unit: { kind: file, path: tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-stagecraft-encore.yml }
-  - unit: { kind: file, path: tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-stagecraft-encore.yml }
+  - unit: { kind: file, path: tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-statecraft-encore.yml }
+  - unit: { kind: file, path: tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-statecraft-encore.yml }
 extends:
   # The spec-177 orchestrator gains a route dispatching the new job
   # (same shape as spec 191's ci-schema-parity route).
@@ -88,23 +88,23 @@ extends:
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 co_authority:
-  # The root Makefile gains a `ci-stagecraft-encore` target group (the
-  # `## tag: ci-stagecraft-encore` section) wired into the ci-strict
+  # The root Makefile gains a `ci-statecraft-encore` target group (the
+  # `## tag: ci-statecraft-encore` section) wired into the ci-strict
   # family. 104 is the omnipresent Makefile-parity co-author (same shape
   # as specs 116/212 use for their anchors).
   - with_specs:
       - "104-makefile-ci-parity-contract"
-    unit: { kind: section, file: Makefile, anchor: ci-stagecraft-encore }
+    unit: { kind: section, file: Makefile, anchor: ci-statecraft-encore }
 references:
   # The lane assignment this spec enforces coverage of. The
   # `encore-test-gating` aspect of this file is owned by spec 201; this
   # spec consumes the exclude list as input, it does not reshape it.
   - role: context
-    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+    unit: { kind: file, path: platform/services/statecraft/vite.config.ts }
   # The sibling workflow whose pinned encore CLI version and npm setup
   # the new job mirrors.
   - role: context
-    unit: { kind: file, path: .github/workflows/ci-stagecraft.yml }
+    unit: { kind: file, path: .github/workflows/ci-statecraft.yml }
   - role: context
     unit: { kind: file, path: docs/owasp-agentic-top-10-2026.md }
 ---
@@ -122,8 +122,8 @@ This spec is that follow-up, filed.
 
 ## Purpose
 
-Stagecraft's test suite is split into two lanes by
-`platform/services/stagecraft/vite.config.ts`: pure suites run under
+Statecraft's test suite is split into two lanes by
+`platform/services/statecraft/vite.config.ts`: pure suites run under
 bare vitest (what `npm test` and CI execute), and DB-bound suites —
 excluded under bare vitest — run only under `encore test`, which sets
 `ENCORE_RUNTIME_LIB` and provisions per-test databases. The exclude
@@ -154,16 +154,16 @@ verification loop.
 ## Functional requirements (sketch — refine before implementation)
 
 - **FR-001 — Enforcing encore-test workflow.** A reusable workflow
-  (working name `ci-stagecraft-encore.yml`) dispatched from the
-  spec-177 orchestrator on the stagecraft route, running `encore test`
+  (working name `ci-statecraft-encore.yml`) dispatched from the
+  spec-177 orchestrator on the statecraft route, running `encore test`
   with the same pinned Encore CLI version the existing
-  `ci-stagecraft.yml` installs for codegen, so the vite-config encore
+  `ci-statecraft.yml` installs for codegen, so the vite-config encore
   lane (the full suite minus `check.test.ts`) executes against
   Encore-provisioned per-test databases. A red lane fails the PR
   through the spec-177 gate composition, and runs identically in
   `merge_group`.
 - **FR-002 — Makefile mirror per the parity contract.** A
-  `make ci-stagecraft-encore` target mirrors the workflow recipe; the
+  `make ci-statecraft-encore` target mirrors the workflow recipe; the
   workflow is classified in `ci-parity-check`'s `ENFORCING_WORKFLOWS`
   (spec 104) with aligned/divergent fixtures proving drift detection;
   the target joins `make ci-strict`. Whether it also joins the fast
@@ -213,7 +213,7 @@ verification loop.
   suite's spec; the vite.config.ts `encore-test-gating` aspect is
   spec 201's. This spec enforces coverage of the assignment, it does
   not move files between lanes.
-- **Restructuring `ci-stagecraft.yml`'s existing jobs.** The bare-vitest
+- **Restructuring `ci-statecraft.yml`'s existing jobs.** The bare-vitest
   job stays as-is; this spec adds a sibling lane, not a rewrite.
 - **Tenant-side CI** (spec 209 owns the produced-app analog).
 - **Changing the `make ci` default composition** (spec 135 owns the
@@ -225,7 +225,7 @@ verification loop.
 Implementable now — every dependency is landed machinery: the Encore
 CLI is already version-pinned in CI for codegen, the exclude-list lane
 assignment is live, and the spec-177 orchestrator already routes
-stagecraft changes. Completion is the named trigger for spec 198's
+statecraft changes. Completion is the named trigger for spec 198's
 ASI09 "Solid" flip and spec 201's `implementation: complete` (both
 texts cite this spec). Per the gap-batch convention, relationship edges
 above point only at verified existing paths; `establishes:` edges for
@@ -304,7 +304,7 @@ The sketch said "the full suite minus `check.test.ts`". The first run
 falsified that: bare-lane suites that exercise the bare-vitest mocks by
 design (`storage.dualClient.test.ts` pins S3 endpoints via the
 `encore.dev/config` env mock) fail under the real runtime, and pure
-suites already gate in `ci-stagecraft.yml` — running them twice buys
+suites already gate in `ci-statecraft.yml` — running them twice buys
 nothing. The lane therefore executes exactly the **DB-bound set**: the
 bare-vitest exclude list minus the universal both-lane excludes
 (`node_modules`, `dist`, `check.test.ts`), derived mechanically from
@@ -354,7 +354,7 @@ reads real secret values (the spec-198 signing suites inject throwaway
 keypairs via `process.env`; the S3-dependent paths are mocked or
 bare-lane). Verified locally: the full DB-bound set is green with the
 id stripped and no network access to the Encore platform. Local
-`make ci-stagecraft-encore` runs against the developer's own checkout,
+`make ci-statecraft-encore` runs against the developer's own checkout,
 where an `encore auth` session (or the same unlink) covers the gap.
 
 ### FR-002 decision: strict-lane only
@@ -363,7 +363,7 @@ Measured 2026-06-12 (M1 Pro, warm): the DB-bound set runs in well under
 a minute including daemon startup — runtime would fit the spec-135
 budget. The lane is strict-only anyway: it requires the Encore CLI and
 a Docker daemon, dependencies `make ci` must not impose on the daily
-loop. `make ci-stagecraft-encore` joins `make ci-strict`; the decision
+loop. `make ci-statecraft-encore` joins `make ci-strict`; the decision
 rule and measurement are recorded here per FR-002.
 
 ### FR-005 status

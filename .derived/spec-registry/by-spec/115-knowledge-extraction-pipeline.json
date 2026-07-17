@@ -12,87 +12,87 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/extractionEvents.ts"
+        "path": "platform/services/statecraft/api/knowledge/extractionEvents.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/extractionWorker.ts"
+        "path": "platform/services/statecraft/api/knowledge/extractionWorker.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/extractionCore.ts"
+        "path": "platform/services/statecraft/api/knowledge/extractionCore.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/extractionOutput.ts"
+        "path": "platform/services/statecraft/api/knowledge/extractionOutput.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/extractionPolicy.ts"
+        "path": "platform/services/statecraft/api/knowledge/extractionPolicy.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/auditActions.ts"
+        "path": "platform/services/statecraft/api/knowledge/auditActions.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/prompts.ts"
+        "path": "platform/services/statecraft/api/knowledge/prompts.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/magic.ts"
+        "path": "platform/services/statecraft/api/knowledge/magic.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/extractors/types.ts"
+        "path": "platform/services/statecraft/api/knowledge/extractors/types.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/extractors/dispatch.ts"
+        "path": "platform/services/statecraft/api/knowledge/extractors/dispatch.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/extractors/index.ts"
+        "path": "platform/services/statecraft/api/knowledge/extractors/index.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/extractors/deterministic-text.ts"
+        "path": "platform/services/statecraft/api/knowledge/extractors/deterministic-text.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/extractors/deterministic-pdf-embedded.ts"
+        "path": "platform/services/statecraft/api/knowledge/extractors/deterministic-pdf-embedded.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/extractors/deterministic-docx.ts"
+        "path": "platform/services/statecraft/api/knowledge/extractors/deterministic-docx.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/extractors/agent-base.ts"
+        "path": "platform/services/statecraft/api/knowledge/extractors/agent-base.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/extractors/agent-cost-helpers.ts"
+        "path": "platform/services/statecraft/api/knowledge/extractors/agent-cost-helpers.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/extractors/agent-pdf-vision.ts"
+        "path": "platform/services/statecraft/api/knowledge/extractors/agent-pdf-vision.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/extractors/agent-image-vision.ts"
+        "path": "platform/services/statecraft/api/knowledge/extractors/agent-image-vision.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/knowledge/knowledge.ts"
+        "path": "platform/services/statecraft/api/knowledge/knowledge.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx"
+        "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.knowledge.tsx"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx"
+        "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx"
       }
     ],
     "extraFrontmatter": {

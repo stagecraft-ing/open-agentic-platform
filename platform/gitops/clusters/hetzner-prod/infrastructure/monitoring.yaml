@@ -1,7 +1,7 @@
 # Spec 196 — platform metrics stack (kube-prometheus-stack HelmRelease).
 #
 # One Prometheus server with three roles (spec 196 §Architecture):
-#   (a) RECEIVES stagecraft's Encore remote_write (push — Encore's
+#   (a) RECEIVES statecraft's Encore remote_write (push — Encore's
 #       `prometheus` exporter has no scrape endpoint and no auth field),
 #   (b) SCRAPES the pull targets (deployd-api, Flux controllers,
 #       ingress-nginx, node-exporter, kube-state-metrics — FR-003),
@@ -9,7 +9,7 @@
 # Agent mode cannot do (a) or (c); server mode with
 # enableRemoteWriteReceiver is the only shape that satisfies the spec
 # (FR-002). The unauthenticated receiver is contained by NetworkPolicy
-# (FR-006 / SC-008): reachable ONLY from stagecraft-system and from
+# (FR-006 / SC-008): reachable ONLY from statecraft-system and from
 # inside `monitoring`; never exposed at ingress. Policies live at
 # `platform/k8s/policies/{monitoring,namespace-baseline}/` and are
 # reconciled by the `policies` Flux Kustomization
@@ -38,7 +38,7 @@
 # data plane (Prometheus, exporters, scrapes, remote_write) is already
 # live. Same operator contract as rauthy's `rauthy-smtp-secret`.
 #
-# DOMAIN pinning: `grafana.stagecraft.ing` + the Rauthy issuer are
+# DOMAIN pinning: `grafana.statecraft.ing` + the Rauthy issuer are
 # hardcoded because this manifest lives under `clusters/hetzner-prod/`
 # — the cluster-specific-subtree convention established in
 # `rauthy.yaml`. Future clusters get their own subtree.
@@ -90,7 +90,7 @@ spec:
       retries: 3
   values:
     # Deterministic short object names: the Prometheus Service becomes
-    # `monitoring-prometheus`, which is the literal DNS name stagecraft's
+    # `monitoring-prometheus`, which is the literal DNS name statecraft's
     # infra.config.json remote_write_url points at (FR-001).
     fullnameOverride: monitoring
     # Without clean names the operator-side objects double the suffix:
@@ -218,11 +218,11 @@ spec:
           # policy (HTTP-01 for platform hosts).
           cert-manager.io/cluster-issuer: letsencrypt-prod
         hosts:
-          - grafana.stagecraft.ing
+          - grafana.statecraft.ing
         tls:
           - secretName: grafana-tls
             hosts:
-              - grafana.stagecraft.ing
+              - grafana.statecraft.ing
       # FR-004 — Rauthy OIDC is the SOLE authentication path. The
       # contract is the property (no credential authenticates outside
       # OIDC); these are the knobs that hold it for Grafana 12.x:
@@ -239,7 +239,7 @@ spec:
       # are the runtime check).
       grafana.ini:
         server:
-          root_url: https://grafana.stagecraft.ing
+          root_url: https://grafana.statecraft.ing
         security:
           disable_initial_admin_creation: true
         auth:
@@ -258,9 +258,9 @@ spec:
           # platform_role attribute into the token
           # (seed-rauthy.mjs OAP_SCOPE).
           scopes: openid email profile oap
-          auth_url: https://auth.stagecraft.ing/auth/v1/oidc/authorize
-          token_url: https://auth.stagecraft.ing/auth/v1/oidc/token
-          api_url: https://auth.stagecraft.ing/auth/v1/oidc/userinfo
+          auth_url: https://auth.statecraft.ing/auth/v1/oidc/authorize
+          token_url: https://auth.statecraft.ing/auth/v1/oidc/token
+          api_url: https://auth.statecraft.ing/auth/v1/oidc/userinfo
           # Locked map (plan.md, owner 2026-06-04): owner|admin →
           # Admin, member → Viewer; Editor unused. Rauthy nests OAP
           # claims under `custom.*` (spec 106 FR-002;

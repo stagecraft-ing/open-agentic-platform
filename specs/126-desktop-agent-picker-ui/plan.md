@@ -58,12 +58,12 @@ component + hook + types.
   the existing UI primitive already covers it; otherwise a thin
   filter input is fine.
 - **Deep-link for binding mutations.** `Manage bindings →` opens
-  `https://<stagecraft-host>/app/project/{projectId}/agents` via
+  `https://<statecraft-host>/app/project/{projectId}/agents` via
   `tauri-plugin-shell` to keep the desktop bind-free.
 
 ## Risks
 
-- **Cache drift between desktop SQLite and stagecraft.** If the
+- **Cache drift between desktop SQLite and statecraft.** If the
   desktop's catalog cache (spec 111 §2.4 / spec 123 §6.3) misses an
   update, the picker shows stale data. Mitigation: the picker
   subscribes to the duplex update events; a manual "refresh" button

@@ -29,7 +29,7 @@ that authorized it, and keep a record an auditor can verify independently.
 
 A Terraformed Kubernetes service plane runs two services:
 
-- **stagecraft** (Encore.ts): auth, projects, knowledge, audit, and
+- **statecraft** (Encore.ts): auth, projects, knowledge, audit, and
   Slack / GitHub webhook handling.
 - **deployd-api-rs** (Rust + hiqlite): scope-gated deployment
   orchestration.
@@ -48,7 +48,7 @@ which are easy to conflate but serve different roles:
   §12.1).
 
 Identity uses **Rauthy** as the sole OIDC session signer, with **GitHub as
-an upstream IdP for Rauthy** rather than an OAuth client of stagecraft.
+an upstream IdP for Rauthy** rather than an OAuth client of statecraft.
 A developer's GitHub login is therefore federated *through* Rauthy
 ([spec 106](../specs/106-rauthy-native-oidc-and-membership/spec.md)).
 Upstream-provider configuration is applied at runtime via Rauthy's admin
@@ -64,7 +64,7 @@ project accrues:
   state machine (imported, extracting, extracted, classified, available)
   ([spec 115](../specs/115-knowledge-extraction-pipeline/spec.md)).
 - A server-side **audit log and event history** (`audit_log` plus
-  `factory_audit_log` in stagecraft).
+  `factory_audit_log` in statecraft).
 - Project-scoped governance, including per-user OPC tool grants
   ([spec 119](../specs/119-project-as-unit-of-governance/spec.md)).
 
@@ -77,7 +77,7 @@ The build machinery has two conceptual layers:
   cloned and shaped with. A project selects an adapter (today
   `acme-vue-encore`) that points at one template, and project creation
   gates on an admitted adapter being present
-  ([spec 138](../specs/138-stagecraft-create-realised-scaffold/spec.md),
+  ([spec 138](../specs/138-statecraft-create-realised-scaffold/spec.md),
   [spec 139](../specs/139-factory-artifact-substrate/spec.md),
   [spec 199](../specs/199-factory-thin-consumer-sync/spec.md)).
 
@@ -144,7 +144,7 @@ The finished app can be deployed internally through the build, image,
 chart, and trigger chain
 ([spec 213](../specs/213-tenant-repo-image-build/spec.md),
 [spec 214](../specs/214-tenant-app-chart-supersession/spec.md),
-[spec 215](../specs/215-stagecraft-deploy-trigger-ux/spec.md)).
+[spec 215](../specs/215-statecraft-deploy-trigger-ux/spec.md)).
 
 Stakeholder access to a deployed app is **gated**:
 [spec 137](../specs/137-tenant-environment-access-gates/spec.md) provides
@@ -180,11 +180,11 @@ the audit chain is meant to be a public good, not a captured feature.
 | Rauthy OIDC, GitHub federated through Rauthy | Wired | [spec 106](../specs/106-rauthy-native-oidc-and-membership/spec.md) |
 | GitHub App + GitHub OAuth App (two registrations) | Wired | [spec 073](../specs/073-axiomregent-unification/spec.md), [spec 106](../specs/106-rauthy-native-oidc-and-membership/spec.md) |
 | Knowledge extraction, audit log, project governance | Wired | [spec 115](../specs/115-knowledge-extraction-pipeline/spec.md), [spec 119](../specs/119-project-as-unit-of-governance/spec.md) |
-| Factory engine + one admitted adapter/template per org | Wired (single-adapter) | [spec 112](../specs/112-factory-project-lifecycle/spec.md), [spec 138](../specs/138-stagecraft-create-realised-scaffold/spec.md) |
+| Factory engine + one admitted adapter/template per org | Wired (single-adapter) | [spec 112](../specs/112-factory-project-lifecycle/spec.md), [spec 138](../specs/138-statecraft-create-realised-scaffold/spec.md) |
 | axiomregent MCP server, safety tiers, duplex bus | Wired | [spec 073](../specs/073-axiomregent-unification/spec.md), [spec 036](../specs/036-safety-tier-governance/spec.md), [spec 206](../specs/206-duplex-frame-integrity/spec.md) |
 | OWASP ASI 2026 control-to-spec mapping | Wired (attestation) | [spec 102](../specs/102-governed-excellence/spec.md) |
 | Governance certificate emission + independent verify | Wired | [spec 102](../specs/102-governed-excellence/spec.md) |
-| Internal deploy chain (image, chart, trigger) | Wired | [spec 213](../specs/213-tenant-repo-image-build/spec.md), [spec 214](../specs/214-tenant-app-chart-supersession/spec.md), [spec 215](../specs/215-stagecraft-deploy-trigger-ux/spec.md) |
+| Internal deploy chain (image, chart, trigger) | Wired | [spec 213](../specs/213-tenant-repo-image-build/spec.md), [spec 214](../specs/214-tenant-app-chart-supersession/spec.md), [spec 215](../specs/215-statecraft-deploy-trigger-ux/spec.md) |
 | Gated stakeholder access to deployed app | Partial / roadmap | [spec 137](../specs/137-tenant-environment-access-gates/spec.md) (Phase 6 pending) |
 | User-facing "define your own factory" | Not built | architecture only |
 | Per-task security scope from requirement profile | Not built | scope fixed at tool registration |

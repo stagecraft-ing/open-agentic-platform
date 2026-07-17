@@ -14,99 +14,99 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/agents/catalog.ts",
+        "path": "platform/services/statecraft/api/agents/catalog.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db/schema.ts",
+        "path": "platform/services/statecraft/api/db/schema.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/admission.ts",
+        "path": "platform/services/statecraft/api/factory/admission.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/approvalSummary.ts",
+        "path": "platform/services/statecraft/api/factory/approvalSummary.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/artifacts.ts",
+        "path": "platform/services/statecraft/api/factory/artifacts.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/conflicts.ts",
+        "path": "platform/services/statecraft/api/factory/conflicts.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts",
+        "path": "platform/services/statecraft/api/factory/grantDuplexHandlers.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/overrideGate.ts",
+        "path": "platform/services/statecraft/api/factory/overrideGate.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/overrideQuarantineEnforcement.test.ts",
+        "path": "platform/services/statecraft/api/factory/overrideQuarantineEnforcement.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/overrideScanCore.ts",
+        "path": "platform/services/statecraft/api/factory/overrideScanCore.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/overrideScanEvents.ts",
+        "path": "platform/services/statecraft/api/factory/overrideScanEvents.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/overrideScanPolicy.ts",
+        "path": "platform/services/statecraft/api/factory/overrideScanPolicy.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/overrideScanPrompts.ts",
+        "path": "platform/services/statecraft/api/factory/overrideScanPrompts.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/overrideScanRuns.test.ts",
+        "path": "platform/services/statecraft/api/factory/overrideScanRuns.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/overrideScanScheduler.ts",
+        "path": "platform/services/statecraft/api/factory/overrideScanScheduler.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/overrideScanStructure.test.ts",
+        "path": "platform/services/statecraft/api/factory/overrideScanStructure.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/overrideScanWorker.ts",
+        "path": "platform/services/statecraft/api/factory/overrideScanWorker.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/revocations.ts",
+        "path": "platform/services/statecraft/api/factory/revocations.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/runAgentRefs.ts",
+        "path": "platform/services/statecraft/api/factory/runAgentRefs.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/runs.ts",
+        "path": "platform/services/statecraft/api/factory/runs.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/knowledge/extractionCore.ts",
+        "path": "platform/services/statecraft/api/knowledge/extractionCore.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/opcBundle.ts",
+        "path": "platform/services/statecraft/api/projects/opcBundle.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/infra.config.json",
+        "path": "platform/services/statecraft/infra.config.json",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/vite.config.ts",
+        "path": "platform/services/statecraft/vite.config.ts",
         "source": "spec-edge"
       }
     ],
@@ -114,118 +114,118 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/overrideQuarantineEnforcement.test.ts"
+            "file": "platform/services/statecraft/api/factory/overrideQuarantineEnforcement.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/overrideQuarantineEnforcement.test.ts"
+          "path": "platform/services/statecraft/api/factory/overrideQuarantineEnforcement.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/overrideScanCore.ts"
+            "file": "platform/services/statecraft/api/factory/overrideScanCore.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/overrideScanCore.ts"
+          "path": "platform/services/statecraft/api/factory/overrideScanCore.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/overrideScanEvents.ts"
+            "file": "platform/services/statecraft/api/factory/overrideScanEvents.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/overrideScanEvents.ts"
+          "path": "platform/services/statecraft/api/factory/overrideScanEvents.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/overrideScanPolicy.ts"
+            "file": "platform/services/statecraft/api/factory/overrideScanPolicy.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/overrideScanPolicy.ts"
+          "path": "platform/services/statecraft/api/factory/overrideScanPolicy.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/overrideScanPrompts.ts"
+            "file": "platform/services/statecraft/api/factory/overrideScanPrompts.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/overrideScanPrompts.ts"
+          "path": "platform/services/statecraft/api/factory/overrideScanPrompts.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/overrideScanRuns.test.ts"
+            "file": "platform/services/statecraft/api/factory/overrideScanRuns.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/overrideScanRuns.test.ts"
+          "path": "platform/services/statecraft/api/factory/overrideScanRuns.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/overrideScanScheduler.ts"
+            "file": "platform/services/statecraft/api/factory/overrideScanScheduler.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/overrideScanScheduler.ts"
+          "path": "platform/services/statecraft/api/factory/overrideScanScheduler.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/overrideScanStructure.test.ts"
+            "file": "platform/services/statecraft/api/factory/overrideScanStructure.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/overrideScanStructure.test.ts"
+          "path": "platform/services/statecraft/api/factory/overrideScanStructure.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/overrideScanWorker.ts"
+            "file": "platform/services/statecraft/api/factory/overrideScanWorker.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/overrideScanWorker.ts"
+          "path": "platform/services/statecraft/api/factory/overrideScanWorker.ts"
         }
       },
       {
@@ -244,183 +244,183 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/agents/catalog.ts"
+            "file": "platform/services/statecraft/api/agents/catalog.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/agents/catalog.ts"
+          "path": "platform/services/statecraft/api/agents/catalog.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/db/schema.ts"
+            "file": "platform/services/statecraft/api/db/schema.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/admission.ts"
+            "file": "platform/services/statecraft/api/factory/admission.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/admission.ts"
+          "path": "platform/services/statecraft/api/factory/admission.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+            "file": "platform/services/statecraft/api/factory/approvalSummary.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+          "path": "platform/services/statecraft/api/factory/approvalSummary.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/artifacts.ts"
+            "file": "platform/services/statecraft/api/factory/artifacts.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/artifacts.ts"
+          "path": "platform/services/statecraft/api/factory/artifacts.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/artifacts.ts"
+            "file": "platform/services/statecraft/api/factory/artifacts.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/artifacts.ts"
+          "path": "platform/services/statecraft/api/factory/artifacts.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/conflicts.ts"
+            "file": "platform/services/statecraft/api/factory/conflicts.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/conflicts.ts"
+          "path": "platform/services/statecraft/api/factory/conflicts.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+            "file": "platform/services/statecraft/api/factory/grantDuplexHandlers.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+          "path": "platform/services/statecraft/api/factory/grantDuplexHandlers.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/revocations.ts"
+            "file": "platform/services/statecraft/api/factory/revocations.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/revocations.ts"
+          "path": "platform/services/statecraft/api/factory/revocations.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/runAgentRefs.ts"
+            "file": "platform/services/statecraft/api/factory/runAgentRefs.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/runAgentRefs.ts"
+          "path": "platform/services/statecraft/api/factory/runAgentRefs.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/runs.ts"
+            "file": "platform/services/statecraft/api/factory/runs.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/runs.ts"
+          "path": "platform/services/statecraft/api/factory/runs.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/opcBundle.ts"
+            "file": "platform/services/statecraft/api/projects/opcBundle.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/opcBundle.ts"
+          "path": "platform/services/statecraft/api/projects/opcBundle.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/infra.config.json"
+            "file": "platform/services/statecraft/infra.config.json"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/infra.config.json"
+          "path": "platform/services/statecraft/infra.config.json"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/vite.config.ts"
+            "file": "platform/services/statecraft/vite.config.ts"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       },
       {
@@ -439,27 +439,27 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/overrideGate.ts"
+            "file": "platform/services/statecraft/api/factory/overrideGate.ts"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/overrideGate.ts"
+          "path": "platform/services/statecraft/api/factory/overrideGate.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/knowledge/extractionCore.ts"
+            "file": "platform/services/statecraft/api/knowledge/extractionCore.ts"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/knowledge/extractionCore.ts"
+          "path": "platform/services/statecraft/api/knowledge/extractionCore.ts"
         }
       }
     ],

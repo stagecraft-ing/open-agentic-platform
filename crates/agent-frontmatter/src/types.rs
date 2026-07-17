@@ -3,9 +3,9 @@
 
 //! Core types for the Unified Agent and Skill Frontmatter Schema (spec 054).
 //!
-//! Every public type in this module is mirrored into the stagecraft web
+//! Every public type in this module is mirrored into the statecraft web
 //! service via `ts-rs`. The bindings are written to
-//! `platform/services/stagecraft/api/agents/frontmatter/` by the
+//! `platform/services/statecraft/api/agents/frontmatter/` by the
 //! `export_bindings_*` tests (see `tests/export_bindings.rs`). This is the
 //! "shared type generator" called out in spec 111 §2.1 — to prevent drift,
 //! `make ci` regenerates the files and fails if git reports a diff.
@@ -42,7 +42,7 @@ pub enum AgentType {
 ///
 /// Custom deserialization accepts both string (`"tier1"`) and integer (`1`) formats
 /// for backward compatibility with factory agents that use `tier: 1`. The TS
-/// mirror only emits the canonical string form, because stagecraft always
+/// mirror only emits the canonical string form, because statecraft always
 /// re-serialises via `serde_json` and never stores the integer variant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, TS)]
 #[ts(export)]
@@ -298,7 +298,7 @@ pub struct HookDeclaration {
 /// - `tier` (u8) → `safety_tier`
 ///
 /// Unknown fields are preserved via `serde(flatten)` for forward compatibility (FR-013).
-/// The TS mirror omits `extra`; stagecraft re-adds an open index signature
+/// The TS mirror omits `extra`; statecraft re-adds an open index signature
 /// in the `CatalogFrontmatter` alias in `frontmatter/index.ts` so JSONB
 /// round-trips stay loss-free.
 ///
@@ -347,7 +347,7 @@ pub struct UnifiedFrontmatter {
     /// Tool allow-list. Alias: `tools`. Default: wildcard `"*"`.
     /// On the wire this is either the string `"*"` (all tools) or a list of
     /// tool names. The Rust `AllowedTools` enum is `#[serde(untagged)]`; the
-    /// TS mirror expresses that directly as a union literal so stagecraft
+    /// TS mirror expresses that directly as a union literal so statecraft
     /// payloads round-trip through serde_json without an intermediate wrapper.
     #[serde(default, alias = "tools")]
     #[ts(type = "\"*\" | string[]")]
@@ -432,7 +432,7 @@ pub struct UnifiedFrontmatter {
     // -- Forward compatibility (FR-013) --
     /// Unknown fields preserved through parse-serialize round-trips.
     ///
-    /// The derived TS counterpart skips this field; stagecraft re-injects the
+    /// The derived TS counterpart skips this field; statecraft re-injects the
     /// behaviour via the hand-maintained `index.ts` barrel
     /// (`UnifiedFrontmatter & { [key: string]: unknown }`). Keeping the Rust
     /// side authoritative stops this from becoming a second extensibility

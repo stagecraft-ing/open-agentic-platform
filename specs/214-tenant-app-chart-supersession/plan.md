@@ -15,7 +15,7 @@
 The template scaffold serves `/health`, `/health/liveness`,
 `/health/readiness` (`template/apps/api/health/api.ts:18,31,39`).
 It does **not** serve `/healthz`. `/healthz` exists in OAP only because
-stagecraft declares it explicitly (`deploy.ts:356`). So FR-001's
+statecraft declares it explicitly (`deploy.ts:356`). So FR-001's
 "probe path defaults to `/healthz`" is corrected: the chart defaults to
 `/health/liveness` (liveness) and `/health/readiness` (readiness), both
 chart values. (Decision B below records the alternative: mandate the
@@ -28,8 +28,8 @@ Self-hosted Encore does **not** read a mounted config file at runtime.
 --config` time; it declares static DB topology (host/name/user) and marks
 sensitive values as `{ "$env": "VAR" }`. At container start the runtime
 resolves those `$env` markers against plain process env vars. Production
-reference: stagecraft itself (`infra.config.hetzner.json:106-133` bakes
-the DB host + `POSTGRES_PASSWORD` as `$env`; `charts/stagecraft/templates/
+reference: statecraft itself (`infra.config.hetzner.json:106-133` bakes
+the DB host + `POSTGRES_PASSWORD` as `$env`; `charts/statecraft/templates/
 deployment.yaml:77-79` injects them via `envFrom: secretRef`). No
 `ENCORE_*` config var, no infra-config mount.
 
@@ -210,7 +210,7 @@ amends spec 137 (clarification): `amended:` frontmatter + callout on 137.
 
 Gates run and green: `spec-lint --fail-on-warn`, featuregraph golden,
 codebase-index `check`, `make ci-spec-code-coupling` (OK, 139 paths),
-actionlint + YAML, deployd-api `cargo check`/`clippy`/37 tests, stagecraft
+actionlint + YAML, deployd-api `cargo check`/`clippy`/37 tests, statecraft
 `tsc` 0 errors + 24 vitest.
 
 **DEFERRED within Stage 1**: the FR-010 cross-repo fixture-image build
@@ -239,7 +239,7 @@ before PR). Neither pushed.
 
 **Locally verifiable:** `helm lint` + `helm template` (default + gate),
 FR-011 render-parity diff, `hostname.test.ts` property test (100 random
-triples, SC-004), `chartSelector.test.ts`, stagecraft `tsc`, `cargo check`
+triples, SC-004), `chartSelector.test.ts`, statecraft `tsc`, `cargo check`
 + `cargo test` on deployd-api-rs, coupling gate, spec-lint, featuregraph
 golden.
 

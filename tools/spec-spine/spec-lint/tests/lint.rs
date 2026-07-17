@@ -507,7 +507,7 @@ fn w161_happy_path_knowledge_provenance_with_derived_at() {
   - role: decomposition-origin
     provenance:
       kind: knowledge
-      ref: "stagecraft://project/00000000-0000-0000-0000-000000000001/knowledge/00000000-0000-0000-0000-000000000002"
+      ref: "statecraft://project/00000000-0000-0000-0000-000000000001/knowledge/00000000-0000-0000-0000-000000000002"
       derived_at: "2026-05-22T10:30:00Z"
 "#;
     let feat = write_minimal_spec(root, "900-w161-ok", refs);
@@ -586,7 +586,7 @@ fn w161_missing_derived_at_is_error() {
   - role: decomposition-origin
     provenance:
       kind: knowledge
-      ref: "stagecraft://project/00000000-0000-0000-0000-000000000001/knowledge/00000000-0000-0000-0000-000000000002"
+      ref: "statecraft://project/00000000-0000-0000-0000-000000000001/knowledge/00000000-0000-0000-0000-000000000002"
 "#;
     let feat = write_minimal_spec(root, "904-w161-no-date", refs);
     let w = lint_feature_dir(root, &feat);
@@ -608,7 +608,7 @@ fn w161_malformed_derived_at_is_error() {
   - role: decomposition-origin
     provenance:
       kind: knowledge
-      ref: "stagecraft://project/00000000-0000-0000-0000-000000000001/knowledge/00000000-0000-0000-0000-000000000002"
+      ref: "statecraft://project/00000000-0000-0000-0000-000000000001/knowledge/00000000-0000-0000-0000-000000000002"
       derived_at: "yesterday"
 "#;
     let feat = write_minimal_spec(root, "905-w161-bad-date", refs);
@@ -636,7 +636,7 @@ fn w161_other_role_with_unit_arm_does_not_fire_sc003() {
   - role: derivation
     provenance:
       kind: knowledge
-      ref: "stagecraft://project/00000000-0000-0000-0000-000000000001/knowledge/00000000-0000-0000-0000-000000000002"
+      ref: "statecraft://project/00000000-0000-0000-0000-000000000001/knowledge/00000000-0000-0000-0000-000000000002"
 "#;
     let feat = write_minimal_spec(root, "906-w161-other-roles", refs);
     let w = lint_feature_dir(root, &feat);

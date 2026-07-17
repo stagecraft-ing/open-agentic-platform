@@ -61,7 +61,7 @@ Agents live in `.claude/agents/`. Four pipeline agents handle the plan/explore/i
 - `explorer` — Searches the codebase, traces dependencies, gathers context. Read-only.
 - `implementer` — Executes focused code changes from an existing plan. Produces minimal diffs.
 - `reviewer` — Post-change review for bugs, security, performance, and spec compliance. Read-only.
-- `encore-expert` — Encore.ts framework specialist for stagecraft service development. Read-only.
+- `encore-expert` — Encore.ts framework specialist for statecraft service development. Read-only.
 
 ## Available Commands
 

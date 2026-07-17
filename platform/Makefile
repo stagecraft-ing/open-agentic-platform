@@ -47,13 +47,13 @@ tf-init:
 	cd $(TF_CLUSTER) && terraform init
 
 docker-push-azure:
-	az acr login -n stagecraftdevacr
-	cd services/deployd-api-rs && docker build -t stagecraftdevacr.azurecr.io/deployd-api:dev . && docker push stagecraftdevacr.azurecr.io/deployd-api:dev
+	az acr login -n statecraftdevacr
+	cd services/deployd-api-rs && docker build -t statecraftdevacr.azurecr.io/deployd-api:dev . && docker push statecraftdevacr.azurecr.io/deployd-api:dev
 	# `encore build docker` packages whatever is on disk under web/build/;
 	# regenerate the react-router client tree first so bundled main.mjs and
 	# the static client tree share matching hashed asset names.
-	cd services/stagecraft && npm run build:frontend
-	cd services/stagecraft && encore build docker --config ./infra.config.json stagecraftdevacr.azurecr.io/stagecraft:dev && docker push stagecraftdevacr.azurecr.io/stagecraft:dev
+	cd services/statecraft && npm run build:frontend
+	cd services/statecraft && encore build docker --config ./infra.config.json statecraftdevacr.azurecr.io/statecraft:dev && docker push statecraftdevacr.azurecr.io/statecraft:dev
 
 deploy-azure: tf-init
 	cd $(TF_CORE) && terraform apply -auto-approve
@@ -70,7 +70,7 @@ destroy-azure:
 	cd $(TF_CORE) && terraform destroy -auto-approve
 	az network watcher configure --enabled false --locations canadacentral
 	az group delete --name NetworkWatcherRG --yes --no-wait
-	az group delete --name stagecraft-dev-rg --yes --no-wait
+	az group delete --name statecraft-dev-rg --yes --no-wait
 
 # ============================================================
 # AWS
@@ -130,12 +130,12 @@ deploy-hetzner:
 	# (`platform/gitops/clusters/hetzner-prod/infrastructure/rauthy.yaml`).
 	# The previous `helm upgrade --install rauthy ...` invocation retired
 	# here to eliminate the dual-writer hazard against the HelmRelease.
-	# stagecraft + deployd-api blocks below stay imperative until spec 152
+	# statecraft + deployd-api blocks below stay imperative until spec 152
 	# migrates them.
-	KUBECONFIG=$(OAP_HETZNER_DIR)/kubeconfig helm upgrade --install stagecraft $(CHARTS_ROOT)/stagecraft \
-		--namespace stagecraft-system \
-		-f $(CHARTS_ROOT)/stagecraft/values.yaml \
-		-f $(CHARTS_ROOT)/stagecraft/values-hetzner.yaml \
+	KUBECONFIG=$(OAP_HETZNER_DIR)/kubeconfig helm upgrade --install statecraft $(CHARTS_ROOT)/statecraft \
+		--namespace statecraft-system \
+		-f $(CHARTS_ROOT)/statecraft/values.yaml \
+		-f $(CHARTS_ROOT)/statecraft/values-hetzner.yaml \
 		--wait --timeout 300s
 	KUBECONFIG=$(OAP_HETZNER_DIR)/kubeconfig helm upgrade --install deployd-api $(CHARTS_ROOT)/deployd-api \
 		--namespace deployd-system \
@@ -145,8 +145,8 @@ deploy-hetzner:
 
 # GHCR namespace owned by the GitHub org that hosts this repo. The
 # `-hetzner` targets push the images that values-hetzner.yaml pulls,
-# i.e. ghcr.io/stagecraft-ing/open-agentic-platform/{deployd-api,stagecraft}.
-HETZNER_REGISTRY ?= ghcr.io/stagecraft-ing/open-agentic-platform
+# i.e. ghcr.io/statecrafting/open-agentic-platform/{deployd-api,statecraft}.
+HETZNER_REGISTRY ?= ghcr.io/statecrafting/open-agentic-platform
 
 docker-build-hetzner:
 	cd services/deployd-api-rs && docker build -t $(HETZNER_REGISTRY)/deployd-api:latest .
@@ -155,12 +155,12 @@ docker-build-hetzner:
 	# first so the bundled main.mjs and the static client tree are pinned
 	# to the same hashed asset names. Skipping this ships stale frontend
 	# and breaks hydration (observed 2026-05-07 hotfix attempt).
-	cd services/stagecraft && npm run build:frontend
-	cd services/stagecraft && encore build docker --config ./infra.config.json $(HETZNER_REGISTRY)/stagecraft:latest
+	cd services/statecraft && npm run build:frontend
+	cd services/statecraft && encore build docker --config ./infra.config.json $(HETZNER_REGISTRY)/statecraft:latest
 
 docker-push-hetzner: docker-build-hetzner
 	docker push $(HETZNER_REGISTRY)/deployd-api:latest
-	docker push $(HETZNER_REGISTRY)/stagecraft:latest
+	docker push $(HETZNER_REGISTRY)/statecraft:latest
 
 # ============================================================
 # Hetzner — fast docker build (cancel-then-scrape)
@@ -168,32 +168,32 @@ docker-push-hetzner: docker-build-hetzner
 # `encore build docker` is pathologically slow on macOS (single-threaded
 # go-containerregistry gzip compression of the bundled source layer
 # routinely takes 15+ min for ~200 MB images). The fast path documented
-# at services/stagecraft/docs/encore-custom-dockerfile.md cancels the
+# at services/statecraft/docs/encore-custom-dockerfile.md cancels the
 # encore build once main.mjs is on disk and feeds it into a hand-rolled
-# Dockerfile via services/stagecraft/scripts/docker-build.sh — typical
+# Dockerfile via services/statecraft/scripts/docker-build.sh — typical
 # total time 30–60s.
 #
-# STAGECRAFT_TAG controls the resulting tag. Defaults to ":latest"; set
+# STATECRAFT_TAG controls the resulting tag. Defaults to ":latest"; set
 # to a SHA / hotfix marker for traceable hotfix deploys, e.g.
-#   make docker-push-hetzner-fast STAGECRAFT_TAG=hotfix-2026-05-07-knowledge-list
-STAGECRAFT_TAG ?= latest
-STAGECRAFT_ARCH ?= amd64
+#   make docker-push-hetzner-fast STATECRAFT_TAG=hotfix-2026-05-07-knowledge-list
+STATECRAFT_TAG ?= latest
+STATECRAFT_ARCH ?= amd64
 
-docker-build-stagecraft-fast:
-	cd services/stagecraft && ./scripts/docker-build.sh \
-		$(HETZNER_REGISTRY)/stagecraft:$(STAGECRAFT_TAG) \
-		--arch $(STAGECRAFT_ARCH)
+docker-build-statecraft-fast:
+	cd services/statecraft && ./scripts/docker-build.sh \
+		$(HETZNER_REGISTRY)/statecraft:$(STATECRAFT_TAG) \
+		--arch $(STATECRAFT_ARCH)
 
-docker-push-stagecraft-fast: docker-build-stagecraft-fast
-	docker push $(HETZNER_REGISTRY)/stagecraft:$(STAGECRAFT_TAG)
+docker-push-statecraft-fast: docker-build-statecraft-fast
+	docker push $(HETZNER_REGISTRY)/statecraft:$(STATECRAFT_TAG)
 
 docker-build-hetzner-fast:
 	cd services/deployd-api-rs && docker build -t $(HETZNER_REGISTRY)/deployd-api:latest .
-	$(MAKE) docker-build-stagecraft-fast
+	$(MAKE) docker-build-statecraft-fast
 
 docker-push-hetzner-fast: docker-build-hetzner-fast
 	docker push $(HETZNER_REGISTRY)/deployd-api:latest
-	docker push $(HETZNER_REGISTRY)/stagecraft:$(STAGECRAFT_TAG)
+	docker push $(HETZNER_REGISTRY)/statecraft:$(STATECRAFT_TAG)
 
 destroy-hetzner:
 	hetzner-k3s delete --config $(HETZNER_ROOT)/cluster.yaml
@@ -205,35 +205,35 @@ destroy-hetzner:
 # Inbound traffic to the cluster ingress is stolen into the local process.
 # Ctrl-C restores the pod as the traffic target.
 
-.PHONY: dev-stagecraft-hetzner dev-stagecraft-web-hetzner dev-deployd-api-hetzner
+.PHONY: dev-statecraft-hetzner dev-statecraft-web-hetzner dev-deployd-api-hetzner
 
-# Mirrord's http_filter (see infra/hetzner/mirrord/stagecraft.yaml) only
-# steals requests carrying `x-stagecraft-dev: 1`, which vite injects on
+# Mirrord's http_filter (see infra/hetzner/mirrord/statecraft.yaml) only
+# steals requests carrying `x-statecraft-dev: 1`, which vite injects on
 # every proxied request. That keeps k8s liveness probes on the pod and
 # stops them from killing the target during Encore startup.
 #
 # DEV_APP_BASE_URL drives the OAuth/OIDC redirect_uri. Default it to the
 # HMR origin so the localhost:3000 flow works out of the box; override
-# with `DEV_APP_BASE_URL=... make dev-stagecraft-hetzner` if you want a
+# with `DEV_APP_BASE_URL=... make dev-statecraft-hetzner` if you want a
 # different origin (or unset it to fall back to the pod's APP_BASE_URL).
-dev-stagecraft-hetzner: export DEV_APP_BASE_URL ?= http://localhost:3000
-dev-stagecraft-hetzner:
+dev-statecraft-hetzner: export DEV_APP_BASE_URL ?= http://localhost:3000
+dev-statecraft-hetzner:
 	@command -v mirrord >/dev/null 2>&1 || { echo "mirrord not found. Install: curl -fsSL https://raw.githubusercontent.com/metalbear-co/mirrord/main/scripts/install.sh | bash"; exit 1; }
-	cd services/stagecraft && npm install --silent
-	$(HETZNER_ROOT)/mirrord/stagecraft-compile.sh
-	set -a && . $(HETZNER_ROOT)/mirrord/.stagecraft.env && set +a && \
+	cd services/statecraft && npm install --silent
+	$(HETZNER_ROOT)/mirrord/statecraft-compile.sh
+	set -a && . $(HETZNER_ROOT)/mirrord/.statecraft.env && set +a && \
 	KUBECONFIG=$(OAP_HETZNER_DIR)/kubeconfig \
-	mirrord exec -f $(HETZNER_ROOT)/mirrord/stagecraft.yaml -- \
-		node services/stagecraft/.encore/build/combined/combined/main.mjs
+	mirrord exec -f $(HETZNER_ROOT)/mirrord/statecraft.yaml -- \
+		node services/statecraft/.encore/build/combined/combined/main.mjs
 
 # React Router dev server on :3000 with HMR, proxying Encore-owned paths to
-# the mirrord'd backend on :4000. Run `dev-stagecraft-hetzner` in another
+# the mirrord'd backend on :4000. Run `dev-statecraft-hetzner` in another
 # terminal first so the Encore backend is listening.
-dev-stagecraft-web-hetzner:
+dev-statecraft-web-hetzner:
 	@command -v node >/dev/null 2>&1 || { echo "node not found. Install Node.js 20+"; exit 1; }
-	cd services/stagecraft && npm install --silent
-	cd services/stagecraft && npm run gen
-	cd services/stagecraft/web && ENCORE_API_BASE_URL=http://localhost:4000 npx react-router dev
+	cd services/statecraft && npm install --silent
+	cd services/statecraft && npm run gen
+	cd services/statecraft/web && ENCORE_API_BASE_URL=http://localhost:4000 npx react-router dev
 
 dev-deployd-api-hetzner:
 	@command -v mirrord >/dev/null 2>&1 || { echo "mirrord not found. Install: curl -fsSL https://raw.githubusercontent.com/metalbear-co/mirrord/main/scripts/install.sh | bash"; exit 1; }
@@ -254,9 +254,9 @@ docker-build:
 	# `encore build docker` packages whatever is on disk under web/build/;
 	# regenerate the react-router client tree first so bundled main.mjs and
 	# the static client tree share matching hashed asset names.
-	cd services/stagecraft && npm run build:frontend
-	cd services/stagecraft && encore build docker --config ./infra.config.json $(REGISTRY)/stagecraft:dev
+	cd services/statecraft && npm run build:frontend
+	cd services/statecraft && encore build docker --config ./infra.config.json $(REGISTRY)/statecraft:dev
 
 docker-push: docker-build
 	docker push $(REGISTRY)/deployd-api:dev
-	docker push $(REGISTRY)/stagecraft:dev
+	docker push $(REGISTRY)/statecraft:dev

@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: stagecraft-api
+  name: statecraft-api
 spec:
   selector:
-    app: stagecraft-api
+    app: statecraft-api
   ports:
     - port: 80
       targetPort: 4000

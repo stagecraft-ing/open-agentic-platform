@@ -371,7 +371,7 @@ export interface ImportedRawArtifact {
   sizeBytes: number;
 }
 
-// Spec 112 §6.1 — App-installation picker for the Stagecraft Import UI.
+// Spec 112 §6.1 — App-installation picker for the Statecraft Import UI.
 export interface ImportInstallationRepo {
   owner: string;
   name: string;
@@ -739,7 +739,7 @@ export async function removeAllowlistEntry(
 // -------------------------------------------------------------------------
 // Spec 215: deploy trigger + status. Wire shapes mirror
 // `api/deploy/deploy.ts` (DeploymentView). The web tier calls these
-// stagecraft endpoints, never deployd-api directly (FR-002). Status is
+// statecraft endpoints, never deployd-api directly (FR-002). Status is
 // served by getLatestDeployment, which lazily reconciles a stale PENDING
 // record against deployd-api before answering (FR-008), so a separate
 // getDeploymentStatus call is unnecessary.

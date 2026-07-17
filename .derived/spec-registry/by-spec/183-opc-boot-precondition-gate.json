@@ -69,7 +69,7 @@
         ],
         "unit": {
           "kind": "file",
-          "path": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs"
+          "path": "product/apps/opc/src-tauri/src/commands/statecraft_client.rs"
         }
       },
       {
@@ -95,7 +95,7 @@
       {
         "aspect": "sync-hello-observer-and-duplex-give-up-signal",
         "refines_specs": [
-          "110-stagecraft-to-opc-factory-trigger"
+          "110-statecraft-to-opc-factory-trigger"
         ],
         "unit": {
           "kind": "file",
@@ -189,7 +189,7 @@
     ],
     "specPath": "specs/183-opc-boot-precondition-gate/spec.md",
     "status": "approved",
-    "summary": "Codifies the runtime preconditions that gate the OPC boot→cockpit transition and the precondition-loss semantics that keep the cockpit honest mid-session. The shell occupies a single observational *boot* state until two preconditions both green-light: the bundled axiomregent sidecar's probe port has been observed AND a TCP connection to that port succeeds (the diagnostic listener accepts the connection before closing it); and the desktop holds a materialised org session (`org_id` populated on the Rust-side `StagecraftState` AND a `sync.hello` envelope received from stagecraft over the duplex stream, which proves the org was accepted by the server for this client). While in boot, the only affordances are precondition status, retry bound to those preconditions, a logs entrypoint, and a Quit action that tears down spawned sidecars cleanly. Retry is user-initiated, not a silent reconnect loop. If either precondition is lost mid-session (sidecar crash, duplex disconnect with no reconnect, org session expiry), the shell restores to the boot state rather than running degraded. Non-goals are written down explicitly: no offline mode, no sidecar-optional mode, no \"skip for now\" bypass, no per-feature degraded paths. The gate is the constitutional answer to a 2026-05-25 session in which Issues 3a/6/7/8/9 surfaced as five symptoms of one drift — the cockpit rendered before its substrate was ready.\n",
+    "summary": "Codifies the runtime preconditions that gate the OPC boot→cockpit transition and the precondition-loss semantics that keep the cockpit honest mid-session. The shell occupies a single observational *boot* state until two preconditions both green-light: the bundled axiomregent sidecar's probe port has been observed AND a TCP connection to that port succeeds (the diagnostic listener accepts the connection before closing it); and the desktop holds a materialised org session (`org_id` populated on the Rust-side `StatecraftState` AND a `sync.hello` envelope received from statecraft over the duplex stream, which proves the org was accepted by the server for this client). While in boot, the only affordances are precondition status, retry bound to those preconditions, a logs entrypoint, and a Quit action that tears down spawned sidecars cleanly. Retry is user-initiated, not a silent reconnect loop. If either precondition is lost mid-session (sidecar crash, duplex disconnect with no reconnect, org session expiry), the shell restores to the boot state rather than running degraded. Non-goals are written down explicitly: no offline mode, no sidecar-optional mode, no \"skip for now\" bypass, no per-feature degraded paths. The gate is the constitutional answer to a 2026-05-25 session in which Issues 3a/6/7/8/9 surfaced as five symptoms of one drift — the cockpit rendered before its substrate was ready.\n",
     "title": "OPC boot precondition gate — sidecar liveness + materialised org session, with precondition-loss restore"
   },
   "shardHash": "084b447520c7ed1cb289dba3dcdabb4ea78cffa51b4ed0889df7a5178fd97282",

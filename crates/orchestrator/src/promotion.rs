@@ -26,7 +26,7 @@ pub struct SyncStatus {
     pub last_sync_error: Option<String>,
 }
 
-/// Tracks acknowledgements from fire-and-forget Stagecraft calls (099 Slice 1).
+/// Tracks acknowledgements from fire-and-forget Statecraft calls (099 Slice 1).
 ///
 /// Created per pipeline run. Cloneable (inner state is `Arc<Mutex>`).
 /// Spawned tasks capture a clone and record ack/nack after each HTTP call completes.

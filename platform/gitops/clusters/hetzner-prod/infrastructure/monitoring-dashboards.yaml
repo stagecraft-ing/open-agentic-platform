@@ -6,7 +6,7 @@
 # the defaultRules recording rules FR-008 prunes) — this ConfigMap is
 # the explicit, governed dashboard set.
 #
-# The stagecraft panel's expression is PROVISIONAL: spec 196 SC-001
+# The statecraft panel's expression is PROVISIONAL: spec 196 SC-001
 # deliberately does not guess Encore's exact remote_write series name —
 # the validating run records the concrete series, and SC-010 reuses it
 # verbatim. `e_requests_total` is the best-known candidate; correct
@@ -32,7 +32,7 @@ data:
         {
           "id": 1,
           "type": "timeseries",
-          "title": "stagecraft requests/s (remote_write)",
+          "title": "statecraft requests/s (remote_write)",
           "description": "PROVISIONAL expr — SC-001 records the validated Encore series name; correct this panel to it (tasks.md V001/V010).",
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
           "targets": [

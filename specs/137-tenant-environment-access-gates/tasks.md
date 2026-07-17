@@ -57,10 +57,10 @@
   auto-provision on magic-link allowlist add; do not auto-delete on
   removal; collision-handling depends on T003 (c) confirmation.)
 - [x] T006 Decide §Clarification 6 (Auth Providers UX). Confirm
-  Rauthy admin UI is the v1 surface; surface a stagecraft follow-up
+  Rauthy admin UI is the v1 surface; surface a statecraft follow-up
   spec id for future ergonomic work.
   (Locked 2026-05-15 in `clarifications-resolved.md` §Decision 6:
-  Rauthy admin UI for v1; stagecraft surfaces a read-only dropdown
+  Rauthy admin UI for v1; statecraft surfaces a read-only dropdown
   via `GET /auth/v1/auth_providers`.)
 - [x] T007 Reviewer pass on the contract + clarifications; flip
   `status: draft → approved` in spec.md frontmatter. Add
@@ -81,13 +81,13 @@ behind this checkpoint per Principle III.
 ## Phase 1 — Schema migration
 
 - [x] T010 Author
-  `platform/services/stagecraft/api/db/migrations/3X_environment_access_gates.up.sql`:
+  `platform/services/statecraft/api/db/migrations/3X_environment_access_gates.up.sql`:
   `environment_access_gates` table with `(environment_id PK, enabled,
   rauthy_client_ref, login_method_*, created_at, updated_at)` +
   CHECK constraint enforcing non-null Rauthy fields when
   `enabled = true`.
   (Landed 2026-05-15 as
-  `platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql`.
+  `platform/services/statecraft/api/db/migrations/40_environment_access_gates.up.sql`.
   Prefix 40 is the next free slot after migration 39. Three CHECK
   constraints land: `enabled_requires_ref`,
   `federated_provider_values` (closed set `{google, microsoft, github,
@@ -115,7 +115,7 @@ behind this checkpoint per Principle III.
   Postgres — both tables drop cleanly. CASCADE handles dependent
   indexes/constraints implicitly.)
 - [x] T013 Drizzle schema additions in
-  `platform/services/stagecraft/api/db/schema.ts`. Type-export the new
+  `platform/services/statecraft/api/db/schema.ts`. Type-export the new
   shapes for the API layer.
   (Landed 2026-05-15. New tables
   `environmentAccessGates` + `environmentAccessGateAllowlistEmails`
@@ -141,7 +141,7 @@ behind this checkpoint per Principle III.
 
 ---
 
-## Phase 2 — Stagecraft API CRUD
+## Phase 2 — Statecraft API CRUD
 
 - [x] T020 `api/environments/accessGates.ts` —
   `GET /api/environments/:id/access-gate` + Zod / hand-rolled
@@ -231,7 +231,7 @@ descriptor end-to-end without touching deployd-api yet.
   payload cannot bypass the invariant. Deterministic client id
   via `tenantGateClientId(envId)` = `tenant-gate-<envId>`. Wired
   into `putAccessGate` — caller no longer passes
-  `rauthyClientRef`; stagecraft auto-provisions on enable, returns
+  `rauthyClientRef`; statecraft auto-provisions on enable, returns
   the client_id, and persists it.)
 - [x] T032 `deprovisionTenantGateClient({environmentId})` — DELETE
   the Rauthy client; resets the descriptor row to `enabled = false`.
@@ -268,7 +268,7 @@ descriptor end-to-end without touching deployd-api yet.
   provisioning (domain users materialise on first federated
   login per Decision 5).)
 
-**Checkpoint:** Stagecraft can provision and tear down a Rauthy
+**Checkpoint:** Statecraft can provision and tear down a Rauthy
 client per gated env without touching the K8s deployment.
 
 ---
@@ -315,12 +315,12 @@ client per gated env without touching the K8s deployment.
   a misshapen descriptor fails at helm-template time, not at the
   pod-start boundary. Deployd-api does NOT generate the cookie secret
   (FR-008 / T043 invariant) — it flows from `descriptor.cookie_secret`
-  populated by stagecraft Phase 3 code.
+  populated by statecraft Phase 3 code.
 - [x] T044 DELETE path tears down both. **Done 2026-05-17.**
   `routes.rs::delete_deployment` now calls `uninstall_with_gate`
   unconditionally; `helm uninstall`'s "release not found" tolerance
   makes the call correct whether the deployment had a gate or not.
-  The Rauthy client deprovision is stagecraft's responsibility per
+  The Rauthy client deprovision is statecraft's responsibility per
   spec 137 Phase 3 / T032 (`deprovisionTenantGateClient`); deployd-api
   only owns the K8s side.
 - [x] T045 Reconcile path: toggle without restarting tenant pods.
@@ -350,12 +350,12 @@ client per gated env without touching the K8s deployment.
 oauth2-proxy live (chart renders Deployment + Service + Secret +
 Ingress + optional ConfigMap), tenant Ingress chained via
 auth-url/auth-signin annotations, Rauthy client provisioned (by
-stagecraft Phase 3 before deployd-api is called). Phase 5 (UI) and
+statecraft Phase 3 before deployd-api is called). Phase 5 (UI) and
 Phase 6 (E2E evidence) are the remaining gates.
 
 ---
 
-## Phase 5 — Stagecraft UI
+## Phase 5 — Statecraft UI
 
 - [x] T050 Per-environment "Access gate" card. **Done 2026-05-17.**
   New per-env detail route
@@ -391,7 +391,7 @@ Phase 6 (E2E evidence) are the remaining gates.
   (`Email me a sign-in link`, `Continue with <provider>`). Hostname is
   a synthetic placeholder (`<env-name>.<project-id>.tenants.{org}`)
   pending the spec 137 Decision 4 hostname-templating wire-up — once
-  deployd-api round-trips the resolved hostname back to stagecraft, the
+  deployd-api round-trips the resolved hostname back to statecraft, the
   preview can show the real one.
 - [x] T054 [P] Empty-state UX when `enabled = false`. **Done 2026-05-17.**
   `EmptyStateCallout` component: explanatory paragraph plus a single
@@ -400,16 +400,16 @@ Phase 6 (E2E evidence) are the remaining gates.
   methods, allowlist, preview) is hidden in the disabled state to
   keep the empty-state visually quiet.
 
-**Checkpoint:** Admins can manage the per-env gate from stagecraft
+**Checkpoint:** Admins can manage the per-env gate from statecraft
 without leaving the project view. Phase 5 landed via the
-`137-phase-5-stagecraft-ui` PR.
+`137-phase-5-statecraft-ui` PR.
 
 ---
 
 ## Phase 4↔5 integration — descriptor wire-through *(2026-05-17)*
 
 Phases 4 and 5 landed independently (#149 / #150). The integration
-between them — schema for deploy-time secrets, stagecraft caller path
+between them — schema for deploy-time secrets, statecraft caller path
 that forwards the descriptor to deployd-api, cluster-level cert
 replication — is the unlock for Phase 6 evidence.
 
@@ -469,7 +469,7 @@ replication — is the unlock for Phase 6 evidence.
   reference until a follow-up cleanup removes it with co-claimant
   amender edits on specs 106/137).
 
-**Checkpoint:** stagecraft → deployd-api end-to-end carries the gate
+**Checkpoint:** statecraft → deployd-api end-to-end carries the gate
 descriptor; cluster has all the moving parts in place for a live
 gate. Phase 6 evidence (E1–E6) becomes runnable against a deployed
 tenant once this PR merges and CD lands.

@@ -35,7 +35,7 @@ The spec's current frontmatter has no `establishes:` entries. The coupling gate 
 | `crates/orchestrator/src/lib.rs` | covered by `refines:` already |
 | `crates/factory-engine/src/governance_certificate.rs` | `establishes:` unit (kind: file); currently only a `references:` role |
 | `crates/factory-engine/src/lib.rs` (re-exports) | `establishes:` unit (kind: crate, id: factory-engine) OR file-level |
-| `platform/services/stagecraft/api/factory/runs.ts` | currently a `references: context` unit; needs promotion to `establishes:` or `refines:` |
+| `platform/services/statecraft/api/factory/runs.ts` | currently a `references: context` unit; needs promotion to `establishes:` or `refines:` |
 | `crates/featuregraph/tests/golden/features_graph.json` | covered by `extends: 034` unit |
 
 **Rule of thumb for each PR**: update `specs/202-run-blast-radius-governor/spec.md` frontmatter in the same commit as the implementation files, or the coupling gate will fail. Do not add edges speculatively; add them in the PR whose diff touches that file.
@@ -279,7 +279,7 @@ budgets:
 
 ### Slice F: FR-003(c) Platform queue-storm gate (independent) -- LANDED
 
-**Depends on**: Slice A is helpful for the ceiling type pattern, but this slice can land before Slice A; it reads a `STAGECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT` env var or a platform config value until the envelope carries the threshold.
+**Depends on**: Slice A is helpful for the ceiling type pattern, but this slice can land before Slice A; it reads a `STATECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT` env var or a platform config value until the envelope carries the threshold.
 
 **FR/AC coverage**: FR-003(c).
 
@@ -288,7 +288,7 @@ user locked a detection-only decision for this landing: the gate counts,
 logs, and audits; it never throws and never blocks. The original sketch
 (a `resourceExhausted` 429 throw against a bare env-var ceiling) is
 superseded for the same reason Slice D/E's axis sketches were superseded:
-`STAGECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT` is platform config, not an admitted
+`STATECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT` is platform config, not an admitted
 `budgets:` threshold (FR-001) or a peer envelope field like `oscillation:`/
 `intent_dedup:`; refusing real work on an org-invisible, unadmitted value
 would be an enforcement action with no admission record behind it. This
@@ -298,27 +298,27 @@ Enforcement is deferred to that later envelope-carried threshold.
 
 **Files added/edited (as-built)**:
 
-- `platform/services/stagecraft/api/factory/queueStormGate.ts` (new,
+- `platform/services/statecraft/api/factory/queueStormGate.ts` (new,
   established by this spec): `maxRunsInFlight()` reads
-  `STAGECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT` with a parsed default of 25
+  `STATECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT` with a parsed default of 25
   (justification in the module doc comment, mirroring the `max_repeats: 3`
   reasoning shape for FR-003(a)); `detectQueueStorm(ctx)` counts the org's
   `queued`/`running` rows and, at or over the ceiling, `log.warn`s and
   writes a `factory.run.storm_detected` audit row (new constant in
   `auditActions.ts`). Always resolves; never throws.
-- `platform/services/stagecraft/api/factory/runs.ts` -- in
+- `platform/services/statecraft/api/factory/runs.ts` -- in
   `reserveRunCore`, one `await detectQueueStorm({...})` call inside a
   `// region: queue-storm-gate (spec 202 FR-003c)` / `// endregion` marker
   pair, placed after the idempotent fast path and before
   `loadSubstrateForOrg` (detection does not need the resolved
   adapter/process to fire).
-- `platform/services/stagecraft/api/factory/auditActions.ts` --
+- `platform/services/statecraft/api/factory/auditActions.ts` --
   `FACTORY_RUN_STORM_DETECTED` constant plus its `FactoryRunAuditAction`
   union member.
-- `platform/services/stagecraft/vite.config.ts` -- the new test file joins
+- `platform/services/statecraft/vite.config.ts` -- the new test file joins
   the encore-test-only exclude list (live DB).
-- `platform/services/stagecraft/CLAUDE.md` -- documents the
-  `STAGECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT` knob.
+- `platform/services/statecraft/CLAUDE.md` -- documents the
+  `STATECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT` knob.
 - The sweeper (`runsScheduler.ts`) is NOT modified (confirmed per spec
   §Code reality 5).
 
@@ -404,30 +404,30 @@ fixture; composes with spec 201's ratification trail (it counts the
 
 **Files added/edited (as-built)**:
 
-- `platform/services/stagecraft/api/factory/approvalVelocity-pure.ts` (new,
+- `platform/services/statecraft/api/factory/approvalVelocity-pure.ts` (new,
   established): `ApprovalVelocity` interface, the env-knob readers
   (`approvalVelocityWindowSecs` / `approvalVelocityThreshold`, defaults 60s /
   10, same `positiveIntEnv` idiom as `maxRunsInFlight`), and the pure
   `computeApprovalVelocity(timestamps, nowIso, windowSecs, threshold)`
   classifier (`anomalous = count >= threshold`, mirroring `detectQueueStorm`'s
   at-or-over convention).
-- `platform/services/stagecraft/api/factory/approvalVelocity.ts` (new,
+- `platform/services/statecraft/api/factory/approvalVelocity.ts` (new,
   established): the DB half. `measureApprovalVelocity(ctx)` (read-only,
   fail-open, returns null on DB error) does the org-scoped join count and the
   pure classify; `detectApprovalVelocity(ctx)` (approve-path, fully fail-open)
   records a `factory.run.approval_velocity_anomaly` audit row when anomalous.
-- `platform/services/stagecraft/api/factory/approvalSummary.ts` (refined,
+- `platform/services/statecraft/api/factory/approvalSummary.ts` (refined,
   aspect `approval-velocity-surface`): `approvalVelocity?` field on
   `RunApprovalContextResponse`; `measureApprovalVelocity` call in
   `getRunApprovalContextCore` (surface, both branches); `detectApprovalVelocity`
   call in `approveRunGateCore` after the `gate_approved` insert.
-- `platform/services/stagecraft/api/factory/auditActions.ts` (refined, aspect
+- `platform/services/statecraft/api/factory/auditActions.ts` (refined, aspect
   `approval-velocity-audit-action`): `FACTORY_RUN_APPROVAL_VELOCITY_ANOMALY`
   constant + union member.
-- `platform/services/stagecraft/vite.config.ts` (covered by the existing Slice
+- `platform/services/statecraft/vite.config.ts` (covered by the existing Slice
   F `encore-test-lane-assignment` refine): the new DB test file joins the
   encore-lane exclude list.
-- `platform/services/stagecraft/CLAUDE.md` (covered by the existing Slice F
+- `platform/services/statecraft/CLAUDE.md` (covered by the existing Slice F
   `queue-storm-env-knob-docs` refine): the two velocity env knobs documented.
 
 **Tests**: `approvalVelocity-pure.test.ts` (bare vitest) covers the windowing +
@@ -443,7 +443,7 @@ risky (no blocking gate). It landed last without blocking any other AC.
 <details>
 <summary>Superseded pre-survey sketch (not built as written)</summary>
 
-**Files to edit**: The approval surfaces in the platform (`approvalSummary.ts` and `approvalSummaryEndpoint.ts` in `platform/services/stagecraft/api/factory/`). The gate predicates are filed via the envelope; the velocity counter counts approvals per actor per window and surfaces anomalous velocity.
+**Files to edit**: The approval surfaces in the platform (`approvalSummary.ts` and `approvalSummaryEndpoint.ts` in `platform/services/statecraft/api/factory/`). The gate predicates are filed via the envelope; the velocity counter counts approvals per actor per window and surfaces anomalous velocity.
 
 Since FR-004 is detection-only (records, never blocks) and it composes with spec 201's `ApprovalSummary` evidence rows, this slice requires surveying spec 201's surfaces to understand the exact integration point. That survey is deferred to PR time. Scope: add a velocity accumulator per `(actor_id, org_id, window_start)` at the approval-grant path, surface via a new diagnostic field in `ApprovalSummary`, and add a test fixture with N approvals in a short window asserting the `anomalous_velocity: true` flag appears.
 

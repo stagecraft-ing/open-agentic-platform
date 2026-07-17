@@ -47,11 +47,11 @@
       {
         "unit": {
           "anchor": "access-gate-wire",
-          "file": "platform/services/stagecraft/api/deploy/deploy.ts",
+          "file": "platform/services/statecraft/api/deploy/deploy.ts",
           "kind": "section"
         },
         "with_specs": [
-          "077-stagecraft-factory-api"
+          "077-statecraft-factory-api"
         ]
       },
       {
@@ -86,31 +86,31 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/environments/accessGates.ts"
+        "path": "platform/services/statecraft/api/environments/accessGates.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/environments/accessGatesHelpers.ts"
+        "path": "platform/services/statecraft/api/environments/accessGatesHelpers.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/environments/accessGates.test.ts"
+        "path": "platform/services/statecraft/api/environments/accessGates.test.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/environments/encore.service.ts"
+        "path": "platform/services/statecraft/api/environments/encore.service.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/auth/rauthyAdminClients.ts"
+        "path": "platform/services/statecraft/api/auth/rauthyAdminClients.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/auth/rauthyAdminClientsHelpers.ts"
+        "path": "platform/services/statecraft/api/auth/rauthyAdminClientsHelpers.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/auth/rauthyAdminClients.test.ts"
+        "path": "platform/services/statecraft/api/auth/rauthyAdminClients.test.ts"
       },
       {
         "kind": "directory",
@@ -118,11 +118,11 @@
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/environments/accessGatesDeploy.ts"
+        "path": "platform/services/statecraft/api/environments/accessGatesDeploy.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx"
+        "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx"
       }
     ],
     "extends": [
@@ -131,7 +131,7 @@
         "spec": "136-tenant-hello-demo-service",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       },
       {
@@ -139,7 +139,7 @@
         "spec": "136-tenant-hello-demo-service",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       },
       {
@@ -147,7 +147,7 @@
         "spec": "136-tenant-hello-demo-service",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.deploys.tsx"
         }
       },
       {
@@ -155,7 +155,7 @@
         "spec": "136-tenant-hello-demo-service",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+          "path": "platform/services/statecraft/web/app/lib/projects-api.server.ts"
         }
       }
     ],
@@ -183,7 +183,7 @@
     ],
     "specPath": "specs/137-tenant-environment-access-gates/spec.md",
     "status": "approved",
-    "summary": "Per-environment access gating for projects deployed via deployd-api, applied above the tenant app so tenant codebases carry no auth logic. Passwordless OIDC via our existing Rauthy instance is the only mode — users authenticate by magic link or federated upstream IdP (Google, Microsoft Entra, GitHub, generic OIDC). Stagecraft and Rauthy clients for tenant gates are configured to refuse password login outright; the platform never sees, stores, or relays a password.\n",
+    "summary": "Per-environment access gating for projects deployed via deployd-api, applied above the tenant app so tenant codebases carry no auth logic. Passwordless OIDC via our existing Rauthy instance is the only mode — users authenticate by magic link or federated upstream IdP (Google, Microsoft Entra, GitHub, generic OIDC). Statecraft and Rauthy clients for tenant gates are configured to refuse password login outright; the platform never sees, stores, or relays a password.\n",
     "title": "Tenant environment access gates — passwordless OIDC via Rauthy"
   },
   "shardHash": "a5075fde4ab0ce76fb811d2c171c715ff7376fa84a21258c8331d2c1b372591b",

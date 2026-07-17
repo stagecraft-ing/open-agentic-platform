@@ -1,6 +1,6 @@
 ---
 id: "136-tenant-hello-demo-service"
-title: "Tenant-hello — stagecraft-deployable tenant reference service"
+title: "Tenant-hello — statecraft-deployable tenant reference service"
 status: approved
 implementation: complete  # Phase 0 (T001–T005) and Phase 1 (T010–T017) landed 2026-05-06; Phase 2 code (T020–T022) landed 2026-05-15. T023 happy path + T030/T031 negative-path passes ran on the Hetzner K3s dev cluster 2026-05-17 against `cd-tenant-hello.yml` workflow_dispatch run 25987117916 (image source = main @ b3c0ddcf). Evidence: `execution/verification.md`. SC-002 both halves evidenced — positive (running pod, /healthz → 200) and negative (three C-clause violation passes each producing a localised failure: read-only-fs mkdir error for C-001, probe HTTP 404 for C-002, probe connection-refused for C-003).
 owner: bart
@@ -20,11 +20,11 @@ kind: platform
 domain: platform
 risk: low
 depends_on:
-  - "087-unified-workspace-architecture"  # unified-workspace-architecture (stagecraft as the web governance plane)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (statecraft as the web governance plane)
   - "078-platform-completion-plan"  # platform-completion-plan (the broader platform-finishing context)
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/chartSelector.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/chartSelector.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/deploy/chartSelector.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/deploy/chartSelector.test.ts }
 # The tenant-hello service, chart, and CI/CD workflows 136 established were
 # superseded and removed by spec 214 Stage 2. They move from establishes to
 # references (existence-exempt) since they no longer exist in the worktree; the
@@ -64,12 +64,12 @@ extends:
     unit: { kind: file, path: .github/workflows/ci-deployd-api-rs.yml }
 summary: >
   Document `platform/services/tenant-hello` as the deliberately-minimal
-  reference of what a project codebase looks like when stagecraft is
+  reference of what a project codebase looks like when statecraft is
   responsible for deploying it. The express service itself is trivial; the
   spec exists to pin the contract a tenant codebase must honour to round-trip
-  through stagecraft (containerised entrypoint, health probe, port-from-env,
+  through statecraft (containerised entrypoint, health probe, port-from-env,
   no privileged dependencies) and to call out the current gap between
-  "tenant codebase exists" and "stagecraft can deploy it end-to-end."
+  "tenant codebase exists" and "statecraft can deploy it end-to-end."
 ---
 
 # Feature Specification: Tenant-hello demo service
@@ -79,7 +79,7 @@ summary: >
 **Status**: Draft
 **Input**: Repurpose the existing `platform/services/tenant-hello` express
 service from "an example tenant" into a governed reference: this is the
-codebase shape that stagecraft deployment is meant to handle, and
+codebase shape that statecraft deployment is meant to handle, and
 tenant-hello is the always-green fixture used to demonstrate (and
 regression-test) the tenant-deploy pipeline.
 
@@ -98,7 +98,7 @@ regression-test) the tenant-deploy pipeline.
 root, and a single-stage Dockerfile (`platform/services/tenant-hello/Dockerfile`).
 It does not have business logic; that is deliberate. Its job in the OAP
 tree is to answer one question: **what is the contract a project codebase
-must honour for stagecraft to take it from "source on disk" to "running
+must honour for statecraft to take it from "source on disk" to "running
 behind the platform's ingress" without bespoke per-tenant work?**
 
 This spec captures that contract and uses tenant-hello as its
@@ -106,17 +106,17 @@ canonical-reference fixture.
 
 **Explicitly in scope:**
 
-- The shape any tenant codebase must present so stagecraft + deployd-api
+- The shape any tenant codebase must present so statecraft + deployd-api
   can deploy it (containerisation contract, health/readiness contract,
   environment contract).
 - Pinning tenant-hello as the always-green reference fixture for that
-  contract — i.e. if stagecraft deployment of tenant-hello is broken,
+  contract — i.e. if statecraft deployment of tenant-hello is broken,
   the tenant-deploy pipeline is broken.
 
 **Explicitly out of scope:**
 
 - Tenant-hello-specific business behaviour (there is none, by design).
-- The stagecraft-side deployment UI / UX — covered by spec 087 and the
+- The statecraft-side deployment UI / UX — covered by spec 087 and the
   factory-as-platform-feature thread (spec 108).
 - Multi-service tenant codebases (tenant-hello stands in for the
   single-service shape; multi-service is a future expansion, not this
@@ -131,26 +131,26 @@ canonical-reference fixture.
 - `platform/services/tenant-hello/Dockerfile` builds a runnable image
   (`node:20-alpine` base, port 8080 exposed).
 - There is **no** Helm chart for tenant-hello in `platform/charts/`
-  (charts are present only for `stagecraft`, `deployd-api`, and `rauthy`).
+  (charts are present only for `statecraft`, `deployd-api`, and `rauthy`).
 - `deployd-api-rs` (`platform/services/deployd-api-rs/`) is the
   rust-axum K8s deployment orchestrator that would be responsible for
-  applying a tenant chart through stagecraft.
+  applying a tenant chart through statecraft.
 
 **Intent (this spec's aspiration):**
 
-The end-to-end loop *from a stagecraft user clicking "deploy" on a project
+The end-to-end loop *from a statecraft user clicking "deploy" on a project
 that points at this codebase, to a running pod responding on the cluster*
 must work without per-tenant scaffolding. tenant-hello's role is to be
 the smallest codebase that exercises that loop end-to-end.
 
 The gap between current state and intent — namely, the missing
 `platform/charts/tenant-hello/` Helm chart and the
-stagecraft-side wiring that selects a chart per tenant — is real and is
+statecraft-side wiring that selects a chart per tenant — is real and is
 declared as the implementation-in-progress surface of this spec.
 
 ## Tenant codebase contract *(normative)*
 
-Any tenant codebase that wants to deploy through stagecraft MUST present:
+Any tenant codebase that wants to deploy through statecraft MUST present:
 
 - **C-001 (containerised entrypoint):** A `Dockerfile` at the codebase
   root that produces a runnable image with no privileged build steps.
@@ -192,7 +192,7 @@ trivially holds since it has only one dependency (`express`).
 - **FR-003:** The service MUST honour the `PORT` env var with a documented
   default for local dev, matching the contract's C-003 requirement.
 - **FR-004:** A future deliverable in this spec's implementation plan is
-  the `platform/charts/tenant-hello/` Helm chart and the stagecraft-side
+  the `platform/charts/tenant-hello/` Helm chart and the statecraft-side
   wiring needed to deploy a project bound to this reference. Until that
   ships, `implementation: in-progress` is honest.
 - **FR-005:** The `oap.spec` field in
@@ -204,7 +204,7 @@ trivially holds since it has only one dependency (`express`).
 
 - **SC-001:** A reader of this spec can identify the C-001…C-005 contract
   any tenant codebase must honour without reading any other spec.
-- **SC-002:** When the stagecraft tenant-deploy loop ships (FR-004),
+- **SC-002:** When the statecraft tenant-deploy loop ships (FR-004),
   invoking it against `platform/services/tenant-hello/` deploys a running
   pod whose `/healthz` returns 200 — and the same pipeline run against a
   codebase that *violates* one of C-001…C-005 fails with a localised
@@ -217,7 +217,7 @@ trivially holds since it has only one dependency (`express`).
 
 ### Session 2026-05-04
 
-- The user-stated framing for this spec is *"what stagecraft deployment
+- The user-stated framing for this spec is *"what statecraft deployment
   should enable us to perform when it comes to the codebase of the
   project."* tenant-hello is therefore not a feature in its own right;
   it is the smallest possible witness of the platform's tenant-deploy

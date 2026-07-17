@@ -1,6 +1,6 @@
 // Spec 112 §5.3 — scaffold warmup scheduler.
 //
-// Two Encore-native pieces wire the warmup machinery into stagecraft:
+// Two Encore-native pieces wire the warmup machinery into statecraft:
 //   1. `runScaffoldWarmup` — internal endpoint that resolves a warmup
 //      context (scaffoldRepoUrl + scaffoldRef + PAT) and runs the cache
 //      + four prebuilds. Called at boot via fire-and-forget at module
@@ -8,7 +8,7 @@
 //   2. `_scaffoldRefresher` — Encore CronJob that fires `runScaffoldWarmup`
 //      every 30 minutes. Replaces template-distributor's setInterval.
 //
-// Multi-tenancy: stagecraft today resolves a single warmup context (the
+// Multi-tenancy: statecraft today resolves a single warmup context (the
 // first org whose latest admission record carries a resolved scaffold
 // source and which has a configured upstream PAT). Cache contents are
 // public template files + npm node_modules — neither org-sensitive — so

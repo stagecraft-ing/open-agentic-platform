@@ -122,49 +122,49 @@ const ECOSYSTEM = [
     role: "Control Plane",
     description:
       "The governed operating system. 228 specs, SHA-256 proof chains, OWASP ASI 2026 compliance.",
-    url: "https://github.com/stagecraft-ing/open-agentic-platform",
+    url: "https://github.com/statecrafting/open-agentic-platform",
   },
   {
     name: "spec-spine",
     role: "Authority Ledger",
     description:
       "Typed, hash-verifiable authority over the spec corpus. The single source of truth.",
-    url: "https://github.com/stagecraft-ing/spec-spine",
+    url: "https://github.com/statecrafting/spec-spine",
   },
   {
     name: "factory-encore",
     role: "Build Pipeline",
     description:
       "Technology-agnostic software factory. Process, Contract, and Adapter separation.",
-    url: "https://github.com/stagecraft-ing/factory-encore",
+    url: "https://github.com/statecrafting/factory-encore",
   },
   {
     name: "template-encore",
     role: "Reference App",
     description:
       "Runnable reference: Encore.ts + Vue 3 + PrimeVue + PostgreSQL + Rauthy OIDC.",
-    url: "https://github.com/stagecraft-ing/template-encore",
+    url: "https://github.com/statecrafting/template-encore",
   },
   {
     name: "tenant-emit",
     role: "Certificate Emitter",
     description:
       "Emit-only CLI. Ed25519-signed governance certificates with corpus and SBOM binding.",
-    url: "https://github.com/stagecraft-ing/tenant-emit",
+    url: "https://github.com/statecrafting/tenant-emit",
   },
   {
     name: "tenant-tail",
     role: "Certificate Verifier",
     description:
       "Verify-only CLI. Offline-capable, identity-free, read-only certificate verification.",
-    url: "https://github.com/stagecraft-ing/tenant-tail",
+    url: "https://github.com/statecrafting/tenant-tail",
   },
   {
     name: "oap-bootstrap",
     role: "Instance Provisioner",
     description:
       "One resumable CLI to stand up an OAP instance. Fork, register, wire, provision, verify.",
-    url: "https://github.com/stagecraft-ing/oap-bootstrap",
+    url: "https://github.com/statecrafting/oap-bootstrap",
   },
 ];
 

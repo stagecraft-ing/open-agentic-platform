@@ -6,7 +6,7 @@
 //! ts-rs 12's `#[ts(export)]` attribute generates files as a side-effect of
 //! `cargo test`. This file asserts the generated bindings land in the expected
 //! location and that a canonical `UnifiedFrontmatter` serde-round-trips
-//! through a JSON value (the JSONB wire form used by stagecraft's catalog).
+//! through a JSON value (the JSONB wire form used by statecraft's catalog).
 //!
 //! `make ci` runs these tests and then `git diff --exit-code` on the
 //! generated directory — the drift gate for the "no schema drift" invariant
@@ -25,7 +25,7 @@ fn bindings_dir() -> PathBuf {
         .unwrap()
         .parent()
         .unwrap()
-        .join("platform/services/stagecraft/api/agents/frontmatter")
+        .join("platform/services/statecraft/api/agents/frontmatter")
 }
 
 /// The set of generated files that must be present after `cargo test`.

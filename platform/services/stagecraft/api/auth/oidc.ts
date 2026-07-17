@@ -3,7 +3,7 @@
  *
  * Routes enterprise users through Rauthy's OIDC authorization endpoint,
  * which federates to the configured upstream IdP (Azure AD, Okta, Google
- * Workspace, or any generic OIDC provider). Stagecraft receives the
+ * Workspace, or any generic OIDC provider). Statecraft receives the
  * callback from Rauthy and performs JIT user provisioning + org membership
  * resolution from OIDC group claims.
  *

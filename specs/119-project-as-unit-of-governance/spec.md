@@ -18,7 +18,7 @@ depends_on:
   - "092-workspace-runtime-threading"  # workspace-runtime-threading
   - "094-unified-artifact-store"  # unified-artifact-store
   - "099-workspace-scoped-persistence"  # workspace-scoped-persistence
-  - "113-stagecraft-projects-rename-and-clone"  # stagecraft-projects-rename-and-clone (clone copies knowledge)
+  - "113-statecraft-projects-rename-and-clone"  # statecraft-projects-rename-and-clone (clone copies knowledge)
   - "114-async-project-clone-pipeline"  # async-project-clone-pipeline (clone runs as the displacing primitive)
   - "115-knowledge-extraction-pipeline"  # knowledge-extraction-pipeline (workspace-scoped today, project-scoped after)
 amends:
@@ -29,10 +29,10 @@ amends:
   - "099-workspace-scoped-persistence"
 code_aliases: ["PROJECT_AS_GOVERNANCE_UNIT"]
 establishes:
-  - unit: { kind: directory, path: platform/services/stagecraft/api/db }
-  - unit: { kind: directory, path: platform/services/stagecraft/api/projects }
-  - unit: { kind: directory, path: platform/services/stagecraft/api/knowledge }
-  - unit: { kind: directory, path: platform/services/stagecraft/api/sync }
+  - unit: { kind: directory, path: platform/services/statecraft/api/db }
+  - unit: { kind: directory, path: platform/services/statecraft/api/projects }
+  - unit: { kind: directory, path: platform/services/statecraft/api/knowledge }
+  - unit: { kind: directory, path: platform/services/statecraft/api/sync }
   - unit: { kind: file, path: standards/spec/contract.md }
 extends:
   - spec: "087-unified-workspace-architecture"
@@ -63,7 +63,7 @@ refines:
     unit: { kind: directory, path: specs/000-bootstrap-spec-system }
 references:
   - role: historical
-    unit: { kind: directory, path: platform/services/stagecraft/api/workspaces }
+    unit: { kind: directory, path: platform/services/statecraft/api/workspaces }
 summary: >
   Collapse the workspace abstraction into project. Workspace was introduced
   (spec 087) as a multi-project governance container with a shared knowledge
@@ -98,7 +98,7 @@ The current shape costs:
 - Two RBAC layers (`workspace_grants` + `project_members`) with overlapping concerns and no clear precedence.
 - Every storage query traverses `project → workspace → bucket` instead of `project → bucket`.
 - Specs 087/092/094/099 frame their invariants around "workspace" because that was the unit at the time. Future spec authors have to remember which layer to attach new entity scope to.
-- The OPC desktop, stagecraft web, and audit log all surface "workspace" as a first-class concept that maps 1:1 to a project in every demo and dev environment to date.
+- The OPC desktop, statecraft web, and audit log all surface "workspace" as a first-class concept that maps 1:1 to a project in every demo and dev environment to date.
 
 Spec 087's substantive contributions (knowledge intake domain, duplex sync substrate, identity wiring) all stand. The hierarchy choice is what changes.
 
@@ -134,7 +134,7 @@ Spec 115 (knowledge-extraction-pipeline) is **not** amended in place; its narrat
 
 ## 4. Schema Diff
 
-Driven from `platform/services/stagecraft/api/db/schema.ts` and the migrations directory.
+Driven from `platform/services/statecraft/api/db/schema.ts` and the migrations directory.
 
 ### 4.1 Tables dropped
 
@@ -284,7 +284,7 @@ A-3. Specs 087, 092, 094, 099 each carry `amended: "2026-04-29"`, `amendment_rec
 
 A-4. The Postgres migration applies cleanly against a representative dev database, satisfying invariants I-1..I-3 of §6.5, with the migration warning log empty.
 
-A-5. `grep -r "workspace_id\|workspaceId" platform/services/stagecraft/api crates product/apps/opc` returns zero hits outside (a) historical migration files, (b) the migration script for this spec, (c) frozen superseded specs, (d) Cargo/pnpm-workspace mentions.
+A-5. `grep -r "workspace_id\|workspaceId" platform/services/statecraft/api crates product/apps/opc` returns zero hits outside (a) historical migration files, (b) the migration script for this spec, (c) frozen superseded specs, (d) Cargo/pnpm-workspace mentions.
 
 A-6. The compiled spec registry (`.derived/spec-registry/registry.json`) carries `amends`/`amendment_record` fields on this spec and the four amended specs, with no schema-validation errors.
 
@@ -302,11 +302,11 @@ OQ-2. **Audit-log retention** — _Resolved._ Historical `target_type='workspace
 
 OQ-3. **`amends:` lint posture** — _Resolved._ Spec-lint enforcement remains **non-blocking** in the introductory release. The convention has now been exercised by spec 123 (amends 119), spec 130 (amends 127), spec 132 (amends 000), spec 133 (amends 127), spec 134 (amends 104), spec 135 (amends 104, 134), spec 138 (amends 112), and spec 139 (amends 108, 111, 123) — well past the "at least one further amendment" threshold. Promotion to blocking is filed as a spec-lint follow-up.
 
-OQ-4. **OPC desktop URL paths** — _Resolved._ User confirms no external bookmarks rely on the old `/workspaces/{id}/projects/{id}` path. Codebase scan (`grep` over `product/apps/opc/src/` and `platform/services/stagecraft/web/app/`) returns zero `/workspaces/` route declarations; the OPC desktop and stagecraft web routers exclusively use `/projects/{id}`. Migration of any committed screenshots is a docs follow-up, not an invariant.
+OQ-4. **OPC desktop URL paths** — _Resolved._ User confirms no external bookmarks rely on the old `/workspaces/{id}/projects/{id}` path. Codebase scan (`grep` over `product/apps/opc/src/` and `platform/services/statecraft/web/app/`) returns zero `/workspaces/` route declarations; the OPC desktop and statecraft web routers exclusively use `/projects/{id}`. Migration of any committed screenshots is a docs follow-up, not an invariant.
 
 ### Close-out invariant verification (2026-05-05)
 
-- A-5 (`grep -r "workspace_id\|workspaceId" platform/services/stagecraft/api crates product/apps/opc --include='*.ts' --include='*.tsx' --include='*.rs' --include='*.sql' --include='*.yaml' --include='*.yml' --include='*.json'`) returns zero hits outside `db/migrations/`.
+- A-5 (`grep -r "workspace_id\|workspaceId" platform/services/statecraft/api crates product/apps/opc --include='*.ts' --include='*.tsx' --include='*.rs' --include='*.sql' --include='*.yaml' --include='*.yml' --include='*.json'`) returns zero hits outside `db/migrations/`.
 - A-1, A-2, A-3 confirmed via `git log` on amended specs and `standards/spec/contract.md`.
 - A-4 confirmed via migration history (27, 28, 29, 30 applied).
 - A-6, A-7, A-8 covered by `make ci` runs since landing.
@@ -315,7 +315,7 @@ OQ-4. **OPC desktop URL paths** — _Resolved._ User confirms no external bookma
 
 The broader `workspace` lexical scan surfaces several non-violations that I-3 explicitly permits or that §8 defers:
 
-- **Filesystem-path sense** (`STAGECRAFT_WORKSPACE_DIR`, `workspace: string` parameter for the scaffold PVC mount) — covered by I-3(b) "build tooling, not the entity".
+- **Filesystem-path sense** (`STATECRAFT_WORKSPACE_DIR`, `workspace: string` parameter for the scaffold PVC mount) — covered by I-3(b) "build tooling, not the entity".
 - **Claude Code container path** (`/workspace` literal in `claude_executor.rs`) — Claude Code's own filesystem convention, not OAP entity.
 - **UI copy and tab labels** (`workspace-projects` tab type, "across the workspace" portfolio header) — explicitly deferred per §8 "Renaming the user-facing UI label … is deferred to a UX spec post-collapse".
 - **Spec 111/123 publish-to-workspace agent flow names** (`publish_local_agent_to_workspace`, `handlePublishToWorkspace`) — semantics already org-scoped post-spec 123/139; symbol rename is a spec 111/123/139-surface refactor, filed as follow-up.
@@ -324,18 +324,18 @@ The broader `workspace` lexical scan surfaces several non-violations that I-3 ex
 ### Close-out cleanups landed in this commit
 
 - Removed dead Tauri commands `list_workspaces` and `set_active_workspace` from `product/apps/opc/src-tauri/src/commands/agents.rs` (both had zero frontend callers).
-- Removed dead HTTP client methods `list_workspaces`, `get_workspace`, `get_default_workspace` and their response types `WorkspaceInfo` / `ListWorkspacesResponse` / `GetWorkspaceResponse` from `product/apps/opc/src-tauri/src/commands/stagecraft_client.rs` (called dead `/api/workspaces/*` endpoints with no callers).
+- Removed dead HTTP client methods `list_workspaces`, `get_workspace`, `get_default_workspace` and their response types `WorkspaceInfo` / `ListWorkspacesResponse` / `GetWorkspaceResponse` from `product/apps/opc/src-tauri/src/commands/statecraft_client.rs` (called dead `/api/workspaces/*` endpoints with no callers).
 - Removed orphan `workspace_id: string` documentation field from `standards/schemas/factory/build-spec.schema.yaml` (never deserialized by the Rust mirror; pre-alpha posture allows clean removal).
 - Removed Tauri command registrations for the deleted commands from `product/apps/opc/src-tauri/src/lib.rs`.
 
 ## 11. References
 
 - spec 087 (`unified-workspace-architecture`) — origin of the workspace concept.
-- spec 113 (`stagecraft-projects-rename-and-clone`) — clone-as-knowledge-copy primitive.
+- spec 113 (`statecraft-projects-rename-and-clone`) — clone-as-knowledge-copy primitive.
 - spec 114 (`async-project-clone-pipeline`) — async clone runs.
 - spec 115 (`knowledge-extraction-pipeline`) — extraction worker, currently workspace-scoped.
 - platform/CLAUDE.md — current schema documentation.
-- platform/services/stagecraft/api/db/schema.ts — source of truth for the schema diff.
+- platform/services/statecraft/api/db/schema.ts — source of truth for the schema diff.
 
 ## 12. Release Markers
 

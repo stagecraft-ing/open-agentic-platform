@@ -3,7 +3,7 @@
 
 //! `factory-project-detect` — CLI façade over the detection crate.
 //!
-//! Callers (notably stagecraft Node code) invoke this binary to get a
+//! Callers (notably statecraft Node code) invoke this binary to get a
 //! typed detection report without parsing YAML schemas or JSON files on
 //! their own. Per `.claude/rules/governed-artifact-reads.md`, this is the
 //! designated consumer entrypoint.

@@ -76,7 +76,7 @@ export function UpdateBanner() {
       </div>
       {info.notes && (
         <a
-          href={`https://github.com/stagecraft-ing/open-agentic-platform/releases/tag/v${info.version}`}
+          href={`https://github.com/statecrafting/open-agentic-platform/releases/tag/v${info.version}`}
           target="_blank"
           rel="noreferrer"
           className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"

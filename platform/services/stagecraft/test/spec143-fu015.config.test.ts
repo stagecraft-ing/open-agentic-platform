@@ -14,11 +14,11 @@ import { describe, expect, it } from "vitest";
 const REPO_ROOT = resolve(__dirname, "..", "..", "..", "..");
 const EXTRACTION_WORKER = resolve(
   REPO_ROOT,
-  "platform/services/stagecraft/api/knowledge/extractionWorker.ts",
+  "platform/services/statecraft/api/knowledge/extractionWorker.ts",
 );
 const VALUES_YAML = resolve(
   REPO_ROOT,
-  "platform/charts/stagecraft/values.yaml",
+  "platform/charts/statecraft/values.yaml",
 );
 
 function normalizeMemoryToMiB(s: string): number {

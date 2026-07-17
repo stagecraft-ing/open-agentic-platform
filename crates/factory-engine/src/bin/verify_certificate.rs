@@ -14,7 +14,7 @@
 //! The offline artifact-chain check is unchanged and needs no keys. The
 //! platform seal (spec 198 FR-014) is verified when a JWKS is supplied:
 //! `--platform-jwks` reads a saved JWKS JSON file (air-gapped audit);
-//! `--jwks-url` fetches `GET <stagecraft>/api/factory/.well-known/jwks.json`.
+//! `--jwks-url` fetches `GET <statecraft>/api/factory/.well-known/jwks.json`.
 //! A certificate with no countersign verifies as visibly UNSEALED (exit 0)
 //! unless `--require-sealed` is set.
 
@@ -52,7 +52,7 @@ struct Cli {
     platform_jwks: Option<PathBuf>,
 
     /// URL of the platform JWKS endpoint
-    /// (e.g. https://stagecraft.example/api/factory/.well-known/jwks.json).
+    /// (e.g. https://statecraft.example/api/factory/.well-known/jwks.json).
     #[arg(long)]
     jwks_url: Option<String>,
 

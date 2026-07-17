@@ -4,7 +4,7 @@
 // The run-grant is the intent capsule realised (ASI01 m5 "signed envelope
 // per execution cycle"): the engine submits the capsule before s0
 // (`factory.run.grant_request`) and re-presents the goal id + capsule hash
-// at every stage boundary (`factory.run.grant_renew`). Stagecraft is the
+// at every stage boundary (`factory.run.grant_renew`). Statecraft is the
 // PDP: it validates the capsule against the standing admission, sweeps the
 // admitted composition's nodes against FR-010 revocations (this is what
 // propagates a revocation into an in-flight run within one stage boundary),
@@ -61,7 +61,7 @@ const GRANT_AUDIENCE = "oap-opc-run";
 
 /** Grant TTL (ASI08 m3 — expiry caps unattended run authority). */
 function grantTtlSec(): number {
-  const raw = Number(process.env.STAGECRAFT_RUN_GRANT_TTL_SEC ?? "1800");
+  const raw = Number(process.env.statecraft_RUN_GRANT_TTL_SEC ?? "1800");
   return Number.isFinite(raw) && raw > 0 ? raw : 1800;
 }
 
@@ -225,7 +225,7 @@ async function signAndPersistGrant(
   const iat = Math.floor(Date.now() / 1000);
   const exp = iat + ttl;
   const { jws, kid } = signFactoryJws("oap-run-grant+jwt", {
-    iss: "stagecraft-factory",
+    iss: "statecraft-factory",
     aud: GRANT_AUDIENCE,
     org_id: ctx.orgId,
     project_id: facts.projectId,
@@ -720,7 +720,7 @@ export async function countersignRunCertificate(
     JSON.stringify(issued.map((g) => sha256hex(g.grantJws ?? ""))),
   );
   const { jws, kid } = signFactoryJws("oap-cert-countersign+jws", {
-    iss: "stagecraft-factory",
+    iss: "statecraft-factory",
     org_id: ctx.orgId,
     project_id: issuance.projectId,
     run_id: evt.runId,

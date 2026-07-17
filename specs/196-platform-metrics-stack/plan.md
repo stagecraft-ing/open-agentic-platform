@@ -7,7 +7,7 @@
 
 Stand up a single `kube-prometheus-stack` Flux `HelmRelease` (Prometheus server
 with `--web.enable-remote-write-receiver`, Grafana, node-exporter,
-kube-state-metrics; Alertmanager disabled) that **receives** stagecraft's Encore
+kube-state-metrics; Alertmanager disabled) that **receives** statecraft's Encore
 `remote_write`, **scrapes** the already-annotated deployd-api/Flux/ingress
 targets, and **serves** Grafana behind Rauthy OIDC. Operator-facing,
 control-plane only — no per-project/tenant granularity (that is spec 175, at the
@@ -43,15 +43,15 @@ specs/196-platform-metrics-stack/
 # Created at IMPLEMENTATION (establishes/refines edges land then, per V-023):
 platform/gitops/clusters/hetzner-prod/infrastructure/monitoring.yaml      # HelmRepository + HelmRelease (establishes)
 platform/k8s/policies/monitoring/networkpolicy-monitoring.yaml            # monitoring-ns ingress (establishes)
-platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml  # stagecraft-system egress (establishes)
-platform/services/stagecraft/infra.config.hetzner.json                   # + metrics block (refines)
-platform/services/stagecraft/infra.config.json                           # Azure: stays null, FR-009 (refines)
+platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml  # statecraft-system egress (establishes)
+platform/services/statecraft/infra.config.hetzner.json                   # + metrics block (refines)
+platform/services/statecraft/infra.config.json                           # Azure: stays null, FR-009 (refines)
 ```
 
 **Structure Decision**: deployment artifacts live where the existing
 control-plane lives — gitops infrastructure for the HelmRelease (mirrors
 reflector/cert-manager/ingress-nginx/rauthy), `k8s/policies/` for the
-NetworkPolicies, and the stagecraft `infra.config` for the Encore metrics block.
+NetworkPolicies, and the statecraft `infra.config` for the Encore metrics block.
 Grafana's OIDC + dashboard config is HelmRelease `values`, owned by 196.
 
 ## Phasing — single-spec, sequenced
@@ -61,22 +61,22 @@ FR-003, FR-005, FR-006, FR-007, FR-010, FR-011 (and FR-009's *declaration*).
 - HelmRelease: Prometheus server + node-exporter + kube-state-metrics, remote-write receiver on, Alertmanager **disabled** + bundled rules pruned (FR-008), retention/PVC per defaults below.
 - Scrape config for deployd-api / Flux / ingress-nginx (FR-003).
 - `infra.config.hetzner.json` gains the `metrics` block → literal in-cluster `remote_write_url` (FR-001).
-- The two additive NetworkPolicy objects across `stagecraft-system` + `monitoring` (FR-006).
-- **Exit:** SC-001 (stagecraft series present), SC-002 (scrape targets up), SC-005 (default-deny intact), SC-006 (Alertmanager absent + rules pruned), SC-007 (Flux-reconciled, CRDs pinned, PVC-bounded), **SC-008 receiver-isolation** (the remote_write NetworkPolicies land in Phase 1, so the unauthenticated receiver is verified-isolated before Phase 2 layers on).
+- The two additive NetworkPolicy objects across `statecraft-system` + `monitoring` (FR-006).
+- **Exit:** SC-001 (statecraft series present), SC-002 (scrape targets up), SC-005 (default-deny intact), SC-006 (Alertmanager absent + rules pruned), SC-007 (Flux-reconciled, CRDs pinned, PVC-bounded), **SC-008 receiver-isolation** (the remote_write NetworkPolicies land in Phase 1, so the unauthenticated receiver is verified-isolated before Phase 2 layers on).
 
 **Phase 2 — Grafana + OIDC (atomic).** Implements FR-004. **Must be one phase**:
 SC-003 forbids a local Grafana password, so Grafana cannot come up before its
 OIDC client exists.
 - **Manual step (operator):** create the `grafana` OIDC client in the Rauthy admin UI (redirect `https://grafana.<DOMAIN>/login/generic_oauth`, `authorization_code`), capture `GRAFANA_OIDC_CLIENT_ID`/`_SECRET` into the env/secret set (the implementation PR adds these as `[manual]` stub entries in `platform/infra/hetzner/.env.example`, alongside the existing `OIDC_*`/`RAUTHY_CLIENT_*` placeholders), re-run `setup.sh` — exactly the documented `[manual]` OIDC-client flow.
 - **HelmRelease values (196-owned):** Grafana `generic_oauth` with `client_id`/`client_secret`/issuer + `role_attribute_path` mapping the Rauthy `platform_role` claim → Grafana role (`owner`/`admin` → **Admin**, `member` → **Viewer**; the locked FR-004 map, `Editor` unused — **not** a Rauthy "groups" array); **Grafana configured OIDC-only per FR-004's property** — every non-OIDC auth path disabled (`disable_login_form`, `basic_enabled`, `anonymous.enabled`, `oauth_auto_login`, default-admin disabled, + proxy/JWT/API-key/service-account). **FR-004 is the authoritative knob set; this plan does not re-enumerate it** (avoids spec/plan drift). Grafana ingress at `grafana.<DOMAIN>`; the Grafana ingress NetworkPolicy.
-- **Exit:** SC-003 (`platform_role`→role mapping verified + OIDC-only auth confirmed by a negative non-OIDC probe returning 401/403), SC-004 (`git diff` shows the only `platform/services/stagecraft/**` change is the `infra.config.hetzner.json` metrics block — service-wide, not `api/**`-only), **SC-009 Grafana-port isolation**, **SC-010 end-to-end visibility** (the SC-001-recorded stagecraft series renders in a Grafana panel) — Grafana + its ingress land here.
+- **Exit:** SC-003 (`platform_role`→role mapping verified + OIDC-only auth confirmed by a negative non-OIDC probe returning 401/403), SC-004 (`git diff` shows the only `platform/services/statecraft/**` change is the `infra.config.hetzner.json` metrics block — service-wide, not `api/**`-only), **SC-009 Grafana-port isolation**, **SC-010 end-to-end visibility** (the SC-001-recorded statecraft series renders in a Grafana panel) — Grafana + its ingress land here.
 
 Phase 1 is independent and can land alone; Phase 2 depends only on Phase 1 (the
 stack must exist) plus the manual client.
 
 ## Concrete values (proposed)
 
-- **Grafana host**: `grafana.<DOMAIN>` (follows the `auth.`/`stagecraft.` convention; `<DOMAIN>` from `.env.example`)
+- **Grafana host**: `grafana.<DOMAIN>` (follows the `auth.`/`statecraft.` convention; `<DOMAIN>` from `.env.example`)
 - **OIDC client_id**: `grafana`
 - **redirect_uri**: `https://grafana.<DOMAIN>/login/generic_oauth`
 - **Prometheus retention**: `15d`, TSDB PVC `20Gi` *(tunable; pre-alpha single-cluster default; revisit at the FR-009 promotion trigger per FR-010)*

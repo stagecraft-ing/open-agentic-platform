@@ -3,7 +3,7 @@
   "version": "0.3.4",
   "private": true,
   "type": "module",
-  "description": "OPC end-to-end test harness (spec 187): built-binary driver, mock-stagecraft duplex server, process-tree introspection. Standalone npm package, excluded from the pnpm workspace (platform-services precedent) so its heavy e2e deps stay out of the per-PR install.",
+  "description": "OPC end-to-end test harness (spec 187): built-binary driver, mock-statecraft duplex server, process-tree introspection. Standalone npm package, excluded from the pnpm workspace (platform-services precedent) so its heavy e2e deps stay out of the per-PR install.",
   "oap": {
     "spec": "187-opc-e2e-test-harness"
   },

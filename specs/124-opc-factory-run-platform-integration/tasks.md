@@ -12,16 +12,16 @@ Tasks are grouped by phase per `plan.md`. `[P]` = can run in parallel with other
 
 Shared types + constants. Blocks every later phase.
 
-- [ ] **T001** Reserve the migration slot at `platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql` (header comment + empty body). Phase 1 fills it.
+- [ ] **T001** Reserve the migration slot at `platform/services/statecraft/api/db/migrations/31_create_factory_runs.up.sql` (header comment + empty body). Phase 1 fills it.
 - [ ] **T002** [P] Add the `factory.run.*` envelope kinds to the shared envelope-type module:
   - `FactoryRunStageStarted`, `FactoryRunStageCompleted`, `FactoryRunCompleted`, `FactoryRunFailed`, `FactoryRunCancelled` per spec §6.1.
   - Compile-time const `FACTORY_RUN_ENVELOPE_VERSION: 1`. Mirror in Rust types if `crates/factory-contracts` is the duplex shared crate; mismatched desktop / platform builds fail at type-check.
-- [ ] **T003** [P] Source-shas agent triple. Spec 123 shipped `crates/factory-contracts/src/agent_reference.rs` (`AgentReference` enum: `ById | ByName | ByNameLatest`) and `crates/factory-engine/src/agent_resolver.rs` (`ResolvedAgent { org_agent_id, version, content_hash, frontmatter, body_markdown }`). Spec 124 does NOT introduce a separate `AgentRef` type: the `source_shas.agents[]` rows are derived by projecting `ResolvedAgent` to `{ org_agent_id, version, content_hash }` at reservation time. On the TypeScript side, declare a single `FactoryAgentRef = Pick<…>` shape in `platform/services/stagecraft/api/factory/runs.ts` matching the projected fields by name. CI gate (T088 in Phase 8) asserts the projection compiles against the live `ResolvedAgent`.
+- [ ] **T003** [P] Source-shas agent triple. Spec 123 shipped `crates/factory-contracts/src/agent_reference.rs` (`AgentReference` enum: `ById | ByName | ByNameLatest`) and `crates/factory-engine/src/agent_resolver.rs` (`ResolvedAgent { org_agent_id, version, content_hash, frontmatter, body_markdown }`). Spec 124 does NOT introduce a separate `AgentRef` type: the `source_shas.agents[]` rows are derived by projecting `ResolvedAgent` to `{ org_agent_id, version, content_hash }` at reservation time. On the TypeScript side, declare a single `FactoryAgentRef = Pick<…>` shape in `platform/services/statecraft/api/factory/runs.ts` matching the projected fields by name. CI gate (T088 in Phase 8) asserts the projection compiles against the live `ResolvedAgent`.
 - [ ] **T004** [P] Add audit-action strings: `factory.run.reserved`, `factory.run.completed`, `factory.run.failed`, `factory.run.cancelled`, `factory.run.swept`. The actor for `factory.run.reserved` is the user; for `factory.run.swept` it is the system user (spec 119 `2_seed_system_user`).
 - [ ] **T005** [P] Cache-root layout helper. Add a small pure helper in `crates/factory-platform-client` (Phase 4 will own this crate; Phase 0 just lays out the path-shaping module): `cache_root_for(source_shas) -> PathBuf` returning `$XDG_CACHE_HOME/oap-factory/<short_run_sha>/`. Unit-tested.
 - [ ] **T006** [P] OIDC desktop-client wiring confirmation. Verify `product/apps/opc/src-tauri/src/auth/` has the access-token getter that the platform client (Phase 4) will use; if missing, add a thin wrapper. No new tokens issued; reuse spec 106/107 plumbing.
 
-**Checkpoint:** `npx tsc --noEmit` in `platform/services/stagecraft` passes; `cargo check` at the workspace root passes; the new envelope types serialise round-trip in a unit test. Commit: `chore(spec-124): foundations — envelope types, audit actions, cache-root helper`.
+**Checkpoint:** `npx tsc --noEmit` in `platform/services/statecraft` passes; `cargo check` at the workspace root passes; the new envelope types serialise round-trip in a unit test. Commit: `chore(spec-124): foundations — envelope types, audit actions, cache-root helper`.
 
 ---
 
@@ -51,19 +51,19 @@ Shared types + constants. Blocks every later phase.
 - [ ] **T011** Add CHECK constraint enforcing `status IN ('queued','running','ok','failed','cancelled')`.
 - [ ] **T012** Indexes: `(org_id, started_at DESC)` for run history; partial index on `(org_id) WHERE status IN ('queued','running')` for in-flight view. Both per spec §3.
 - [ ] **T013** Migration ordering guard: at the top of `31_create_factory_runs.up.sql`, add a SQL `DO $$ ... RAISE EXCEPTION ... END $$;` block that fails if `agent_catalog.org_id` does not exist (spec 123 migration 30 must have run). Documents the dependency and aborts loud on out-of-order application.
-- [ ] **T014** [P] Update `platform/services/stagecraft/api/db/schema.ts` Drizzle definitions: add `factoryRuns` table mirroring the SQL DDL; export it.
+- [ ] **T014** [P] Update `platform/services/statecraft/api/db/schema.ts` Drizzle definitions: add `factoryRuns` table mirroring the SQL DDL; export it.
 - [ ] **T015** [P] Write `31_create_factory_runs.down.sql`: `DROP TABLE factory_runs CASCADE;`. Migration symmetry; document that any test rows are lost.
 - [ ] **T016** [P] In-DB tests: apply the migration against a dev DB seeded with one organization, one project, one adapter, one process. Assert table exists; assert FK CASCADE/RESTRICT semantics by deleting the project (CASCADE-ed `factory_runs` row gone) and attempting to delete the adapter (rejected — RESTRICT, since spec 124 §3 doesn't specify; default Postgres FK is NO ACTION which is functionally equivalent here, accept either).
 
-**Checkpoint:** Migration applies cleanly on top of spec 123's `30`. Reverse-migration applies cleanly. The Drizzle schema and the SQL agree (no diff after `npx drizzle-kit generate`). Commit: `feat(stagecraft, spec-124): schema migration 31 — factory_runs table`.
+**Checkpoint:** Migration applies cleanly on top of spec 123's `30`. Reverse-migration applies cleanly. The Drizzle schema and the SQL agree (no diff after `npx drizzle-kit generate`). Commit: `feat(statecraft, spec-124): schema migration 31 — factory_runs table`.
 
 ---
 
-## Phase 2 — Stagecraft API
+## Phase 2 — Statecraft API
 
 `api/factory/runs.ts` is the only mutation REST surface (the reservation); reads are list + detail.
 
-- [ ] **T020** Create `platform/services/stagecraft/api/factory/runs.ts`:
+- [ ] **T020** Create `platform/services/statecraft/api/factory/runs.ts`:
   - `POST /api/factory/runs` — body `{ adapter_name, process_name, project_id?, client_run_id }`. Resolves `adapter_id` and `process_id` from `factory_adapters` / `factory_processes` by `(org_id, name)`. Validates the project (if provided) belongs to the caller's org. Idempotent on `client_run_id`: if a row already exists with that client id, return its current state. Inserts the row in `status: 'queued'` and writes `source_shas` from the resolved IDs + agent triples — the latter computed by walking the process definition for `AgentReference` instances (`crates/factory-contracts/src/agent_reference.rs`); for `ById`/`ByName(version)` references, look up the catalog row directly; for `ByNameLatest`, pick the highest published version. If `project_id` is provided, prefer the version pinned in `project_agent_bindings` over the process's declared `ByNameLatest`; reject the reservation if any binding is `retired_upstream` (spec 123 invariant I-B3). Returns `{ run_id, source_shas }`.
   - `GET /api/factory/runs?status=&adapter=&limit=&before=` — list runs for the caller's org, default 50 newest first, accept status / adapter filter, cursor pagination by `started_at`.
   - `GET /api/factory/runs/:id` — single run. 404 if foreign org. Returns the full row including `stage_progress`.
@@ -71,7 +71,7 @@ Shared types + constants. Blocks every later phase.
 - [ ] **T022** [P] Document the agent-refs resolver path (called from T020 reservation). It reads the process definition from `factory_processes` and walks for `agent_ref:` keys; for each, looks up `(org_agent_id, version, content_hash)` via spec 123's binding (or directly via `agent_catalog` for ad-hoc runs without a project). The resolver lives next to `runs.ts` (e.g. `api/factory/runAgentRefs.ts`); kept thin so the desktop's `agent_resolver` (spec 123) does the heavy lifting at run time.
 - [ ] **T023** [P] Reservation idempotency: write a test that fires the same `client_run_id` twice in a hot loop; assert exactly one row created and both calls return the same `run_id`.
 
-**Checkpoint:** `npx tsc --noEmit` and `npm test` in stagecraft pass. The reservation endpoint covers the four canonical cases (new, idempotent-replay, foreign-org, retired-binding-reject). Commit: `feat(stagecraft, spec-124): /api/factory/runs reservation + read endpoints`.
+**Checkpoint:** `npx tsc --noEmit` and `npm test` in statecraft pass. The reservation endpoint covers the four canonical cases (new, idempotent-replay, foreign-org, retired-binding-reject). Commit: `feat(statecraft, spec-124): /api/factory/runs reservation + read endpoints`.
 
 ---
 
@@ -79,7 +79,7 @@ Shared types + constants. Blocks every later phase.
 
 Catalog `factory.run.*` envelope kinds in the duplex registry; idempotent platform-side write path.
 
-- [ ] **T030** In `platform/services/stagecraft/api/sync/duplex.ts`, register the five `factory.run.*` envelope kinds (T002 types). Reject envelopes whose `org_id` does not match the duplex connection's auth identity.
+- [ ] **T030** In `platform/services/statecraft/api/sync/duplex.ts`, register the five `factory.run.*` envelope kinds (T002 types). Reject envelopes whose `org_id` does not match the duplex connection's auth identity.
 - [ ] **T031** Implement the `factory.run.stage_started` handler:
   - Look up the run by `run_id` and verify `org_id` match.
   - If the matching `(stage_id, status: "running")` entry already exists in `stage_progress`, no-op (idempotent re-delivery).
@@ -90,7 +90,7 @@ Catalog `factory.run.*` envelope kinds in the duplex registry; idempotent platfo
 - [ ] **T035** Implement `factory.run.cancelled`: same shape as failed but `status = 'cancelled'`; `error` optional; emit `factory.run.cancelled` audit row.
 - [ ] **T036** [P] Tests covering: in-order delivery; out-of-order delivery (stage_completed before stage_started); duplicate-event idempotency; foreign-org reject; envelope-version mismatch reject (a `v: 0` envelope is rejected with a clear error before any DB write).
 
-**Checkpoint:** `npm test` passes including the new duplex handler tests. The four terminal-state events all leave `factory_runs` in a fully populated state. Commit: `feat(stagecraft, spec-124): duplex handlers for factory.run.* envelopes`.
+**Checkpoint:** `npm test` passes including the new duplex handler tests. The four terminal-state events all leave `factory_runs` in a fully populated state. Commit: `feat(statecraft, spec-124): duplex handlers for factory.run.* envelopes`.
 
 ---
 
@@ -114,7 +114,7 @@ A new lib crate `crates/factory-platform-client` so the desktop's command code s
   - For each agent reference in the process definition, builds an `AgentReference` (spec 123 `factory-contracts::agent_reference`) and calls `agent_resolver.resolve(reference)` (spec 123 `factory-engine::agent_resolver::AgentResolver`). Writes the resulting `ResolvedAgent.body_markdown` plus the YAML-serialised `frontmatter` (with frontmatter delimiters) into `process/agents/<role>.md` and `adapters/<adapter_name>/agents/<role>.md`. Cross-checks the resolved `(org_agent_id, version, content_hash)` triple against `reservation.source_shas.agents[]`; mismatches abort the materialisation (drift between server-side reservation and client-side resolver).
   - Returns `RunRoot { path, source_shas }`.
 - [ ] **T044** [P] Unit tests against a mock HTTP server: cache-miss path materialises files; cache-hit path skips fetches; partial materialisation failure cleans up the temp dir (no half-built cache).
-- [ ] **T045** [P] Add a thin `factory-platform-client` integration test that exercises the full path against a running stagecraft on `localhost:4000` (skipped by default; gated on `OAP_INTEGRATION=1`).
+- [ ] **T045** [P] Add a thin `factory-platform-client` integration test that exercises the full path against a running statecraft on `localhost:4000` (skipped by default; gated on `OAP_INTEGRATION=1`).
 
 **Checkpoint:** `cargo check` and `cargo test` pass for the new crate. Mock-server tests cover the warm/cold cache and partial-failure paths. Commit: `feat(crates, spec-124): factory-platform-client — typed REST + content-addressed cache`.
 
@@ -143,16 +143,16 @@ A new lib crate `crates/factory-platform-client` so the desktop's command code s
 
 A cron that turns a stuck `running` row into `failed` after a timeout.
 
-- [ ] **T060** Create `platform/services/stagecraft/api/factory/runsScheduler.ts`. Modelled on `api/knowledge/scheduler.ts` (extraction-staleness-sweeper, spec 115). Cron interval: 60s.
+- [ ] **T060** Create `platform/services/statecraft/api/factory/runsScheduler.ts`. Modelled on `api/knowledge/scheduler.ts` (extraction-staleness-sweeper, spec 115). Cron interval: 60s.
 - [ ] **T061** Implement `sweepStaleFactoryRuns()`:
   - Selects `factory_runs` where `status IN ('queued','running')` and `last_event_at < now() - <timeout>`.
-  - Computes the per-run timeout as `max_stage_duration × 2` (default 30 minutes; configurable via `STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC`).
+  - Computes the per-run timeout as `max_stage_duration × 2` (default 30 minutes; configurable via `STATECRAFT_FACTORY_RUN_STALE_AFTER_SEC`).
   - Updates `status = 'failed'`, `error = 'sweeper: no events for <duration>'`, `completed_at = now()`.
   - Emits `factory.run.swept` audit row.
 - [ ] **T062** [P] Tests: stale `running` row gets swept; freshly-active row is not swept; `queued` row past timeout is also swept (the desktop never followed through with the first stage_started).
-- [ ] **T063** [P] Document the env knob in the stagecraft `CLAUDE.md` under "Env knobs" alongside the spec 115 ones.
+- [ ] **T063** [P] Document the env knob in the statecraft `CLAUDE.md` under "Env knobs" alongside the spec 115 ones.
 
-**Checkpoint:** Sweeper test suite passes. The cron is registered in the Encore service (no new infrastructure). Commit: `feat(stagecraft, spec-124): runs staleness sweeper`.
+**Checkpoint:** Sweeper test suite passes. The cron is registered in the Encore service (no new infrastructure). Commit: `feat(statecraft, spec-124): runs staleness sweeper`.
 
 ---
 
@@ -160,11 +160,11 @@ A cron that turns a stuck `running` row into `failed` after a timeout.
 
 Runs tab + detail drawer on `/app/factory`. Live updates via duplex.
 
-- [ ] **T070** Add `platform/services/stagecraft/web/app/routes/app.factory.runs._index.tsx` (Runs tab list view):
+- [ ] **T070** Add `platform/services/statecraft/web/app/routes/app.factory.runs._index.tsx` (Runs tab list view):
   - Table with columns: status pill, queued/started time, duration, adapter, process, project (linked), trigger user.
   - Filters: status (multi-select), adapter (single-select), date range (default last 14 days).
   - Cursor pagination by `started_at`.
-- [ ] **T071** Add `platform/services/stagecraft/web/app/routes/app.factory.runs.$runId.tsx` (run detail):
+- [ ] **T071** Add `platform/services/statecraft/web/app/routes/app.factory.runs.$runId.tsx` (run detail):
   - Header: status, adapter, process, project link, trigger user, duration.
   - Stage progress list: each entry shows status pill + time + agent_ref short hash + (on hover) the resolved triple.
   - Token spend summary; error block when status is failed.
@@ -174,7 +174,7 @@ Runs tab + detail drawer on `/app/factory`. Live updates via duplex.
 - [ ] **T074** [P] Tests / fixtures: a vitest case that renders the run detail with a mocked duplex stream and asserts the stage progress updates as events arrive.
 - [ ] **T075** [P] Empty-state copy: zero runs returns a "no runs yet" placeholder pointing the operator to the desktop ("Trigger a run from the OAP desktop app to see it here.").
 
-**Checkpoint:** `npx tsc --noEmit` and `npm test` pass. Manual smoke test: open `/app/factory/runs`, verify list renders; open a row, verify stage list. Commit: `feat(stagecraft, spec-124): /app/factory Runs tab + detail`.
+**Checkpoint:** `npx tsc --noEmit` and `npm test` pass. Manual smoke test: open `/app/factory/runs`, verify list renders; open a row, verify stage list. Commit: `feat(statecraft, spec-124): /app/factory Runs tab + detail`.
 
 ---
 
@@ -186,7 +186,7 @@ Acceptance gates A-1..A-9; spec lifecycle flip; final CI.
 - [ ] **T081** Verify A-2: `rg "factory/(adapters|contracts|process|upstream-map)" apps/ crates/` returns only the test-fixture skips documented under spec 108 §7.
 - [ ] **T082** Verify A-3: `factory_runs` migration is recorded in `migrations/` and applied; the four duplex handlers (T031..T035) covered by integration tests against a real Postgres (`encore test`).
 - [ ] **T083** Verify A-4: a factory run from the desktop produces a `factory_runs` row visible at `/app/factory/runs` before the first stage completes.
-- [ ] **T084** Verify A-5: `make ci-schema-parity` treats `factory_runs` as a normal stagecraft table (no special-casing). This is automatically true since `factory_runs` is not in the parity walker's allowlist; assert by running `make ci-schema-parity` post-migration (will only go green after spec 125 lands; until then this is documented as expected).
+- [ ] **T084** Verify A-5: `make ci-schema-parity` treats `factory_runs` as a normal statecraft table (no special-casing). This is automatically true since `factory_runs` is not in the parity walker's allowlist; assert by running `make ci-schema-parity` post-migration (will only go green after spec 125 lands; until then this is documented as expected).
 - [ ] **T085** Verify A-6: spec 108 §7.1 and §7.4 reference 124 (already done in spec 108 commit `7b430b4`).
 - [ ] **T086** Verify A-7: migration filename is `31_create_factory_runs.up.sql` and applies cleanly on top of spec 123's `30`. Ordering guard from T013 fires correctly when run out-of-order against a DB that hasn't applied 30.
 - [ ] **T087** Verify A-8: integration test in `runs.test.ts` reserves two runs against the same `(adapter, process)` for two different projects; asserts both reservations write identical `source_shas.agents[].content_hash` arrays.

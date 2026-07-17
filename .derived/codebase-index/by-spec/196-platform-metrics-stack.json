@@ -67,7 +67,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/infra.config.json",
+        "path": "platform/services/statecraft/infra.config.json",
         "source": "spec-edge"
       }
     ],
@@ -270,14 +270,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/infra.config.json"
+            "file": "platform/services/statecraft/infra.config.json"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/infra.config.json"
+          "path": "platform/services/statecraft/infra.config.json"
         }
       }
     ],

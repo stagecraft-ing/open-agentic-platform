@@ -1,6 +1,6 @@
 # Sync Protocol — Self-Reflection & Alignment Report
 
-**Scope:** Outbox/inbox sync substrate in `platform/services/stagecraft/api/sync/`.
+**Scope:** Outbox/inbox sync substrate in `platform/services/statecraft/api/sync/`.
 **Spec binding:** [087 §5.3 Duplex Sync Substrate](../../../../../specs/087-unified-workspace-architecture/spec.md#53-duplex-sync-substrate) — FR-SYNC-001..010, amended by spec 119 (the project-as-unit-of-governance collapse).
 **Date:** 2026-04-20 (initial) · 2026-04-29 (spec 119 amendment)
 **Verdict:** **Structurally aligned, operationally incomplete — with one authorization defect remaining as a blocker.**
@@ -51,8 +51,8 @@ After the first pass of this document, the following changes landed in the same 
 
 | Concern | Status |
 |---|---|
-| Stagecraft remains the audit authority | **Yes.** `audit.candidate` from the desktop is **never** written verbatim — `service.ts` normalises the action (`opc.*` prefix), stamps `actor_user_id` from the authenticated JWT, and injects server-side metadata (`clientId`, `orgId`, `clientEventId`). The desktop cannot forge `actor_user_id`. |
-| Stagecraft remains authoritative for policy, grants, deploy state, project state | **Yes.** These are *outbound-only* envelope variants (`policy.updated`, `grant.updated`, `deploy.status`, `project.updated`). There is no inbound client variant that would let the desktop mutate them through this channel. |
+| Statecraft remains the audit authority | **Yes.** `audit.candidate` from the desktop is **never** written verbatim — `service.ts` normalises the action (`opc.*` prefix), stamps `actor_user_id` from the authenticated JWT, and injects server-side metadata (`clientId`, `orgId`, `clientEventId`). The desktop cannot forge `actor_user_id`. |
+| Statecraft remains authoritative for policy, grants, deploy state, project state | **Yes.** These are *outbound-only* envelope variants (`policy.updated`, `grant.updated`, `deploy.status`, `project.updated`). There is no inbound client variant that would let the desktop mutate them through this channel. |
 | Desktop/OPC authority for local execution/checkpoints/artifacts/runtime | **Yes.** Inbound-only variants (`execution.status`, `checkpoint.created`, `artifact.emitted`, `runtime.observed`, `agent.invocation`). The server records them, but does not treat them as control-plane truth. |
 | Authority split is explicit in the type system | **Yes.** `ClientEnvelope` and `ServerEnvelope` are disjoint unions. |
 
@@ -92,7 +92,7 @@ After the first pass of this document, the following changes landed in the same 
 
 | Concern | Status |
 |---|---|
-| Durable outbox | **No.** `OutboxStore` is an in-memory ring buffer capped at 500 events per org. Stagecraft restart wipes it. |
+| Durable outbox | **No.** `OutboxStore` is an in-memory ring buffer capped at 500 events per org. Statecraft restart wipes it. |
 | Durable inbox | **No.** `InboxStore` is a 1,000-entry ring buffer. |
 | Audit events for `audit.candidate` | **Yes, durable.** Persisted via Drizzle into the real `audit_log` table. |
 | Persistent cursor | **No.** Cursors live in an in-memory `Map<string, bigint>`, reset on restart. |
@@ -117,14 +117,14 @@ After the first pass of this document, the following changes landed in the same 
 |---|---|
 | At-most-once in-process, best-effort across reconnects | ✅ |
 | Per-inbound-event server ACK/NACK | ✅ |
-| Monotonic cursor per org within a single stagecraft process lifetime | ✅ |
+| Monotonic cursor per org within a single statecraft process lifetime | ✅ |
 | Cursor-gap detection at reconnect via `SyncHandshake.lastServerCursor` → `sync.resync_required` | ✅ |
 | Replay of unacked server events on reconnect when cursor is known | ✅ (via `deliverResync` + outbox), **bounded by ring buffer** |
-| At-least-once delivery across stagecraft restarts | ❌ (outbox wiped on restart) |
+| At-least-once delivery across statecraft restarts | ❌ (outbox wiped on restart) |
 | Exactly-once delivery | ❌ — never claimed. |
 | Backpressure / flow control | ❌ — `stream.send` is awaited but there is no explicit window/credit. |
 | Ordering across orgs | ❌ — per-org ordering only. |
-| Cross-replica fan-out when stagecraft scales horizontally | ❌ — each replica's registry is local. |
+| Cross-replica fan-out when statecraft scales horizontally | ❌ — each replica's registry is local. |
 
 **Verdict: Honest. Claims match implementation.**
 
@@ -209,4 +209,4 @@ What is **not** production-grade and must land before any customer traffic:
 4. **[FR-SYNC-007]** Backpressure + slow-client handling in the broadcast loop.
 5. **[FR-SYNC-008]** Prometheus metrics: `sync_connections_total`, `sync_events_inbound_total{kind, status}`, `sync_events_outbound_total{kind}`, `sync_ack_latency_seconds`.
 6. **[FR-SYNC-009]** Rate limiting per `clientId`.
-7. **[FR-SYNC-010]** Decommission the legacy `orgEventStream` streamOut + `ingestOpcEvent` HTTP endpoint. Blocked on migration of the remaining web UI consumer in `platform/services/stagecraft/web/`. The OPC desktop consumes the typed duplex; the web UI is the last legacy caller.
+7. **[FR-SYNC-010]** Decommission the legacy `orgEventStream` streamOut + `ingestOpcEvent` HTTP endpoint. Blocked on migration of the remaining web UI consumer in `platform/services/statecraft/web/`. The OPC desktop consumes the typed duplex; the web UI is the last legacy caller.

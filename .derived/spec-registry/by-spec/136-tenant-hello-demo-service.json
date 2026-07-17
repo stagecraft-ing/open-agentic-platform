@@ -10,11 +10,11 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/deploy/chartSelector.ts"
+        "path": "platform/services/statecraft/api/deploy/chartSelector.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/deploy/chartSelector.test.ts"
+        "path": "platform/services/statecraft/api/deploy/chartSelector.test.ts"
       }
     ],
     "extends": [
@@ -128,8 +128,8 @@
     ],
     "specPath": "specs/136-tenant-hello-demo-service/spec.md",
     "status": "approved",
-    "summary": "Document `platform/services/tenant-hello` as the deliberately-minimal reference of what a project codebase looks like when stagecraft is responsible for deploying it. The express service itself is trivial; the spec exists to pin the contract a tenant codebase must honour to round-trip through stagecraft (containerised entrypoint, health probe, port-from-env, no privileged dependencies) and to call out the current gap between \"tenant codebase exists\" and \"stagecraft can deploy it end-to-end.\"\n",
-    "title": "Tenant-hello — stagecraft-deployable tenant reference service"
+    "summary": "Document `platform/services/tenant-hello` as the deliberately-minimal reference of what a project codebase looks like when statecraft is responsible for deploying it. The express service itself is trivial; the spec exists to pin the contract a tenant codebase must honour to round-trip through statecraft (containerised entrypoint, health probe, port-from-env, no privileged dependencies) and to call out the current gap between \"tenant codebase exists\" and \"statecraft can deploy it end-to-end.\"\n",
+    "title": "Tenant-hello — statecraft-deployable tenant reference service"
   },
   "shardHash": "78ceb613d45ded5fc99bcf46ef9b7f76e5014fa2d096ea8d60f82876df695659",
   "specVersion": "1.1.0"

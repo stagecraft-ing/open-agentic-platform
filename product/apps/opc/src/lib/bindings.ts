@@ -419,7 +419,7 @@ async cloneTokenClear(projectId: string) : Promise<Result<null, string>> {
  * Start the desktop OAuth login flow.
  * 
  * Generates a PKCE challenge, stores the flow in managed state, then opens
- * the user's default browser pointing at the stagecraft authorize endpoint.
+ * the user's default browser pointing at the statecraft authorize endpoint.
  * 
  * If `idp_hint` is provided (email address or OIDC provider ID), the flow
  * routes through the enterprise OIDC path instead of GitHub OAuth.
@@ -521,9 +521,9 @@ async authTakePendingCallback() : Promise<Result<string | null, string>> {
 /**
  * Return the base URL currently in effect (reflects the live client).
  */
-async getStagecraftBaseUrl() : Promise<Result<string, string>> {
+async getStatecraftBaseUrl() : Promise<Result<string, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_stagecraft_base_url") };
+    return { status: "ok", data: await TAURI_INVOKE("get_statecraft_base_url") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -535,9 +535,9 @@ async getStagecraftBaseUrl() : Promise<Result<string, string>> {
  * 
  * Pass an empty string to disable the integration entirely.
  */
-async setStagecraftBaseUrl(baseUrl: string) : Promise<Result<null, string>> {
+async setStatecraftBaseUrl(baseUrl: string) : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("set_stagecraft_base_url", { baseUrl }) };
+    return { status: "ok", data: await TAURI_INVOKE("set_statecraft_base_url", { baseUrl }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -572,8 +572,8 @@ export type BootGateStatus = {
  */
 sidecar_alive: boolean; 
 /**
- * FR-T2: StagecraftState has a non-empty org_id AND the duplex
- * consumer has received `sync.hello` from stagecraft.
+ * FR-T2: StatecraftState has a non-empty org_id AND the duplex
+ * consumer has received `sync.hello` from statecraft.
  */
 org_session_ready: boolean; 
 /**
@@ -621,7 +621,7 @@ export type SidecarPorts = { axiomregent: number | null }
 /**
  * Persisted shape of a clone token. Mirrors `OpcBundleCloneToken` on
  * the wire side; `expires_at` is a string so we don't drag a date type
- * into the keychain layer (the value is whatever Stagecraft returned).
+ * into the keychain layer (the value is whatever Statecraft returned).
  */
 export type StoredCloneToken = { value: string; source: string; expires_at?: string | null }
 /**

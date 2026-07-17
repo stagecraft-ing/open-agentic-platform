@@ -109,19 +109,19 @@ spec:
       size: 2Gi
 
     # ---- DOMAIN-pinned overrides (formerly setup.sh's --set flags) ----
-    # Hardcoded to `stagecraft.ing` because this manifest lives under
+    # Hardcoded to `statecraft.ing` because this manifest lives under
     # `clusters/hetzner-prod/` — by gitops-tree convention the subtree
     # is cluster-specific. Future clusters get their own subtree with
     # their own pinned domain (same pattern as
     # `manifests/tenants-wildcard-certificate.yaml`).
     oidc:
-      issuer: "https://auth.stagecraft.ing/auth/v1/"
+      issuer: "https://auth.statecraft.ing/auth/v1/"
 
     ingress:
-      host: "auth.stagecraft.ing"
+      host: "auth.statecraft.ing"
 
     bootstrap:
-      adminEmail: "admin@stagecraft.ing"
+      adminEmail: "admin@statecraft.ing"
 
     # ---- SMTP for magic-link login (spec 106 §12.1 amendments) ----
     # Reads SMTP_FROM / URL / PORT / USERNAME / PASSWORD /

@@ -1,9 +1,9 @@
 # Spec: 211-encore-test-ci-job
 #
-# DB-bound encore-test lane for stagecraft (ASI09 — verification integrity).
+# DB-bound encore-test lane for statecraft (ASI09 — verification integrity).
 #
-# vite.config.ts splits the stagecraft suite into two lanes: pure suites run
-# under bare vitest (the `ci-stagecraft.yml` job), DB-bound suites — excluded
+# vite.config.ts splits the statecraft suite into two lanes: pure suites run
+# under bare vitest (the `ci-statecraft.yml` job), DB-bound suites — excluded
 # under bare vitest — run only under `encore test`, which provisions per-test
 # Postgres databases via the Encore daemon + Docker. Before this lane existed
 # no CI job ran `encore test`, so DB-bound acceptance suites could rot
@@ -21,12 +21,12 @@
 #      the exclude list: a DB-bound file that did not execute at least one
 #      non-skipped test fails the job naming the file (FR-003).
 #
-# Dispatched from `.github/workflows/ci.yml` on PRs touching the stagecraft
+# Dispatched from `.github/workflows/ci.yml` on PRs touching the statecraft
 # service (spec 177) and in merge_group with identical blocking semantics
 # (AC-5); manual via workflow_dispatch. Mirrored locally by
-# `make ci-stagecraft-encore` (spec 104 parity contract).
+# `make ci-statecraft-encore` (spec 104 parity contract).
 
-name: CI stagecraft encore
+name: CI statecraft encore
 
 on:
   workflow_call:
@@ -51,11 +51,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: platform/services/stagecraft/package-lock.json
+          cache-dependency-path: platform/services/statecraft/package-lock.json
 
       - name: Install dependencies
         run: npm ci
-        working-directory: platform/services/stagecraft
+        working-directory: platform/services/statecraft
 
       - name: Install Encore CLI
         uses: ./.github/actions/encore-install
@@ -65,10 +65,10 @@ jobs:
       # Encore parses every service before running tests, and
       # `web/api.gateway.ts` registers `api.static({ dir: "./build/client/assets" })`
       # — the parser fails fast if that directory is missing. Same first step
-      # as ci-stagecraft.yml's typecheck job and the encore-build action.
+      # as ci-statecraft.yml's typecheck job and the encore-build action.
       - name: Build frontend
         shell: bash
-        working-directory: platform/services/stagecraft
+        working-directory: platform/services/statecraft
         run: cd web && npx react-router build
 
       # `encore test` on an app linked to Encore Cloud fetches development
@@ -82,13 +82,13 @@ jobs:
       # if encore.app's shape changes and the strip stops matching, the job
       # fails here, not with a misleading auth error downstream.
       - name: Unlink app from Encore Cloud (keep the lane platform-free)
-        working-directory: platform/services/stagecraft
+        working-directory: platform/services/statecraft
         run: |
           sed -i 's/"id":[[:space:]]*"[^"]*"/"id": ""/' encore.app
           grep -q '"id": ""' encore.app
 
       - name: Resolve DB-bound lane (exclude-list derivation)
-        working-directory: platform/services/stagecraft
+        working-directory: platform/services/statecraft
         run: node scripts/encore-test-lane.mjs list > /tmp/encore-lane-files.txt
 
       # --fileParallelism=false: the DB-bound suites share one database and
@@ -98,9 +98,9 @@ jobs:
       # is the lane's correctness posture, not an optimisation knob.
       - name: Encore test (DB-bound suites, per-test databases)
         shell: bash
-        working-directory: platform/services/stagecraft
+        working-directory: platform/services/statecraft
         run: CI=true encore test --run $(cat /tmp/encore-lane-files.txt) --fileParallelism=false --reporter=default --reporter=json --outputFile=/tmp/encore-test-report.json
 
       - name: Lane-coverage guard (skip-as-pass forbidden)
-        working-directory: platform/services/stagecraft
+        working-directory: platform/services/statecraft
         run: node scripts/encore-test-lane.mjs check --report /tmp/encore-test-report.json

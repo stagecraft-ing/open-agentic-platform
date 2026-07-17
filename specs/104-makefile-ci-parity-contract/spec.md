@@ -11,7 +11,7 @@ amendment_record: |
   adapter-scopes derivation cutover) — the PRODUCERS rule for
   `adapter-scopes-compiler` repoints its artifact from the retired
   `build/adapter-scopes.json` to the real committed snapshot at
-  `platform/services/stagecraft/api/factory/adapter-scopes.json`. The
+  `platform/services/statecraft/api/factory/adapter-scopes.json`. The
   tool no longer writes a `build/` copy; the rule table stays truthful.
   No workflow or Makefile recipe invokes the pattern today, so no
   parity verdict changes.
@@ -99,12 +99,12 @@ summary: >
 Prior to this spec, `/validate-and-fix` discovered validation commands
 heuristically (grep `package.json`, list `Cargo.toml` manifests, read CLAUDE.md).
 That gave it partial coverage — root `cargo clippy` misses every isolated
-Cargo workspace, `platform/services/stagecraft` was never validated at all,
+Cargo workspace, `platform/services/statecraft` was never validated at all,
 and the ten `registry-consumer` contract subsets in `spec-conformance.yml`
 had no local mirror. The command would report green while CI turned red.
 
 The fix landed in one change: a `ci` target family in the root Makefile
-(`make ci`, `ci-rust`, `ci-tools`, `ci-desktop`, `ci-stagecraft`, `ci-cross`)
+(`make ci`, `ci-rust`, `ci-tools`, `ci-desktop`, `ci-statecraft`, `ci-cross`)
 mirroring every gate enforced by `.github/workflows/`. `/validate-and-fix`
 now invokes `make ci` directly and drops the discovery heuristics.
 
@@ -143,7 +143,7 @@ block a merge. `make ci` MUST mirror their commands:
 | `ci-desktop.yml` | `ci-desktop` |
 | `ci-orchestrator.yml` | `ci-rust` (covered by `cargo --workspace --manifest-path crates/Cargo.toml`; `crates/orchestrator` is a workspace member) |
 | `ci-policy-kernel.yml` | `ci-rust` (covered by `cargo --workspace --manifest-path crates/Cargo.toml`; `crates/policy-kernel` is a workspace member) |
-| `ci-stagecraft.yml` | `ci-stagecraft` |
+| `ci-statecraft.yml` | `ci-statecraft` |
 | `spec-conformance.yml` | `ci-tools` (including all ten contract subsets via `CI_REGISTRY_CONSUMER_CONTRACTS`) |
 
 > Post-spec-135 note: the parity-bound recipe lives under `make
@@ -164,7 +164,7 @@ Explicitly **not** enforcing (excluded from the parity contract):
   obligates mirrors for that list and never inspects `ci-gate.needs`, so the
   gate-without-mirror carve-out needs no code exception.
 - `build-axiomregent.yml` — build-only matrix (`ci-cross` is the opt-in local mirror)
-- `cd-deployd-api-rs.yml`, `cd-stagecraft.yml` — delegate to enforcing CI via `workflow_call`
+- `cd-deployd-api-rs.yml`, `cd-statecraft.yml` — delegate to enforcing CI via `workflow_call`
 - `release-*.yml` — release packaging, downstream of merge
 - `ci-parity.yml` — the enforcement surface itself (this spec)
 
@@ -374,7 +374,7 @@ The `PRODUCERS` table in `tools/oap/ci-parity-check/src/lib.rs` maps the
 spec-198 FR-012 derivation cutover retired the tool's legacy
 `build/adapter-scopes.json` copy (untracked, consumer-less); the rule now
 names the committed snapshot
-`platform/services/stagecraft/api/factory/adapter-scopes.json`. No
+`platform/services/statecraft/api/factory/adapter-scopes.json`. No
 enforcement change: no Makefile recipe or workflow invokes the pattern.
 
 **Amendment 2026-05-24 (record: 178-opc-directory-rename).**

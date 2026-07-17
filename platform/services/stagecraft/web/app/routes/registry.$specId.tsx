@@ -17,7 +17,7 @@ import { getSpecDetail, type SpecDetailRecord, type SpecRef } from "../lib/spec-
 import { DOMAIN_COLORS } from "../lib/domain-colors";
 
 const GITHUB_BLOB =
-  "https://github.com/stagecraft-ing/open-agentic-platform/blob/main";
+  "https://github.com/statecrafting/open-agentic-platform/blob/main";
 
 export async function loader({ params }: Route.LoaderArgs) {
   return { detail: getSpecDetail(params.specId) ?? null };

@@ -21,7 +21,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/charts/stagecraft/templates/deployment.yaml",
+        "path": "platform/charts/statecraft/templates/deployment.yaml",
         "source": "spec-edge"
       },
       {
@@ -93,14 +93,14 @@
       {
         "locations": [
           {
-            "file": "platform/charts/stagecraft/templates/deployment.yaml"
+            "file": "platform/charts/statecraft/templates/deployment.yaml"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/charts/stagecraft/templates/deployment.yaml"
+          "path": "platform/charts/statecraft/templates/deployment.yaml"
         }
       },
       {

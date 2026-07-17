@@ -4,7 +4,7 @@
 // contract. The per-spec body excerpt is read from the authored spec.md source
 // (not a .derived artifact). Regenerate from anywhere:
 //
-//   node platform/services/stagecraft/web/scripts/gen-spec-registry.mjs
+//   node platform/services/statecraft/web/scripts/gen-spec-registry.mjs
 //
 // Emits two files under app/lib/ (both committed; refresh per deploy so the
 // public pages never silently drift from the compiled corpus):

@@ -1,7 +1,7 @@
 # Security review fix (MEDIUM finding) -- rauthy-system NetworkPolicies.
 #
 # rauthy-system had NO enforced NetworkPolicy before this file (same gap
-# as stagecraft-system and deployd-system -- see the sibling files in
+# as statecraft-system and deployd-system -- see the sibling files in
 # this directory and monitoring/networkpolicy-monitoring.yaml's incident
 # header for the shared rationale). This is the first enforced
 # default-deny for this namespace; the allow set below is the complete
@@ -58,7 +58,7 @@ spec:
           protocol: TCP
 ---
 # Cross-namespace direct callers, in case in-cluster DNS for the public
-# rauthy hostname does not hairpin back through ingress-nginx: stagecraft
+# rauthy hostname does not hairpin back through ingress-nginx: statecraft
 # (M2M token exchange, seed-rauthy Helm hook, sweeper CronJobs) and
 # deployd-api (JWT/JWKS validation) both call Rauthy's OIDC endpoints
 # directly.
@@ -75,7 +75,7 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: stagecraft-system
+              kubernetes.io/metadata.name: statecraft-system
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: deployd-system

@@ -5,7 +5,7 @@
  *
  * Custom deserialization accepts both string (`"tier1"`) and integer (`1`) formats
  * for backward compatibility with factory agents that use `tier: 1`. The TS
- * mirror only emits the canonical string form, because stagecraft always
+ * mirror only emits the canonical string form, because statecraft always
  * re-serialises via `serde_json` and never stores the integer variant.
  */
 export type SafetyTier = "tier1" | "tier2" | "tier3";

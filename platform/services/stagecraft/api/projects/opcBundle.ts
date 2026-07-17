@@ -2,7 +2,7 @@
 //
 // Returns the resolution OPC needs after activating an `opc://` deep link:
 //   - project + primary repo (clone URL)
-//   - the precomputed deep link the stagecraft UI also surfaces
+//   - the precomputed deep link the statecraft UI also surfaces
 //   - the factory_adapters row referenced by projects.factory_adapter_id
 //     (null for non-factory projects — the endpoint still works)
 //   - org-scoped factory_contracts and factory_processes (latest sync per
@@ -286,7 +286,7 @@ export const refreshProjectCloneToken = api(
 
 /**
  * Spec 112 §6.4.2 — resolve the clone token to ship in the bundle (or
- * the refresh endpoint). The long-lived PAT lives only in stagecraft;
+ * the refresh endpoint). The long-lived PAT lives only in statecraft;
  * what crosses the wire is either an installation token (preferred,
  * ~1h TTL) or — when the target org has no App installation — a copy
  * of the project PAT (acknowledged in §10 risks). For repos with no

@@ -295,7 +295,7 @@ tools to `tenant-emit 0.3.0` / `tenant-tail 0.4.0` and authored
 floor gate (spec 212) accepts the additive key.
 
 **Live AC-2 evidence.** A `Single`-internal produced app,
-`stagecraft-ing/spec210-ac2-single-1` (mock auth), was scaffolded from a
+`statecrafting/spec210-ac2-single-1` (mock auth), was scaffolded from a
 warmup on template `e94395b`. Its born-with `Initial commit` push ran the
 cert chain in the `spec-spine` job to completion, green (CI run
 `28992039382`, job `86033823150`):

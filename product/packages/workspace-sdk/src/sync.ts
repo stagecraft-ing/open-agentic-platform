@@ -1,12 +1,12 @@
 /**
  * Sync protocol types (spec 087 section 5).
  *
- * WebSocket relay on Stagecraft pushes events to connected OPC instances,
+ * WebSocket relay on Statecraft pushes events to connected OPC instances,
  * scoped by workspace. OPC pushes state updates via HTTP POST.
  */
 
 // ---------------------------------------------------------------------------
-// WebSocket events (Stagecraft → OPC)
+// WebSocket events (Statecraft → OPC)
 // ---------------------------------------------------------------------------
 
 export type WorkspaceEventType =
@@ -28,7 +28,7 @@ export interface WorkspaceEvent {
 }
 
 // ---------------------------------------------------------------------------
-// HTTP POST events (OPC → Stagecraft)
+// HTTP POST events (OPC → Statecraft)
 // ---------------------------------------------------------------------------
 
 export type OpcEventType =

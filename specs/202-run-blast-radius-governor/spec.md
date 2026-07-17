@@ -41,16 +41,16 @@ establishes:
   # Slice B (FR-002): run-level meter + budget PreStepGate + gate chain
   - unit: { kind: file, path: crates/orchestrator/src/budget_gate.rs }
   # Slice F (FR-003c): platform-side queue-storm detection, owned module.
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/queueStormGate.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/queueStormGate.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/queueStormGate.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/queueStormGate.test.ts }
   # Slice G (FR-004): approval-velocity counter, owned modules (pure classifier
   # + DB half) and their tests. The pure test runs bare-vitest; the DB test is
   # encore-lane (vite.config.ts exclude, covered by the existing Slice F
   # encore-test-lane-assignment refines edge).
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalVelocity-pure.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalVelocity.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalVelocity-pure.test.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalVelocity.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/approvalVelocity-pure.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/approvalVelocity.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/approvalVelocity-pure.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/approvalVelocity.test.ts }
   # Slice G follow-up (FR-004 perf): the composite index serving the
   # approval-velocity read on audit_log (actor_user_id, action, created_at).
   # audit_log carried no indexes, so loadActorApprovalTimestamps was a
@@ -59,7 +59,7 @@ establishes:
   # the first migration since the #454/#455 baseline reset). api/db is co-owned
   # by spec 119's directory claim; this file-level establishes makes 202 the
   # specific owner so the coupling gate resolves to the motivating spec.
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/3_audit_log_actor_action_created_idx.up.sql }
+  - unit: { kind: file, path: platform/services/statecraft/api/db/migrations/3_audit_log_actor_action_created_idx.up.sql }
 extends:
   # Budget declarations are an additive, ASI08-tagged section of the
   # envelope schema spec 198 establishes.
@@ -104,34 +104,34 @@ refines:
   # co-authored (spec 124 establishes; spec 200 refines "consumed-override-
   # revocation-sweep"); this is a third, independent refines aspect.
   - aspect: "queue-storm-detection"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/runs.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/runs.ts }
   # Slice F (FR-003c): the new FACTORY_RUN_STORM_DETECTED audit constant.
   - aspect: "queue-storm-audit-actions"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/auditActions.ts }
   # Slice F (FR-003c): the new test file joins the encore-test-only exclude
   # list, same lane-assignment aspect spec 200 used for the same file.
   - aspect: "encore-test-lane-assignment"
-    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
-  # Slice F (FR-003c): STAGECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT env-knob doc.
+    unit: { kind: file, path: platform/services/statecraft/vite.config.ts }
+  # Slice F (FR-003c): STATECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT env-knob doc.
   - aspect: "queue-storm-env-knob-docs"
-    unit: { kind: file, path: platform/services/stagecraft/CLAUDE.md }
+    unit: { kind: file, path: platform/services/statecraft/CLAUDE.md }
   # Slice G (FR-004): approval-velocity is surfaced on the run-approval context
   # response and recorded on the approve path. approvalSummary.ts is spec 201's
   # module (establishes); this is a section-scoped refine that adds the FR-004
   # measurement/record call sites + the read-only `approvalVelocity` field,
   # without touching the hashed ApprovalSummary contract in approvalSummary-pure.ts.
   - aspect: "approval-velocity-surface"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalSummary.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/approvalSummary.ts }
   # Slice G (FR-004): the new FACTORY_RUN_APPROVAL_VELOCITY_ANOMALY audit
   # constant (auditActions.ts already covered by the Slice F queue-storm-audit
   # aspect, but the FR-004 constant is a distinct addition worth its own edge).
   - aspect: "approval-velocity-audit-action"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/auditActions.ts }
 references:
   - role: enforcer
     unit: { kind: crate, id: factory-engine }
   - role: context
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/runsScheduler.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/runsScheduler.ts }
   - role: context
     unit: { kind: file, path: docs/owasp-agentic-top-10-2026.md }
   # Surfaces surveyed by the 2026-06-12 refinement pass (non-owning;
@@ -208,7 +208,7 @@ shape the design:
    an accepted contract of the design: it is metered, surfaced, and
    certificate-visible, not silently absorbed.
 5. **The platform scheduler is a sweeper, not a queue.**
-   `platform/services/stagecraft/api/factory/runsScheduler.ts` flips
+   `platform/services/statecraft/api/factory/runsScheduler.ts` flips
    stale runs to `failed` on a cron using `last_event_at`; there is no
    runs-in-flight counter and no enqueue-rate observation. FR-003's
    queue-storm lever is a new count gate at run submission, not a
@@ -332,13 +332,13 @@ distinct `RunBudget*` prefix to avoid collision.
     (`queued` + `running`) counted at run submission against a
     configurable ceiling; a new count gate, the staleness sweeper is
     unchanged (§Code reality 5). **Landed detection-only** (Slice F,
-    `platform/services/stagecraft/api/factory/queueStormGate.ts`): at or
+    `platform/services/statecraft/api/factory/queueStormGate.ts`): at or
     over the ceiling, `detectQueueStorm` logs a warning and writes a
     `factory.run.storm_detected` audit row naming the org, the observed
     count, and the ceiling; the run is still admitted either way. This
     supersedes the earlier plan-time sketch (a `resourceExhausted` 429
     refusal): (c) is a platform-config ceiling read from
-    `STAGECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT` (default 25), not yet an
+    `STATECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT` (default 25), not yet an
     admitted `budgets:` threshold (FR-001), so refusing on it would block
     real work on a value the org never admitted. Enforcement is deferred to
     the envelope-carried threshold, matching Sequencing's "detection-only,
@@ -392,7 +392,7 @@ distinct `RunBudget*` prefix to avoid collision.
     `(actor_user_id, action, created_at)`; the planner picks it for this exact
     predicate, with `target_type` left as a cheap post-filter.
   - *Thresholds are platform config.* Window and threshold are env knobs
-    (`STAGECRAFT_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC` / `_THRESHOLD`, defaults
+    (`STATECRAFT_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC` / `_THRESHOLD`, defaults
     60s / 10), the same "platform config until the envelope carries an
     authoritative threshold" posture FR-003(c) landed with.
 - **FR-005 — Certificate binding of consumption actuals.** The

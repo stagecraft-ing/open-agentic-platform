@@ -24,7 +24,7 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/test/spec146-deployd-memory.config.test.ts"
+        "path": "platform/services/statecraft/test/spec146-deployd-memory.config.test.ts"
       }
     ],
     "extraFrontmatter": {

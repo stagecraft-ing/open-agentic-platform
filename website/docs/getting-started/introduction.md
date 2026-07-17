@@ -11,7 +11,7 @@ The platform is explicitly **pre-alpha, stealth, single-developer**, and carries
 OAP is constructed from three concrete layers that enforce governance across the software lifecycle:
 
 1. **The Spec Spine**: The authoritative foundation. Every feature begins as a Markdown specification that compiles deterministically into a sharded JSON registry. The spine enforces "spec-first" development: code justifies the spec, never the reverse.
-2. **The Platform (Control Plane)**: A Kubernetes-hosted service plane providing OIDC identity (Rauthy), scope-gated deployment orchestration (`deployd-api-rs`), and a SaaS backend (stagecraft) for governance UX, audit logging, and webhooks.
+2. **The Platform (Control Plane)**: A Kubernetes-hosted service plane providing OIDC identity (Rauthy), scope-gated deployment orchestration (`deployd-api-rs`), and a SaaS backend (statecraft) for governance UX, audit logging, and webhooks.
 3. **The OPC Desktop**: The Off-Platform Compute (OPC) cockpit. A local Tauri v2 plus React application where humans and agents share a governed execution surface. It hosts the `axiomregent` MCP server, which applies safety tiers and distributed locks to agent actions.
 
 ## The Governing Thesis

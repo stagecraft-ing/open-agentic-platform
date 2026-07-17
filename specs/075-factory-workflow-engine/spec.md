@@ -298,7 +298,7 @@ OPC calls Tauri command: start_factory_pipeline(project_id, adapter, docs)
   │     ├─ s6f: Trim → post_verify: [compile]
   │     └─ s6g: Final validation → gate (checkpoint)
   │
-  └─ 9. Pipeline complete → notify Stagecraft
+  └─ 9. Pipeline complete → notify Statecraft
 ```
 
 ### New Tauri Commands
@@ -397,6 +397,6 @@ pub async fn reject_factory_stage(
 
 ## Security hardening amendment (2026-07-02)
 
-Recovered from mutex poisoning in the standards resolver, agent resolver, and stagecraft client caches instead of panicking, and documented the security boundary on run_command where config and spec-derived command strings are executed via the shell, pointing at the spec-162 sandbox contract as the isolation integration point.
+Recovered from mutex poisoning in the standards resolver, agent resolver, and statecraft client caches instead of panicking, and documented the security boundary on run_command where config and spec-derived command strings are executed via the shell, pointing at the spec-162 sandbox contract as the isolation integration point.
 
 Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.

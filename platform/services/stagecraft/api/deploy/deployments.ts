@@ -1,7 +1,7 @@
 /**
  * Spec 215 FR-003: `environment_deployments` record writer.
  *
- * Stagecraft's durable record of every deploy dispatch (UI trigger or PR
+ * Statecraft's durable record of every deploy dispatch (UI trigger or PR
  * webhook), keyed to deployd-api's `rel_<uuid>` release id. This module owns
  * all writes to the table; every dispatch path goes through it. It is the
  * source of truth for the env detail page (FR-004) and the preview-destroy

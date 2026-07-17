@@ -64,7 +64,7 @@ refines:
   # FR-001: overrideGate.ts now imports the shared carrier rules rather than
   # carrying its own copies (promoted from an analog reference).
   - aspect: "shared-carrier-rules"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideGate.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/overrideGate.ts }
   - aspect: "memory-write-gate"
     unit: { kind: file, path: product/packages/session-memory/src/server.ts }
   - aspect: "provenance-trust-columns"

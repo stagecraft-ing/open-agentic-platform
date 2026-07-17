@@ -8,12 +8,12 @@ import type { AuditAuthSource } from "./types";
 const DEFAULT_STALE_EXTRACTION_MS = 600_000;
 
 /**
- * Reads `STAGECRAFT_EXTRACT_STALE_AFTER_SEC` (seconds) and converts to
+ * Reads `STATECRAFT_EXTRACT_STALE_AFTER_SEC` (seconds) and converts to
  * milliseconds. Falls back to 600s when unset / malformed / non-positive
  * to match the spec 115 sweeper's default.
  */
 export function staleExtractionCutoffMs(): number {
-  const raw = process.env.STAGECRAFT_EXTRACT_STALE_AFTER_SEC;
+  const raw = process.env.statecraft_EXTRACT_STALE_AFTER_SEC;
   const seconds = raw ? Number.parseInt(raw, 10) : NaN;
   if (Number.isFinite(seconds) && seconds > 0) {
     return seconds * 1000;

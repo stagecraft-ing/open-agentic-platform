@@ -30,7 +30,7 @@ BRIEF      factory files its envelope:
              • per-agent frontmatter (process AND adapter agents)
              • pinned scaffold source → template    (the supply-chain edge)
              ▼
-ADMISSION  OAP (stagecraft) adjudicates fail-closed:
+ADMISSION  OAP (statecraft) adjudicates fail-closed:
              ⊨ schema  ∧  ⊨ constituents (recompute-and-reconcile)
              composes process ⊕ sub-envelopes, SIGNS the admission record
              (court seal), derives adapter-scopes.json as a projection,
@@ -211,7 +211,7 @@ OAP-published advisories), `(scope_kind, key, mode, reason, actor, ts)`,
 forensics (ASI10 m4); **reintegration from quarantine requires fresh two-sided
 validation + human approval** (ASI10 m7) — never an automatic flip back.
 
-Checked at all three enforcement times: **serve** (stagecraft read path, 199
+Checked at all three enforcement times: **serve** (statecraft read path, 199
 FR-006), **bind** (project bind), **run** (grant issuance and every grant
 renewal — D-4, which is what makes revocation propagate to in-flight OPC runs
 within one stage boundary; ASI04 m6 continuous revalidation).
@@ -224,18 +224,18 @@ hash blocks scaffolding org-wide instantly.
 
 ## D-4 — Signing keys and the keyless executor (resolves OQ-4; ASI10 m6)
 
-**Stagecraft is the signing authority — the court seal.** Signing belongs with
-the judge: stagecraft owns admission (syncPipeline/bind), so it owns the seal.
+**Statecraft is the signing authority — the court seal.** Signing belongs with
+the judge: statecraft owns admission (syncPipeline/bind), so it owns the seal.
 Keys live platform-side (Encore secrets; K8s Secret on Hetzner, KeyVault-backed
 on AKS — HSM/KMS is a deployment-profile obligation declared in the schema
 docs, not a contract field). Public keys are published JWKS-style at a
-well-known stagecraft endpoint with `kid` rotation. **OPC and every agent are
+well-known statecraft endpoint with `kid` rotation. **OPC and every agent are
 keyless, categorically** (ASI10 m6: "agents never hold signing keys —
 the orchestrator mediates").
 
 Three signature classes, one custody model:
 
-1. **Admission seal.** At admission, stagecraft signs the composed envelope
+1. **Admission seal.** At admission, statecraft signs the composed envelope
    record (process ⊕ sub-envelopes ⊕ constituent hashes ⊕ resolved scaffold
    source). The seal travels with the served bundle; the OPC engine verifies
    it against the published key before trusting any factory content
@@ -246,7 +246,7 @@ Three signature classes, one custody model:
    - The OPC engine submits the capsule content over the authenticated duplex
      channel: declared goal + stable goal id, constraints, admitted-envelope
      hash, Build-Spec hash (post-freeze), project, run id.
-   - Stagecraft validates the capsule **against the admitted envelope** (the
+   - Statecraft validates the capsule **against the admitted envelope** (the
      PDP decision: is this run inside the brief?) and checks D-3 revocations,
      then returns a **short-lived, audience-bound run-grant**: a signed token
      binding `{org, project, run_id, capsule_hash, envelope_hash, exp, kid}`.
@@ -262,7 +262,7 @@ Three signature classes, one custody model:
      gate + duplex), so per-stage renewal adds no new availability coupling.
 
 3. **Emission countersign.** The engine maintains the tamper-evident local
-   hash chain it already produces (102/168 + 170); on sync-back, stagecraft
+   hash chain it already produces (102/168 + 170); on sync-back, statecraft
    verifies the chain against the grant sequence it issued and countersigns
    the governance certificate. `verify-certificate` then proves **two**
    independent things: the artifact hash chain (works fully offline,
@@ -284,7 +284,7 @@ revocation. That is "executor on conditions" made mechanical.
 org-agnostic declaration it already has — `scaffold.source.{kind, remote,
 default_ref}` — and the flat `scaffold_source_id` manifest field (spec 140
 §2.2, injected today by the ingest mutation that 199 FR-007 deletes) is
-**retired**. At admission, stagecraft resolves `scaffold.source.remote`
+**retired**. At admission, statecraft resolves `scaffold.source.remote`
 against the org's `factory_upstreams` rows by normalized repo URL; the
 resolved `source_id` + pinned ref/tree-hash are recorded **in the admission
 record**, which is what `create.ts` and the scheduler read. Unresolvable

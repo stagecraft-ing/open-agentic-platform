@@ -54,7 +54,7 @@ Specific gaps:
   accumulates no hashes and performs no input integrity checks
 - No artifact metadata beyond `filename -> SHA-256` (no tags, provenance, content-type)
 - `StepSummaryEntry.output_hashes` written only to local `summary.json` — no platform recording
-- No Stagecraft API integration for artifacts (zero HTTP calls from artifact paths)
+- No Statecraft API integration for artifacts (zero HTTP calls from artifact paths)
 - `cleanup_run()` deletes everything; no cross-run reuse
 
 ## Solution
@@ -133,17 +133,17 @@ Query support: "which steps consumed this artifact?" and "what produced this?"
 
 **Files**: `crates/factory-engine/src/artifact_store.rs`
 
-### Slice 5: Platform artifact recording (Stagecraft endpoint)
+### Slice 5: Platform artifact recording (Statecraft endpoint)
 
-After step completion + CAS storage, POST artifact metadata to Stagecraft.
+After step completion + CAS storage, POST artifact metadata to Statecraft.
 
-New Stagecraft endpoints:
+New Statecraft endpoints:
 - `POST /api/projects/:id/artifacts` — record artifact metadata
 - `GET /api/projects/:id/artifacts?content_hash=X` — cache-hit lookup
 
 Activates spec 082 Phase 3 (cross-run persistence).
 
-**Files**: `platform/services/stagecraft/api/factory/factory.ts`,
+**Files**: `platform/services/statecraft/api/factory/factory.ts`,
 `crates/orchestrator/src/lib.rs`
 
 ## Acceptance Criteria
@@ -151,5 +151,5 @@ Activates spec 082 Phase 3 (cross-run persistence).
 - **SC-094-1**: Hash-chain verification works in both persisted and non-persisted dispatch paths
 - **SC-094-2**: Completed step artifacts are stored in CAS with content-hash deduplication
 - **SC-094-3**: `ArtifactRecord` carries provenance (producer step, consumer steps)
-- **SC-094-4**: Stagecraft stores artifact metadata and supports cache-hit lookup
+- **SC-094-4**: Statecraft stores artifact metadata and supports cache-hit lookup
 - **SC-094-5**: Re-running a pipeline detects prior identical artifacts via content hash

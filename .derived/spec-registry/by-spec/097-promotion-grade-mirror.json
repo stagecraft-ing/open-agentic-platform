@@ -47,13 +47,13 @@
       "Implementation Slices",
       "Slice 1: Define run promotion eligibility",
       "Slice 2: Add `CompletedLocal` status",
-      "Slice 3: Stagecraft promotion API endpoint",
+      "Slice 3: Statecraft promotion API endpoint",
       "Slice 4: Integrate promotion check into orchestrator completion",
       "Acceptance Criteria"
     ],
     "specPath": "specs/097-promotion-grade-mirror/spec.md",
     "status": "approved",
-    "summary": "Elevate platform sync from fire-and-forget to promotion-grade. Define run promotion eligibility, add CompletedLocal status for local-only completions, create a Stagecraft promotion validation endpoint, and integrate eligibility checks into the orchestrator completion path.\n",
+    "summary": "Elevate platform sync from fire-and-forget to promotion-grade. Define run promotion eligibility, add CompletedLocal status for local-only completions, create a Statecraft promotion validation endpoint, and integrate eligibility checks into the orchestrator completion path.\n",
     "title": "Promotion-Grade Platform Mirror"
   },
   "shardHash": "515a987527afd52c4139a74cb831fb2cd0c6ba14af8adaab79a9b3267acb4770",

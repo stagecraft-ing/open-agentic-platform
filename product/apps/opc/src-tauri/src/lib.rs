@@ -67,7 +67,7 @@ use commands::orchestrator::{
     cancel_run, cleanup_artifacts, get_run_status, list_workspace_workflows, orchestrate_manifest,
 };
 use commands::proxy::{apply_proxy_settings, get_proxy_settings, save_proxy_settings};
-use commands::stagecraft_client::StagecraftState;
+use commands::statecraft_client::StatecraftState;
 use commands::sync_client::{
     OpcInstanceId, SyncClientConfig, SyncClientState, audit_unanchored_window,
 };
@@ -234,24 +234,24 @@ pub fn run() {
             // unconditionally so `get_project_catalog` always has state.
             app.manage(commands::project_catalog_sync::ProjectCatalogCache::default());
 
-            // Initialize Stagecraft Factory API client (dual-write governance).
-            // URL resolution order: app_settings.stagecraft_base_url (DB) →
-            // STAGECRAFT_BASE_URL env var → default "https://stagecraft.ing".
+            // Initialize Statecraft Factory API client (dual-write governance).
+            // URL resolution order: app_settings.statecraft_base_url (DB) →
+            // STATECRAFT_BASE_URL env var → default "https://statecraft.ing".
             {
                 let user_id = std::env::var("OPC_USER_ID").unwrap_or_else(|_| "opc-desktop".into());
-                let base_url = commands::settings::resolve_stagecraft_base_url(app.handle());
-                let sc = commands::stagecraft_client::StagecraftClient::new(&base_url, &user_id)
+                let base_url = commands::settings::resolve_statecraft_base_url(app.handle());
+                let sc = commands::statecraft_client::StatecraftClient::new(&base_url, &user_id)
                     .map(std::sync::Arc::new);
                 if sc.is_some() {
-                    log::info!("Stagecraft client enabled → {base_url}");
+                    log::info!("Statecraft client enabled → {base_url}");
                 } else {
-                    log::info!("Stagecraft client disabled (no base URL configured)");
+                    log::info!("Statecraft client disabled (no base URL configured)");
                 }
                 // Load auth token from OS keychain (spec 087 Phase 5)
                 if let Some(ref client) = sc
                     && client.load_token_from_keychain()
                 {
-                    log::info!("Restored Stagecraft auth token from OS keychain");
+                    log::info!("Restored Statecraft auth token from OS keychain");
                 }
 
                 // Spec 110 Phase 2: duplex sync consumer. Spawn whenever a base
@@ -274,7 +274,7 @@ pub fn run() {
                 app.manage(sync_state);
                 // Stable OPC instance identity used in factory.run.ack frames
                 // (spec 110 §2.2): reuse the sync client id so logs in the
-                // desktop and envelopes stagecraft receives are correlatable.
+                // desktop and envelopes statecraft receives are correlatable.
                 let opc_instance_id = std::env::var("OPC_SYNC_CLIENT_ID")
                     .unwrap_or_else(|_| uuid::Uuid::new_v4().to_string());
                 if let Some(ref client) = sc
@@ -286,14 +286,14 @@ pub fn run() {
                         client_version: Some(env!("CARGO_PKG_VERSION").to_string()),
                     };
                     // Auth handle for the reconnect loop, captured here at
-                    // spawn time. `StagecraftState` holds an
-                    // `Arc<StagecraftClient>` (spec 183), so for the lifetime of
+                    // spawn time. `StatecraftState` holds an
+                    // `Arc<StatecraftClient>` (spec 183), so for the lifetime of
                     // *this* client it is a shared handle to the SAME instance
                     // the boot gate and REST commands read — a token/org write
                     // on any handle is visible to all, and the loop's keychain
                     // reload/refresh (spec 110 / 183) is visible to them in
-                    // turn. A base-URL change (`set_stagecraft_base_url` →
-                    // `StagecraftState::replace`) installs a NEW client and
+                    // turn. A base-URL change (`set_statecraft_base_url` →
+                    // `StatecraftState::replace`) installs a NEW client and
                     // re-spawns this consumer against it (spec 183 FR-T2(a)),
                     // so the loop follows the switch — see `SyncClientState::spawn`.
                     let auth = client.clone();
@@ -326,14 +326,14 @@ pub fn run() {
                     log::info!("sync_client: duplex consumer starting");
                 } else {
                     log::info!(
-                        "sync_client: duplex consumer disabled (no Stagecraft base URL configured)"
+                        "sync_client: duplex consumer disabled (no Statecraft base URL configured)"
                     );
                 }
-                app.manage(StagecraftState(std::sync::RwLock::new(sc)));
+                app.manage(StatecraftState(std::sync::RwLock::new(sc)));
 
                 // Spec 110 Phase 4: register the desktop handler for
-                // `factory.run.request`. Dead code until stagecraft flips the
-                // default `source` to `stagecraft` (Rollout Phase 6), but safe
+                // `factory.run.request`. Dead code until statecraft flips the
+                // default `source` to `statecraft` (Rollout Phase 6), but safe
                 // to register unconditionally — the dispatch table is empty
                 // for this kind otherwise.
                 // Expose the stable instance id as managed state so a
@@ -346,7 +346,7 @@ pub fn run() {
                 );
 
                 // Spec 110: register the desktop handler for `factory.event`.
-                // A gate confirmed/rejected on the stagecraft web surface
+                // A gate confirmed/rejected on the statecraft web surface
                 // publishes `stage_confirmed`/`stage_rejected` back over the
                 // duplex; without this handler every such frame was dropped
                 // ("no handler registered"), so a web-side sign-off never
@@ -391,7 +391,7 @@ pub fn run() {
             // two paths:
             //
             //   opc://auth/callback        — OPC desktop OAuth (spec 080)
-            //   opc://project/open?...     — stagecraft Open-in-OPC handoff (spec 112 §6.3)
+            //   opc://project/open?...     — statecraft Open-in-OPC handoff (spec 112 §6.3)
             //
             // Use the plugin's canonical on_open_url API. For each known
             // path we emit a webview event AND (where the auth flow needs
@@ -588,10 +588,10 @@ pub fn run() {
             import_agent_from_github,
             // Workspace agent catalog (spec 111 Phase 6)
             commands::agent_catalog_publish::publish_local_agent_to_workspace,
-            // Stagecraft extraction-output endpoints (spec 120 FR-021)
-            commands::stagecraft_client::post_extraction_output,
-            commands::stagecraft_client::request_extraction_yield,
-            commands::stagecraft_client::fetch_extraction_output,
+            // Statecraft extraction-output endpoints (spec 120 FR-021)
+            commands::statecraft_client::post_extraction_output,
+            commands::statecraft_client::request_extraction_yield,
+            commands::statecraft_client::fetch_extraction_output,
             // Orchestrator (044)
             orchestrate_manifest,
             get_run_status,
@@ -741,9 +741,9 @@ pub fn run() {
             commands::auth::auth_logout,
             commands::auth::auth_take_pending_callback,
             // App settings
-            commands::settings::get_stagecraft_base_url,
-            commands::settings::set_stagecraft_base_url,
-            commands::settings::reconnect_stagecraft_duplex,
+            commands::settings::get_statecraft_base_url,
+            commands::settings::set_statecraft_base_url,
+            commands::settings::reconnect_statecraft_duplex,
             // Tamper-evident audit chain (spec 207 AC-4 / FR-004)
             audit_unanchored_window,
             // OPC decomposition pipeline (spec 165)

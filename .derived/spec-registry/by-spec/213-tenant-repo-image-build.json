@@ -11,30 +11,30 @@
     "dependsOn": [
       "112-factory-project-lifecycle",
       "136-tenant-hello-demo-service",
-      "138-stagecraft-create-realised-scaffold"
+      "138-statecraft-create-realised-scaffold"
     ],
     "domain": "platform",
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/deploy/artifacts.ts"
+        "path": "platform/services/statecraft/api/deploy/artifacts.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/deploy/artifacts.test.ts"
+        "path": "platform/services/statecraft/api/deploy/artifacts.test.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/github/webhook.test.ts"
+        "path": "platform/services/statecraft/api/github/webhook.test.ts"
       }
     ],
     "extends": [
       {
         "nature": "additive",
-        "spec": "138-stagecraft-create-realised-scaffold",
+        "spec": "138-statecraft-create-realised-scaffold",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/github/repoInit.ts"
+          "path": "platform/services/statecraft/api/github/repoInit.ts"
         }
       },
       {
@@ -42,7 +42,7 @@
         "spec": "080-github-identity-onboarding",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/github/webhook.ts"
+          "path": "platform/services/statecraft/api/github/webhook.ts"
         }
       },
       {
@@ -50,7 +50,7 @@
         "spec": "112-factory-project-lifecycle",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       },
       {
@@ -58,7 +58,7 @@
         "spec": "119-project-as-unit-of-governance",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/projects.ts"
+          "path": "platform/services/statecraft/api/projects/projects.ts"
         }
       },
       {
@@ -66,7 +66,7 @@
         "spec": "112-factory-project-lifecycle",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
+          "path": "platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts"
         }
       },
       {
@@ -98,14 +98,14 @@
         "role": "seeding-precedent",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/github/repoInit.ts"
+          "path": "platform/services/statecraft/api/github/repoInit.ts"
         }
       },
       {
         "role": "downstream-consumer",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deploydClient.ts"
+          "path": "platform/services/statecraft/api/deploy/deploydClient.ts"
         }
       }
     ],
@@ -114,7 +114,7 @@
         "aspect": "encore-test-lane-assignment",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       }
     ],
@@ -125,7 +125,7 @@
       "User Scenarios & Testing *(mandatory)*",
       "User Story 1 - Created project produces a deployable image (Priority: P1)",
       "User Story 2 - PR preview tags match the webhook's assumption (Priority: P2)",
-      "User Story 3 - Stagecraft can answer \"what image does this commit have?\" (Priority: P2)",
+      "User Story 3 - Statecraft can answer \"what image does this commit have?\" (Priority: P2)",
       "Edge Cases",
       "Requirements *(mandatory)*",
       "Functional Requirements",
@@ -138,7 +138,7 @@
     ],
     "specPath": "specs/213-tenant-repo-image-build/spec.md",
     "status": "draft",
-    "summary": "Close the deferral spec 137 recorded as \"CI / container-build for tenant repos (separate spec)\". Today a factory-created project repo receives only the oap-verify.yml governance stub; nothing builds an OCI image for the scaffolded commit, and the GitHub webhook handler's preview-deploy path assumes a ghcr.io image tag that no workflow produces. This spec seeds an active container-build workflow into created repos, locks the image-ref naming convention (sha tags on every default-branch push, pr-N alias tags on pull requests, per-variant suffixes for dual-profile trees), and gives stagecraft a project_artifacts record plus a deterministic artifact-ref derivation so the deploy path (spec 215) can resolve \"the image for this commit\" without guessing.\n",
+    "summary": "Close the deferral spec 137 recorded as \"CI / container-build for tenant repos (separate spec)\". Today a factory-created project repo receives only the oap-verify.yml governance stub; nothing builds an OCI image for the scaffolded commit, and the GitHub webhook handler's preview-deploy path assumes a ghcr.io image tag that no workflow produces. This spec seeds an active container-build workflow into created repos, locks the image-ref naming convention (sha tags on every default-branch push, pr-N alias tags on pull requests, per-variant suffixes for dual-profile trees), and gives statecraft a project_artifacts record plus a deterministic artifact-ref derivation so the deploy path (spec 215) can resolve \"the image for this commit\" without guessing.\n",
     "title": "Tenant Repo Image Build and Artifact-Ref Record"
   },
   "shardHash": "a9859a5cf0e3a4ba48a63e70c97877261ea7d1d88ead60ad3e8c1003cc18bd76",

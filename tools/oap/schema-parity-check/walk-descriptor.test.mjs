@@ -7,7 +7,7 @@
 //   node tools/schema-parity-check/walk-descriptor.test.mjs
 //
 // Pure JS — no zod, no .ts imports — so the test runs under plain Node
-// without needing bun, and remains stable even when stagecraft's
+// without needing bun, and remains stable even when statecraft's
 // node_modules is empty. Asserts that the descriptor walker:
 //
 //   1. Produces the canonical `{ kind, ... }` fingerprint shape that

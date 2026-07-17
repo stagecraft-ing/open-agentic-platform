@@ -22,7 +22,7 @@
         "source": "comment-header"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/runs.ts",
+        "path": "platform/services/statecraft/api/factory/runs.ts",
         "source": "spec-edge"
       },
       {
@@ -38,14 +38,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/runs.ts"
+            "file": "platform/services/statecraft/api/factory/runs.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/runs.ts"
+          "path": "platform/services/statecraft/api/factory/runs.ts"
         }
       },
       {

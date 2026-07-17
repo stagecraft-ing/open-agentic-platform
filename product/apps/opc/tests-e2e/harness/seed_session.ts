@@ -3,7 +3,7 @@
 // Reaching a signed-in OPC cockpit in CI would otherwise require a full GitHub
 // OAuth/PKCE flow against Rauthy (auth.rs), which has no dev bypass. But OPC's
 // boot path only ever DECODES the stored session JWT's claims and never
-// verifies its signature (stagecraft_client.rs::decode_jwt_claims) or calls
+// verifies its signature (statecraft_client.rs::decode_jwt_claims) or calls
 // Rauthy's JWKS to validate it. And the mock duplex accepts any bearer. So the
 // entire "signed-in" state is one OS-keychain entry holding a fake, unsigned
 // JWT whose payload carries an `exp` in the future and a `custom.oap_org_id`
@@ -22,8 +22,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Service/account the OPC app reads its session token from (mirrors
- *  keychain.rs::SERVICE_NAME / DEFAULT_USER and the stagecraft_client.rs slots). */
-export const KEYCHAIN_SERVICE = "dev.opc.stagecraft";
+ *  keychain.rs::SERVICE_NAME / DEFAULT_USER and the statecraft_client.rs slots). */
+export const KEYCHAIN_SERVICE = "dev.opc.statecraft";
 export const SESSION_ACCOUNT = "session";
 
 export interface SeedSessionOptions {

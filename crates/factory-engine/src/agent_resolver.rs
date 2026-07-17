@@ -22,7 +22,7 @@
 //!   * `GET /api/orgs/:orgId/agents`        — list
 //!   * `GET /api/orgs/:orgId/agents/:id`    — detail
 //!
-//! Tests supply a `MockCatalogClient` instead of a live stagecraft
+//! Tests supply a `MockCatalogClient` instead of a live statecraft
 //! instance. The real HTTP client lives in the desktop crate / tauri
 //! bindings and implements `CatalogClient` there; factory-engine carries
 //! no HTTP dependency itself.
@@ -39,10 +39,10 @@ use std::sync::Mutex;
 use thiserror::Error;
 
 // ---------------------------------------------------------------------------
-// Wire types (matches the stagecraft GET /api/orgs/:orgId/agents response)
+// Wire types (matches the statecraft GET /api/orgs/:orgId/agents response)
 // ---------------------------------------------------------------------------
 
-/// A single row from the org catalog as returned by stagecraft.
+/// A single row from the org catalog as returned by statecraft.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CatalogRow {
     pub id: String,
@@ -59,7 +59,7 @@ pub struct CatalogRow {
 // CatalogClient trait
 // ---------------------------------------------------------------------------
 
-/// Abstracts the two stagecraft endpoints the resolver needs.
+/// Abstracts the two statecraft endpoints the resolver needs.
 /// The real implementation lives in the desktop Tauri crate
 /// (which has HTTP); tests use `MockCatalogClient`.
 #[async_trait]

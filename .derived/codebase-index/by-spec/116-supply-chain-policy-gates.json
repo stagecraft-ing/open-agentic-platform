@@ -19,7 +19,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/package.json",
+        "path": "platform/services/statecraft/package.json",
         "source": "spec-edge"
       },
       {
@@ -57,14 +57,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/package.json"
+            "file": "platform/services/statecraft/package.json"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/package.json"
+          "path": "platform/services/statecraft/package.json"
         }
       },
       {

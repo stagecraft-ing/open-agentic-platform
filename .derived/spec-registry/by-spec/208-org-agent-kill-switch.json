@@ -16,11 +16,11 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/orgHalt.ts"
+        "path": "platform/services/statecraft/api/factory/orgHalt.ts"
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/factory/orgHalt.test.ts"
+        "path": "platform/services/statecraft/api/factory/orgHalt.test.ts"
       },
       {
         "kind": "file",
@@ -33,7 +33,7 @@
         "spec": "198-factory-governance-envelope",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/revocations.ts"
+          "path": "platform/services/statecraft/api/factory/revocations.ts"
         }
       },
       {
@@ -65,7 +65,7 @@
         "spec": "187-opc-e2e-test-harness",
         "unit": {
           "kind": "file",
-          "path": "product/apps/opc/tests-e2e/harness/mock_stagecraft.ts"
+          "path": "product/apps/opc/tests-e2e/harness/mock_statecraft.ts"
         }
       },
       {
@@ -73,7 +73,7 @@
         "spec": "187-opc-e2e-test-harness",
         "unit": {
           "kind": "file",
-          "path": "product/apps/opc/tests-e2e/harness/mock_stagecraft.test.ts"
+          "path": "product/apps/opc/tests-e2e/harness/mock_statecraft.test.ts"
         }
       },
       {
@@ -115,56 +115,56 @@
         "aspect": "org-halt-storage",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       },
       {
         "aspect": "org-halt-audit-actions",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+          "path": "platform/services/statecraft/api/factory/auditActions.ts"
         }
       },
       {
         "aspect": "org-halt-refusal-reason",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/types.ts"
+          "path": "platform/services/statecraft/api/sync/types.ts"
         }
       },
       {
         "aspect": "org-halt-grant-refusal",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+          "path": "platform/services/statecraft/api/factory/grantDuplexHandlers.ts"
         }
       },
       {
         "aspect": "org-halt-session-refusal",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/duplex.ts"
+          "path": "platform/services/statecraft/api/sync/duplex.ts"
         }
       },
       {
         "aspect": "org-halt-serve-bind-refusal",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/admission.ts"
+          "path": "platform/services/statecraft/api/factory/admission.ts"
         }
       },
       {
         "aspect": "org-halt-test-lane",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       },
       {
         "aspect": "org-halt-propagation",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/sync/service.ts"
+          "path": "platform/services/statecraft/api/sync/service.ts"
         }
       },
       {

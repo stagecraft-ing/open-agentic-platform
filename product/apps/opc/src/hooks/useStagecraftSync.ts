@@ -1,7 +1,7 @@
 /**
- * WebSocket bridge to Stagecraft sync relay (spec 087 Phase 3).
+ * WebSocket bridge to Statecraft sync relay (spec 087 Phase 3).
  *
- * Connects to `GET /api/sync/events` on Stagecraft and dispatches
+ * Connects to `GET /api/sync/events` on Statecraft and dispatches
  * incoming WorkspaceEvent messages. Handles reconnection with
  * exponential backoff. Provides postOpcEvent() for desktop-to-web sync.
  */
@@ -9,8 +9,8 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import type { WorkspaceEvent, OpcEvent } from "@opc/workspace-sdk";
 
-export interface StagecraftSyncOptions {
-  /** Stagecraft base URL (e.g. "https://stagecraft.example.com"). */
+export interface StatecraftSyncOptions {
+  /** Statecraft base URL (e.g. "https://statecraft.example.com"). */
   baseUrl: string | null;
   /** Auth token for the WebSocket connection. */
   token: string | null;
@@ -20,16 +20,16 @@ export interface StagecraftSyncOptions {
   onEvent?: (event: WorkspaceEvent) => void;
 }
 
-export interface StagecraftSyncState {
+export interface StatecraftSyncState {
   connected: boolean;
-  /** POST an OPC event to Stagecraft. No-op if not configured. */
+  /** POST an OPC event to Statecraft. No-op if not configured. */
   postOpcEvent: (event: OpcEvent) => Promise<void>;
 }
 
 const INITIAL_BACKOFF_MS = 1000;
 const MAX_BACKOFF_MS = 30_000;
 
-export function useStagecraftSync(opts: StagecraftSyncOptions): StagecraftSyncState {
+export function useStatecraftSync(opts: StatecraftSyncOptions): StatecraftSyncState {
   const { baseUrl, token, orgId, onEvent } = opts;
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);

@@ -51,7 +51,7 @@ refines:
   # cross-repo closing leg and carry no in-OAP authority target. The in-OAP
   # anchors below are the live production surfaces this spec refines:
   #   * born-with-kernel-completeness: the fail-closed assertion FR-002 adds to
-  #     the stagecraft TypeScript Create flow, honouring spec 167 §2.4/§7 (the
+  #     the statecraft TypeScript Create flow, honouring spec 167 §2.4/§7 (the
   #     engine `emit_project_kernel` auto-fire stays deliberately unwired to
   #     avoid double-emit).
   #   * vended-binary-integrity: under the npm shape this is npm-pin
@@ -63,7 +63,7 @@ refines:
   #     emit.rs threads the new `spec_spine_version` field (set to None: the
   #     non-npm path carries no npm pin).
   - aspect: "born-with-kernel-completeness"
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/perRequestScaffold.ts }
   - aspect: "vended-binary-integrity"
     unit: { kind: file, path: crates/factory-engine/src/kernel_emission/version.rs }
   - aspect: "kernel-version-field-propagation"
@@ -154,7 +154,7 @@ itself.
   Per-CI-platform templates beyond GitHub Actions remain the spec 167
   deferral they already are.
 - **FR-002: Born-with kernel completeness (fail-closed). [Delivered, PR #366.]**
-  The live project-creation flow (stagecraft's TypeScript Create path,
+  The live project-creation flow (statecraft's TypeScript Create path,
   `perRequestScaffold.ts`) writes the `.kernel-version` stamp and then
   asserts it is present and complete (parses, with a non-empty
   `spec_spine_version` and adapter identity) before creation completes; a

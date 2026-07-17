@@ -16,22 +16,22 @@ depends_on:
   - "087-unified-workspace-architecture"  # unified-workspace-architecture (Phase 5 session model)
 code_aliases: ["RAUTHY_OIDC_NATIVE", "A2C_MEMBERSHIP"]
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/auth/membershipResolver.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/auth/membershipResolver.ts }
 references:
   - role: historical
-    unit: { kind: file, path: platform/services/stagecraft/api/auth/rauthySeed.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/auth/rauthySeed.ts }
   - unit: { kind: file, path: platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml }
   - unit: { kind: file, path: platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml }
 extends:
   - spec: "080-github-identity-onboarding"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/auth/rauthy.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/auth/rauthy.ts }
   - spec: "080-github-identity-onboarding"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/auth/rauthyCallback.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/auth/rauthyCallback.ts }
   - spec: "080-github-identity-onboarding"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/signin.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/signin.tsx }
   - spec: "087-unified-workspace-architecture"
     nature: additive
     unit: { kind: directory, path: platform/charts/rauthy }
@@ -43,7 +43,7 @@ extends:
     unit: { kind: file, path: platform/infra/hetzner/.env.example }
 summary: >
   Close the implementation gap between spec 080's design and what actually
-  shipped. Move GitHub from stagecraft-direct OAuth to Rauthy's upstream IDP,
+  shipped. Move GitHub from statecraft-direct OAuth to Rauthy's upstream IDP,
   remove the imaginary admin-mint JWT endpoint, drive custom claims through
   Rauthy's scope + user-attribute model, and resolve org memberships through
   a layered strategy — GitHub App installation token first, per-user PAT
@@ -74,7 +74,7 @@ violates both of those contracts:
 
 3. **Membership resolution uses the user's GitHub OAuth token**, contradicting
    080's Principle 4 ("use App installation token"). This tightly couples
-   login to the user having an active GitHub OAuth session with stagecraft
+   login to the user having an active GitHub OAuth session with statecraft
    as a direct OAuth client — which it should not be once Rauthy owns login.
 
 4. **Rauthy is not configured as a federated login for GitHub.** Spec 080
@@ -90,17 +90,17 @@ pathway is unreachable.
 
 This spec specifies the correct architecture, chosen after confirming
 feasibility against Rauthy 0.35 source: Rauthy handles GitHub login natively
-as an upstream IDP, stagecraft writes custom user attributes via the real
+as an upstream IDP, statecraft writes custom user attributes via the real
 admin API, the `oap` custom scope maps those attributes into JWTs, and the
 standard OIDC `/authorize` + `/oidc/token` flow is the only code path that
 mints sessions.
 
 Because Rauthy 0.35 does **not** forward the upstream GitHub access token to
 downstream clients (`src/data/src/entity/auth_providers.rs:706-831`),
-stagecraft cannot piggyback on Rauthy's GitHub login to read org memberships.
+statecraft cannot piggyback on Rauthy's GitHub login to read org memberships.
 Memberships must be resolved through a separate channel. Spec 080's Principle
 4 (installation token) is the first-choice channel. A user-provided PAT is
-the documented fallback, because some orgs will not install the stagecraft
+the documented fallback, because some orgs will not install the statecraft
 GitHub App and those users still need to log in.
 
 ## 2. Design Principles
@@ -116,25 +116,25 @@ GitHub App and those users still need to log in.
    as Rauthy user attributes and mapped into the `oap` custom scope. No
    per-request claim injection.
 
-3. **Seeding is idempotent and runs on stagecraft startup.** Custom
+3. **Seeding is idempotent and runs on statecraft startup.** Custom
    attributes, the `oap` scope, and the client-scope grant are ensured on
    every boot. This keeps new deployments and individual-operator setups
-   self-configuring. Failures are loud (stagecraft refuses to start).
+   self-configuring. Failures are loud (statecraft refuses to start).
 
 4. **GitHub is an upstream IDP for Rauthy, not an OAuth client of
-   stagecraft.** Stagecraft drops its direct GitHub OAuth App role for
+   statecraft.** Statecraft drops its direct GitHub OAuth App role for
    login. The GitHub App (server-to-server) continues to handle webhooks,
    PR previews, and — per Principle 5 below — membership reads.
 
 5. **Membership is resolved through a strategy chain, App-first, PAT-second.**
    The default path uses a per-installation GitHub App token (Principle 4 of
-   spec 080). When no installation covers the user's orgs, stagecraft uses
+   spec 080). When no installation covers the user's orgs, statecraft uses
    the user's stored Personal Access Token. When neither yields a matching
    installed org, the user is redirected to `/auth/no-org` as today.
 
 6. **PAT is a first-class escape hatch, not a temporary hack.** It is
    encrypted at rest, scoped, rotated, and audited. It is the documented
-   path for operators whose orgs will not install the stagecraft GitHub
+   path for operators whose orgs will not install the statecraft GitHub
    App — which is known to occur in practice.
 
 ## 3. Architecture
@@ -142,7 +142,7 @@ GitHub App and those users still need to log in.
 ### 3.1 Session mint path (one path only)
 
 ```
-OPC / Web                 Stagecraft             Rauthy              GitHub
+OPC / Web                 Statecraft             Rauthy              GitHub
    │                          │                    │                   │
    │  /auth/desktop/authorize │                    │                   │
    ├─────────────────────────►│                    │                   │
@@ -160,7 +160,7 @@ OPC / Web                 Stagecraft             Rauthy              GitHub
    │                          │                    │  (github_login,   │
    │                          │                    │   email, avatar)  │
    │                          │                    │                   │
-   │  302 to stagecraft cb    │                    │                   │
+   │  302 to statecraft cb    │                    │                   │
    │  ◄───────────────────────┼────────────────────┤                   │
    │                          │                    │                   │
    │  code=...                │                    │                   │
@@ -173,7 +173,7 @@ OPC / Web                 Stagecraft             Rauthy              GitHub
    │                          │  only; no oap_*    │                   │
    │                          │  yet)              │                   │
    │                          │                    │                   │
-   │  (Stagecraft resolves memberships via A2c strategy, writes        │
+   │  (Statecraft resolves memberships via A2c strategy, writes        │
    │   oap_* user attributes via /auth/v1/users/{id}/attr)             │
    │                          │                    │                   │
    │                          │  refresh_token     │                   │
@@ -213,15 +213,15 @@ on empty — an org without the app might be reachable via PAT.
 
 | Credential | Holder | Purpose | Blast radius |
 |---|---|---|---|
-| Rauthy admin API key (`RAUTHY_ADMIN_TOKEN`) | Stagecraft service secret | Create users, write custom attrs, revoke sessions | Full Rauthy tenant |
-| GitHub App installation token | Stagecraft (fetched per-call, short-lived) | Read installed-org memberships | The installed org only |
-| User PAT | Stagecraft encrypted at rest | Read user's orgs/memberships | User's GitHub authority (scoped by PAT) |
-| Rauthy client secret (`RAUTHY_CLIENT_SECRET`) | Stagecraft service secret | OIDC code → token exchange | Stagecraft-as-client only |
+| Rauthy admin API key (`RAUTHY_ADMIN_TOKEN`) | Statecraft service secret | Create users, write custom attrs, revoke sessions | Full Rauthy tenant |
+| GitHub App installation token | Statecraft (fetched per-call, short-lived) | Read installed-org memberships | The installed org only |
+| User PAT | Statecraft encrypted at rest | Read user's orgs/memberships | User's GitHub authority (scoped by PAT) |
+| Rauthy client secret (`RAUTHY_CLIENT_SECRET`) | Statecraft service secret | OIDC code → token exchange | Statecraft-as-client only |
 | GitHub upstream OAuth App secret | Rauthy only | Rauthy's upstream login with GitHub | Rauthy's GitHub integration only |
 
 Note that the GitHub OAuth App secret that currently lives in
-`stagecraft-api-secrets` (`GITHUB_OAUTH_CLIENT_ID` / `GITHUB_OAUTH_CLIENT_SECRET`)
-moves to Rauthy's secret store and is rotated. Stagecraft no longer holds it.
+`statecraft-api-secrets` (`GITHUB_OAUTH_CLIENT_ID` / `GITHUB_OAUTH_CLIENT_SECRET`)
+moves to Rauthy's secret store and is rotated. Statecraft no longer holds it.
 
 ## 4. Functional Requirements
 
@@ -240,28 +240,28 @@ spec 080 Phase 4 and do not provision anything. They render nothing when
 `upstreamProviders: []` and are removed in the FR-002 implementation PR.
 
 The canonical GitHub upstream-provider shape is instead declared as the
-stagecraft seeder's input (FR-002):
+statecraft seeder's input (FR-002):
 
 - `name: "github"` (Rauthy provider `name` acts as stable identifier)
 - `typ: "github"` (Rauthy 0.35 ships a GitHub-specific adapter — see
   `src/data/src/entity/auth_providers.rs:706-831` for the private-email
   fetch and `:826-828` for the GitHub branch)
-- `client_id` → stagecraft env var `GITHUB_UPSTREAM_CLIENT_ID`
-- `client_secret` → stagecraft env var `GITHUB_UPSTREAM_CLIENT_SECRET`
-  (referenced from `stagecraft-api-secrets`, AES-sealed in KeyVault)
+- `client_id` → statecraft env var `GITHUB_UPSTREAM_CLIENT_ID`
+- `client_secret` → statecraft env var `GITHUB_UPSTREAM_CLIENT_SECRET`
+  (referenced from `statecraft-api-secrets`, AES-sealed in KeyVault)
 - `scope: "read:user user:email"`
 - `root_pem`: omitted (public CA)
 - Rauthy callback URL to register with the GitHub OAuth App:
   `https://<rauthy-host>/auth/v1/providers/callback`
 
 A new GitHub OAuth App is registered against Rauthy's callback URL.
-Its credentials land in `stagecraft-api-secrets` as the two env vars
+Its credentials land in `statecraft-api-secrets` as the two env vars
 above. The existing `GITHUB_OAUTH_CLIENT_ID` / `GITHUB_OAUTH_CLIENT_SECRET`
 secrets are deleted after the cutover per FR-008.
 
-### FR-002: Idempotent Rauthy seeder on stagecraft startup
+### FR-002: Idempotent Rauthy seeder on statecraft startup
 
-A new module `api/auth/rauthySeed.ts` runs inside stagecraft's service-init
+A new module `api/auth/rauthySeed.ts` runs inside statecraft's service-init
 path. It:
 
 1. Ensures the **GitHub upstream auth provider** exists. `GET /auth/v1/providers`
@@ -280,7 +280,7 @@ path. It:
    `platform_role`.
 3. Ensures the custom scope `oap` exists and maps the attributes above into
    both access and ID tokens (`attr_include_access` and `attr_include_id`).
-4. Ensures the stagecraft OIDC client is allow-listed to request scope `oap`.
+4. Ensures the statecraft OIDC client is allow-listed to request scope `oap`.
 5. Ensures the OPC OIDC client is allow-listed to request scope `oap`.
 
 As part of this PR, the dormant chart plumbing identified in FR-001 is
@@ -291,7 +291,7 @@ removed: the `[[upstream_auth_provider]]` block in
 `upstreamProviders` sample in `values.yaml`. The chart no longer pretends
 to own provider config — the seeder does.
 
-Any non-2xx / non-409 response aborts stagecraft startup with a clear
+Any non-2xx / non-409 response aborts statecraft startup with a clear
 operator-facing log message. Seeder calls use `Authorization: API-Key` with
 `RAUTHY_ADMIN_TOKEN`. The seeder ships behind no feature flag — it is a
 hard precondition.
@@ -317,14 +317,14 @@ hard precondition.
 
 ### FR-004: Rewritten login callback
 
-Stagecraft adds `api/auth/rauthyCallback.ts` which handles
+Statecraft adds `api/auth/rauthyCallback.ts` which handles
 `GET /auth/rauthy/callback` (web) and routes desktop flows through the same
 path as today.
 
 1. Exchange `code` for JWT #1 via `exchangeCodeForTokens`.
 2. Read `github_login` from the JWT's top-level claims (Rauthy already
    populates this from the upstream IDP). Do not assume `oap_*` claims yet.
-3. Find or create the stagecraft `users` row keyed by `rauthy_user_id`
+3. Find or create the statecraft `users` row keyed by `rauthy_user_id`
    (the JWT `sub`). Link `github_user_id` and `github_login`.
 4. Call `resolveMembership(github_login, userId)` — see FR-005.
 5. If 0 matches: redirect to `/auth/no-org`.
@@ -411,7 +411,7 @@ CREATE TABLE user_github_pats (
 ```
 
 Encryption key: new secret `PAT_ENCRYPTION_KEY` (32 random bytes, base64),
-added to `stagecraft-api-secrets`. AES-256-GCM. Never re-used across tokens
+added to `statecraft-api-secrets`. AES-256-GCM. Never re-used across tokens
 (nonce stored per-row).
 
 Endpoints (all `auth: true`, user-scoped):
@@ -442,14 +442,14 @@ Error codes added to the callback vocabulary:
 Web: new route `/settings/github-pat` — shows prefix, last-used, scopes,
 SAML status per org. Actions: paste/replace, revoke, revalidate.
 
-Desktop: equivalent screen in OPC settings, invoking stagecraft's PAT
+Desktop: equivalent screen in OPC settings, invoking statecraft's PAT
 endpoints through the authenticated channel.
 
-### FR-008: Removal of direct-GitHub OAuth from stagecraft
+### FR-008: Removal of direct-GitHub OAuth from statecraft
 
-After cutover, stagecraft's `/auth/github` and `/auth/github/callback`
+After cutover, statecraft's `/auth/github` and `/auth/github/callback`
 routes are removed. The `githubOAuthClientId` and `githubOAuthClientSecret`
-secrets are removed from `stagecraft-api-secrets`. The `desktop-state.ts`
+secrets are removed from `statecraft-api-secrets`. The `desktop-state.ts`
 flow is rerouted to Rauthy (see FR-004 flow diagram).
 
 Kept: `api/github/` which handles webhooks, installations, and app-level
@@ -458,11 +458,11 @@ user OAuth.
 
 ## 5. Non-Functional Requirements
 
-- **NFR-001** Rauthy seeder must complete within 2s of stagecraft start on
+- **NFR-001** Rauthy seeder must complete within 2s of statecraft start on
   a healthy Rauthy; failure aborts startup (fail-loud).
 - **NFR-002** PAT storage: AES-256-GCM; key in K8s secret; never logged.
 - **NFR-003** PAT validation latency on login: p95 < 1s per org checked.
-- **NFR-004** All cross-service calls (stagecraft → Rauthy, stagecraft →
+- **NFR-004** All cross-service calls (statecraft → Rauthy, statecraft →
   GitHub) use typed request wrappers that structured-log the non-sensitive
   request metadata on failure (uses `errorForLog` helper).
 - **NFR-005** No secret values are ever included in log lines, even on
@@ -473,7 +473,7 @@ user OAuth.
 
 | Risk | Mitigation |
 |---|---|
-| PAT exfiltration via compromised stagecraft pod | AES-GCM with K8s secret key; pod-scoped service account; no app-level DB admin; audit-log every PAT read |
+| PAT exfiltration via compromised statecraft pod | AES-GCM with K8s secret key; pod-scoped service account; no app-level DB admin; audit-log every PAT read |
 | Classic-PAT overreach (read:org implies a lot) | UI nudges toward fine-grained; `is_fine_grained` surfaced in settings; operator doc recommends fine-grained with `read:org` on specific orgs |
 | Long-lived PAT after user leaves org | Weekly revalidation; admin session-revoke (spec 080 FR-026) also clears PATs |
 | Rauthy admin token compromise | Seeded on startup is idempotent and read-mostly after seeding; rotate admin token in-place; no token in code or logs |
@@ -487,12 +487,12 @@ user OAuth.
    - Register the new GitHub OAuth App for Rauthy. Callback URL:
      `https://<rauthy-host>/auth/v1/providers/callback`.
    - Seal `GITHUB_UPSTREAM_CLIENT_ID` / `GITHUB_UPSTREAM_CLIENT_SECRET`
-     into KeyVault-backed `stagecraft-api-secrets`.
+     into KeyVault-backed `statecraft-api-secrets`.
    - Helm-upgrade the Rauthy chart. No chart-values change is required
      for the provider — FR-001's amendment moved provisioning off the
      chart (the former `upstreamProviders` plumbing is removed as part
      of FR-002's PR).
-   - Deploy stagecraft with: seeder active (creates the upstream
+   - Deploy statecraft with: seeder active (creates the upstream
      provider on first boot, then the scope/attrs/client grants), new
      `/auth/rauthy/callback` route, new membership resolver, PAT
      endpoints, both old and new login entry points live.
@@ -524,12 +524,12 @@ replace them. Specifically:
   version violated 080 Principle 4. This spec's strategy-chain resolver
   honours Principle 4 and adds PAT as the documented fallback.
 - 087 Phase 5: **amended.** The "Rauthy signs every session JWT" intent is
-  preserved. The "stagecraft calls admin endpoint to mint JWT" implementation
+  preserved. The "statecraft calls admin endpoint to mint JWT" implementation
   is removed. Claims flow through scope-mapped attributes instead.
 
 ## 9. Open Questions
 
-- **Q1. RESOLVED (2026-04-17).** The stagecraft GitHub App manifest grants
+- **Q1. RESOLVED (2026-04-17).** The statecraft GitHub App manifest grants
   `Organization permissions: Members: Read and write` and
   `Administration: Read-only`. Installation-token membership reads work
   without any manifest change; existing installations do **not** need to
@@ -538,7 +538,7 @@ replace them. Specifically:
   Account permissions include `Email addresses: Read-only`, which lets
   Rauthy's upstream GitHub OAuth pull verified email without an explicit
   `user:email` scope.
-- **Q2.** Should PAT re-validation run inside stagecraft's process or as a
+- **Q2.** Should PAT re-validation run inside statecraft's process or as a
   deployd-api cron? Current proposal is in-process; revisit if PAT volume
   grows beyond ~10k.
 - **Q3.** Rauthy 0.35 custom-scope attribute mapping exact config shape for
@@ -568,7 +568,7 @@ webhooks are a fast-path for revocation. The webhook handler lives in
 
 ### Seeder
 - [ ] Cold start: seeder creates the GitHub upstream provider, all 9
-      attributes, the `oap` scope, and grants it to stagecraft + OPC
+      attributes, the `oap` scope, and grants it to statecraft + OPC
       clients.
 - [ ] Warm start: seeder is idempotent; no duplicate writes and no
       provider mutation when env vars match the stored config.
@@ -832,6 +832,6 @@ Recorded during the cross-subsystem security-hardening sweep; couples the securi
 
 ## M2M subject-claim amendment (2026-07-09)
 
-Enabled `CLIENT_CREDENTIALS_MAP_SUB` on the rauthy StatefulSet, via a new `access.clientCredentialsMapSub` chart value (default `true`). Rauthy's `client_credentials` grant sets the `sub` claim to `None` by default because that grant has no end-user subject, but `deployd-api`'s owner-bind guard rejects any bearer token without a `sub` ("token missing subject claim"). Every stagecraft machine-to-machine deploy dispatch therefore failed. Mapping `sub = <client id>` onto M2M tokens satisfies the guard. The flag is available in Rauthy >= 0.34.0 (the chart image is 0.35.0).
+Enabled `CLIENT_CREDENTIALS_MAP_SUB` on the rauthy StatefulSet, via a new `access.clientCredentialsMapSub` chart value (default `true`). Rauthy's `client_credentials` grant sets the `sub` claim to `None` by default because that grant has no end-user subject, but `deployd-api`'s owner-bind guard rejects any bearer token without a `sub` ("token missing subject claim"). Every statecraft machine-to-machine deploy dispatch therefore failed. Mapping `sub = <client id>` onto M2M tokens satisfies the guard. The flag is available in Rauthy >= 0.34.0 (the chart image is 0.35.0).
 
 Couples the chart change in the paths this spec authors to their owning spec per the spec 127 coupling gate.

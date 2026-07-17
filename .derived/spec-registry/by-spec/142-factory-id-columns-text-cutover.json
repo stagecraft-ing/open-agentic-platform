@@ -17,7 +17,7 @@
         "spec": "139-factory-artifact-substrate",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/schema.ts"
+          "path": "platform/services/statecraft/api/db/schema.ts"
         }
       },
       {
@@ -25,7 +25,7 @@
         "spec": "139-factory-artifact-substrate",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/vite.config.ts"
+          "path": "platform/services/statecraft/vite.config.ts"
         }
       }
     ],

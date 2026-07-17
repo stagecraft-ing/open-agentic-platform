@@ -1,8 +1,8 @@
-# Factory System Current-State Map: factory-encore + template-encore + stagecraft
+# Factory System Current-State Map: factory-encore + template-encore + statecraft
 
 > **Date:** 2026-06-27. **Scope:** the full factory pathway across three repos
-> (`stagecraft-ing/factory-encore`, `stagecraft-ing/template-encore`, and the
-> stagecraft service in this repo) for three flows: **sync**, **create
+> (`statecrafting/factory-encore`, `statecrafting/template-encore`, and the
+> statecraft service in this repo) for three flows: **sync**, **create
 > project**, and **module selection**.
 >
 > **Purpose:** a single ground-truth inventory of what the system *is* today,
@@ -36,7 +36,7 @@ gates.
 
 1. **Modules are declared in four places; the generator honours none of
    them.** `scaffold.modules`, `scaffold.profiles[].modules` (both in the
-   factory-encore manifest), and stagecraft's hardcoded `moduleCatalog.ts`
+   factory-encore manifest), and statecraft's hardcoded `moduleCatalog.ts`
    all encode "which modules exist / which profile ships which module." The
    real source is the adapter's `modules/` directory. The generator
    (`setup-app.ts`) reads none of the profile-module declarations: it
@@ -86,12 +86,12 @@ runtime**. The intended boundary:
 |---|---|---|---|
 | **factory-encore** | the **generator home** + governance content | `adapters/acme-vue-encore/{scripts,modules,orchestration}/`, `contract/schemas/`, `process/`, the adapter `manifest.yaml` | create-time; stack-specific generator + OAP-authored governance |
 | **template-encore** | the **lean product baseline** | `apps/`, `packages/`, the runnable reference app, `PLACEHOLDERS.md` credential contract | runtime; the app a produced copy *is* |
-| **stagecraft** | the **thin consumer** | sync (mirror upstreams to substrate), admission gate, create-project scaffold, browse UI | the control plane; should consume the manifest, not re-declare it |
+| **statecraft** | the **thin consumer** | sync (mirror upstreams to substrate), admission gate, create-project scaffold, browse UI | the control plane; should consume the manifest, not re-declare it |
 
-The **thin-consumer principle** (spec 199): stagecraft transforms upstream
+The **thin-consumer principle** (spec 199): statecraft transforms upstream
 content only to *enforce* the standard (validate, content-address,
 reconcile), never to *compensate* for a missing standard. Several §4 items
-are violations of exactly this principle: stagecraft re-declaring the module
+are violations of exactly this principle: statecraft re-declaring the module
 catalog, the adapter allowlist, and a categorical "process" shape the
 contract never defined.
 
@@ -192,7 +192,7 @@ The factory contract (`standards/schemas/factory/` canonical, mirrored to
 factory-encore `contract/schemas/`) defines the schemas below. The Rust twins
 live in `crates/factory-contracts/src/`.
 
-| Schema | factory-encore | OAP Rust crate | stagecraft TS | Aligned? |
+| Schema | factory-encore | OAP Rust crate | statecraft TS | Aligned? |
 |---|---|---|---|---|
 | adapter-manifest | 1.1.0 | 1.1.0 (accepts 1.0.0 + 1.1.0) | admits exactly 1.1.0 | yes |
 | build-spec | 1.1.0 | 1.1.0 | not name-validated | yes |
@@ -201,15 +201,15 @@ live in `crates/factory-contracts/src/`.
 | **governance-envelope** | **1.0.0** | **1.1.0** (spec 202) | **requires exactly 1.0.0** | **NO** |
 
 The governance-envelope row is a **live latent break** (§4.7 SEAM-3): OAP's
-Rust crate emits 1.1.0 (spec 202 added `budgets:`), but stagecraft admission
+Rust crate emits 1.1.0 (spec 202 added `budgets:`), but statecraft admission
 rejects anything other than 1.0.0, and factory-encore's process still files
-1.0.0. The current factory-to-stagecraft flow is unblocked only because
+1.0.0. The current factory-to-statecraft flow is unblocked only because
 factory-encore happens to still emit 1.0.0.
 
 There is also **no contract schema for a "process" / "pipeline definition"
 shape**. The categorical `{adapters, contracts, processes}` and
-`"7-stage-build"` shape that older stagecraft code emits is a pure
-stagecraft invention coupled to the retired goa layout (§4.3 / §4.1 item 4).
+`"7-stage-build"` shape that older statecraft code emits is a pure
+statecraft invention coupled to the retired goa layout (§4.3 / §4.1 item 4).
 
 ---
 
@@ -222,12 +222,12 @@ direction. IDs are stable for cross-reference in a remediation plan.
 
 **STRUCT-1: Modules declared in four places; generator honours none.**
 `scaffold.modules` (factory-encore `manifest.yaml:181-184`),
-`scaffold.profiles[].modules` (`manifest.yaml:216-236`), stagecraft
+`scaffold.profiles[].modules` (`manifest.yaml:216-236`), statecraft
 `moduleCatalog.ts` (static), and the real `modules/` directory all describe
 modules. `setup-app.ts:339-344` composes only `--with` flags and ignores
 every profile-module declaration, so `--profile internal` does not ship
 `user-management`. *Direction:* make ONE source authoritative (the manifest
-`profiles[].modules`), have the generator read it, and have stagecraft
+`profiles[].modules`), have the generator read it, and have statecraft
 consume it rather than re-declare it. Delete `scaffold.modules` and
 `moduleCatalog.ts`'s catalog.
 
@@ -276,7 +276,7 @@ still holds under spec 139.
 `countByLegacyKind` (`syncPipeline.ts:103-106`) and the `7-stage-build`
 fixtures (`opcBundle.test.ts:52,165,288`) carry the retired spec 108
 `{adapters, contracts, processes}` shape on the wire. `pipeline-state` schema
-uses open-ended stage keys; the categorical shape is a stagecraft invention.
+uses open-ended stage keys; the categorical shape is a statecraft invention.
 *Direction:* either define a contract schema for a process/pipeline shape, or
 serve substrate rows by `kind` and drop the categorical projection.
 
@@ -285,8 +285,8 @@ serve substrate rows by `kind` and drop the categorical projection.
 | ID | Location | Why wrong | Direction |
 |---|---|---|---|
 | DSOT-1 | factory-encore `manifest.yaml:181-184` vs `:230` | `scaffold.modules.single-internal` and `profiles[internal].modules` encode the same `[user-management]` twice; no check they agree | keep `profiles[].modules`, drop `scaffold.modules` |
-| DSOT-2 | stagecraft `moduleCatalog.ts` (whole file) | static snapshot of factory-encore `modules/`; silently drifts on any upstream module change | read modules from substrate/manifest at runtime; delete static file |
-| DSOT-3 | stagecraft `repoInit.ts:146` | `VALID_ADAPTERS` static set duplicates governance-gate authority | derive from admitted manifest rows |
+| DSOT-2 | statecraft `moduleCatalog.ts` (whole file) | static snapshot of factory-encore `modules/`; silently drifts on any upstream module change | read modules from substrate/manifest at runtime; delete static file |
+| DSOT-3 | statecraft `repoInit.ts:146` | `VALID_ADAPTERS` static set duplicates governance-gate authority | derive from admitted manifest rows |
 
 ### 4.3 Declared but never implemented
 
@@ -304,20 +304,20 @@ Canonical adapter name is **acme-vue-encore**. Cross-repo name table:
 |---|---|---|
 | `acme-vue-encore` | all three repos, active paths | canonical |
 | `template-encore` / `factory-encore` | repo names | correct (repo, not adapter id) |
-| `acme-vue-node` | factory-encore `adapter-manifest.schema.yaml:32-33` (comment); stagecraft `factory-project-detect/src/lib.rs:292,299`, migration-38 test constant | dead residue (live in comments/fixtures) |
-| `aim-vue-node` / `goa-software-factory` / `GovAlta-Pronghorn` | stagecraft migrations 36-38 + tests | migration history (immutable, OK) |
-| `next-prisma` / `rust-axum` / `encore-react` | stagecraft `relay.test.ts`, `translator.test.ts:267`, `adapter_registry.rs:450-487` | retired example adapters (dead fixtures) |
-| `legacy-factory` | stagecraft web placeholders, conflict/artifact/substrate test fixtures, `import.ts:379` user error | misleading residue |
+| `acme-vue-node` | factory-encore `adapter-manifest.schema.yaml:32-33` (comment); statecraft `factory-project-detect/src/lib.rs:292,299`, migration-38 test constant | dead residue (live in comments/fixtures) |
+| `aim-vue-node` / `goa-software-factory` / `GovAlta-Pronghorn` | statecraft migrations 36-38 + tests | migration history (immutable, OK) |
+| `next-prisma` / `rust-axum` / `encore-react` | statecraft `relay.test.ts`, `translator.test.ts:267`, `adapter_registry.rs:450-487` | retired example adapters (dead fixtures) |
+| `legacy-factory` | statecraft web placeholders, conflict/artifact/substrate test fixtures, `import.ts:379` user error | misleading residue |
 
 Live-misalignment naming items (worth fixing):
 
 | ID | Location | Why wrong | Direction |
 |---|---|---|---|
-| NAME-1 | stagecraft `Makefile:649` | clone URL `Stagecraft-ing/factory.git` (old repo) | point at `factory-encore` (or read `UPSTREAM_FACTORY_SOURCE`) |
-| NAME-2 | web `app.factory._index.tsx:131,139,153`, `app.factory.upstreams.tsx:171` | UI placeholders show `Stagecraft-ing/legacy-factory` / `Stagecraft-ing/template`; `"(acme-vue-encore today)"` inline status | update placeholders; enumerate adapters from substrate |
+| NAME-1 | statecraft `Makefile:649` | clone URL `statecrafting/factory.git` (old repo) | point at `factory-encore` (or read `UPSTREAM_FACTORY_SOURCE`) |
+| NAME-2 | web `app.factory._index.tsx:131,139,153`, `app.factory.upstreams.tsx:171` | UI placeholders show `statecrafting/legacy-factory` / `statecrafting/template`; `"(acme-vue-encore today)"` inline status | update placeholders; enumerate adapters from substrate |
 | NAME-3 | factory-encore `adapter-manifest.schema.yaml:32-33` | schema example uses `acme-vue-node` / `ACME Vue+Node Template` | update to acme-vue-encore + real display name |
 | NAME-4 | template-encore `template-json.ts:13` | `templateName` defaults to repo name `template-encore`, not adapter name | default to `acme-vue-encore` or drop the field (identity seam, SEAM-2) |
-| NAME-5 | stagecraft `import.ts:379`, `upstreams.ts:429` | user-facing/error strings say `legacy-factory` / cite retired spec 108 | rephrase to operational language |
+| NAME-5 | statecraft `import.ts:379`, `upstreams.ts:429` | user-facing/error strings say `legacy-factory` / cite retired spec 108 | rephrase to operational language |
 
 ### 4.5 Stale comments referencing deleted concepts
 
@@ -344,7 +344,7 @@ to legacy tables. Many comments still describe them.
 
 | ID | Location | Why dead | Direction |
 |---|---|---|---|
-| DEAD-1 | stagecraft `translator.ts:39-40` | `TEMPLATE_EXCLUDES` for `modules/` + `scripts/` never fire (gone from template) | delete predicates |
+| DEAD-1 | statecraft `translator.ts:39-40` | `TEMPLATE_EXCLUDES` for `modules/` + `scripts/` never fire (gone from template) | delete predicates |
 | DEAD-2 | `integration_078_e2e.rs` (whole file) | guards on `adapters/acme-vue-node` in a non-existent in-tree `factory/`; always skips | delete; open fixture spec if coverage wanted |
 | DEAD-3 | `preflight.rs:440-458` | `../factory/adapters/acme-vue-node` existence-guarded; always skips | delete or add committed fixture |
 | DEAD-4 | `validation.rs:648-706` | references non-existent `../../factory/contract/examples/acme-vue-node...yaml` | delete or commit fixture |
@@ -366,7 +366,7 @@ to legacy tables. Many comments still describe them.
 
 | ID | Location | Duplication | Direction |
 |---|---|---|---|
-| DUP-1 | stagecraft `synthesiseId` copied in `runs.ts:38`, `create.ts:580`, `import.ts:905`, `opcBundle.ts:570` (canonical `browse.ts:376`) | 4 verbatim copies with "must match browse.ts" comments | import from `browse.ts` or a shared `factory/ids.ts` |
+| DUP-1 | statecraft `synthesiseId` copied in `runs.ts:38`, `create.ts:580`, `import.ts:905`, `opcBundle.ts:570` (canonical `browse.ts:376`) | 4 verbatim copies with "must match browse.ts" comments | import from `browse.ts` or a shared `factory/ids.ts` |
 | DUP-2 | factory-encore `parseSingleFlag` + `confirm` in both generators (= STRUCT-2) | verbatim copy-paste | extract to `scripts/lib/cli-utils.ts` |
 
 ### 4.9 Open behavioural questions (owner to confirm)
@@ -392,7 +392,7 @@ The ~70 items cluster into a small number of work-streams. Rough grouping
 (the owner sequences):
 
 1. **Make the manifest the single module authority.** Resolves STRUCT-1,
-   DSOT-1, DSOT-2, NIMP-3. Generator reads `profiles[].modules`; stagecraft
+   DSOT-1, DSOT-2, NIMP-3. Generator reads `profiles[].modules`; statecraft
    consumes the manifest/substrate; delete `scaffold.modules` and the static
    `moduleCatalog.ts`. Needs a small factory-encore spec edit + the spec 112
    warmup work (already amended).

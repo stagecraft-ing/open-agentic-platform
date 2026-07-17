@@ -7,39 +7,39 @@
     ],
     "implementingPaths": [
       {
-        "path": "platform/services/stagecraft/api/factory/factory.ts",
+        "path": "platform/services/statecraft/api/factory/factory.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/syncRuns.ts",
+        "path": "platform/services/statecraft/api/factory/syncRuns.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/syncRunsScheduler.ts",
+        "path": "platform/services/statecraft/api/factory/syncRunsScheduler.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/syncWorker.ts",
+        "path": "platform/services/statecraft/api/factory/syncWorker.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/tokenResolver.ts",
+        "path": "platform/services/statecraft/api/factory/tokenResolver.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/factory/upstreamPat.ts",
+        "path": "platform/services/statecraft/api/factory/upstreamPat.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/projects/projectPat.ts",
+        "path": "platform/services/statecraft/api/projects/projectPat.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app.factory.upstreams.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app.factory.upstreams.tsx",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.github-pat.tsx",
+        "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.settings.github-pat.tsx",
         "source": "spec-edge"
       }
     ],
@@ -47,118 +47,118 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/syncRuns.ts"
+            "file": "platform/services/statecraft/api/factory/syncRuns.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/syncRuns.ts"
+          "path": "platform/services/statecraft/api/factory/syncRuns.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/syncRunsScheduler.ts"
+            "file": "platform/services/statecraft/api/factory/syncRunsScheduler.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/syncRunsScheduler.ts"
+          "path": "platform/services/statecraft/api/factory/syncRunsScheduler.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/syncWorker.ts"
+            "file": "platform/services/statecraft/api/factory/syncWorker.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/syncWorker.ts"
+          "path": "platform/services/statecraft/api/factory/syncWorker.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/tokenResolver.ts"
+            "file": "platform/services/statecraft/api/factory/tokenResolver.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/tokenResolver.ts"
+          "path": "platform/services/statecraft/api/factory/tokenResolver.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/upstreamPat.ts"
+            "file": "platform/services/statecraft/api/factory/upstreamPat.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/upstreamPat.ts"
+          "path": "platform/services/statecraft/api/factory/upstreamPat.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/projects/projectPat.ts"
+            "file": "platform/services/statecraft/api/projects/projectPat.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/projects/projectPat.ts"
+          "path": "platform/services/statecraft/api/projects/projectPat.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/factory/factory.ts"
+            "file": "platform/services/statecraft/api/factory/factory.ts"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/factory.ts"
+          "path": "platform/services/statecraft/api/factory/factory.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app.factory.upstreams.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app.factory.upstreams.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.factory.upstreams.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.factory.upstreams.tsx"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.github-pat.tsx"
+            "file": "platform/services/statecraft/web/app/routes/app.project.$projectId.settings.github-pat.tsx"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.github-pat.tsx"
+          "path": "platform/services/statecraft/web/app/routes/app.project.$projectId.settings.github-pat.tsx"
         }
       }
     ],

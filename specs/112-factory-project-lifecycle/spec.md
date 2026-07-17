@@ -14,12 +14,12 @@ amendment_record: |
   whose template.json genuinely carries that name, and the ACP-precedence
   test's decoy marker now differs from the ACP adapter name, making its
   provenance assertion meaningful. No detection behavior change.
-  138-stagecraft-create-realised-scaffold (2026-05-04).
+  138-statecraft-create-realised-scaffold (2026-05-04).
   self-amended (2026-06-05) — §6.3 Open-in-OPC handoff refined: the
-  stagecraft web-UI "Open in OPC" button now resolves its deep link via a
+  statecraft web-UI "Open in OPC" button now resolves its deep link via a
   lightweight GET /api/projects/:id/opc-deep-link endpoint instead of the
   full /opc-bundle, and the project layout route gained a shouldRevalidate
-  guard. Motivated by a stagecraft-api OOMKill — the full bundle minted a
+  guard. Motivated by a statecraft-api OOMKill — the full bundle minted a
   GitHub installation token on every project navigation (React Router v7
   single-fetch revalidation), which stacked with bulk-knowledge-upload
   extraction fan-out at the pod's 1Gi limit. Adds a refines: edge over the
@@ -60,14 +60,14 @@ domain: platform
 summary: >
   Defines the contract-anchored lifecycle for factory-produced projects across
   three entry points: (1) OPC opens a local folder and recognises it as a
-  factory project via ACP pipeline-state conformance; (2) Stagecraft creates
+  factory project via ACP pipeline-state conformance; (2) Statecraft creates
   a new project by scaffolding an adapter and pushing to GitHub; (3)
-  Stagecraft imports an existing GitHub repo and registers it in the
+  Statecraft imports an existing GitHub repo and registers it in the
   workspace. Anchors detection on the ACP contract layer (spec 074) and
   extends the translator (spec 108) to bridge legacy
   `legacy-factory`-shaped manifests. Absorbs the scaffold/push
   capability currently in the external `template-distributor` repo into
-  stagecraft; template-distributor is discontinued as a separate service.
+  statecraft; template-distributor is discontinued as a separate service.
 depends_on:
   - "074-factory-ingestion"  # factory-ingestion (ACP contracts — Build Spec, Adapter Manifest, Pipeline State, Verification)
   - "075-factory-workflow-engine"  # factory-workflow-engine (engine that advances pipeline state)
@@ -75,40 +75,40 @@ depends_on:
   - "094-unified-artifact-store"  # unified-artifact-store (where emitted artifacts land)
   - "108-factory-as-platform-feature"  # factory-as-platform-feature (translator, factory_adapters/contracts/processes tables)
   - "109-factory-pat-and-pubsub-sync"  # factory-pat-and-pubsub-sync (resolveProjectToken, project_github_pats, installation broker)
-  - "110-stagecraft-to-opc-factory-trigger"  # stagecraft-to-opc-factory-trigger (run dispatch envelope)
+  - "110-statecraft-to-opc-factory-trigger"  # statecraft-to-opc-factory-trigger (run dispatch envelope)
   - "111-org-agent-catalog-sync"  # org-agent-catalog-sync (establishes the workspace-scoped sync pattern reused here)
 establishes:
   - unit: { kind: crate, id: factory-project-detect }
-  - unit: { kind: file, path: platform/services/stagecraft/api/projects/create.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/projects/import.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/projects/opcBundle.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/projects/opcBundleHelpers.ts }
-  - unit: { kind: directory, path: platform/services/stagecraft/api/projects/scaffold }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.projects.import.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/api/projects/create.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projects/import.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projects/opcBundle.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/projects/opcBundleHelpers.ts }
+  - unit: { kind: directory, path: platform/services/statecraft/api/projects/scaffold }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.projects.new.tsx }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.projects.import.tsx }
   - unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/factory_project.rs }
   - unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/keychain.rs }
   - unit: { kind: file, path: product/apps/opc/src/routes/factory/ProjectCockpit.tsx }
 extends:
   - spec: "108-factory-as-platform-feature"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/translator.ts }
   - spec: "108-factory-as-platform-feature"
     nature: additive
     unit: { kind: directory, path: standards/schemas/factory }
 refines:
-  # §6.3 amendment (2026-06-05) — the stagecraft web-UI consumer of the
+  # §6.3 amendment (2026-06-05) — the statecraft web-UI consumer of the
   # Open-in-OPC handoff needs only the deep link, not the full bundle. This
   # edge tightens the fetch/revalidation behavior of that handoff aspect
   # across the bundle's own test, the web API-client helper, and the project
   # layout route that renders the "Open in OPC" button. opcBundle.ts itself
   # is already established above.
   - aspect: "open-in-opc-handoff"
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/opcBundle.test.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/opcBundle.test.ts }
   - aspect: "open-in-opc-handoff"
-    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/projects-api.server.ts }
+    unit: { kind: file, path: platform/services/statecraft/web/app/lib/projects-api.server.ts }
   - aspect: "open-in-opc-handoff"
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.project.$projectId.tsx }
 ---
 
 # 112 — Factory Project Lifecycle — Create, Import, Open
@@ -125,9 +125,9 @@ refines:
 
 Two upstream repositories produce every project we Import:
 
-- `Stagecraft-ing/legacy-factory` — the 5-stage AI factory (mirror
+- `statecrafting/legacy-factory` — the 5-stage AI factory (mirror
   of `ACME-OLD/the_factory`).
-- `Stagecraft-ing/template` — the scaffold template the factory writes
+- `statecrafting/template` — the scaffold template the factory writes
   into.
 
 The same two upstreams also feed spec 108's **factory sync** that
@@ -135,7 +135,7 @@ populates the org's `factory_adapters` / `factory_contracts` /
 `factory_processes` rows. Import and ACP are therefore not parallel
 pipelines — they are the same upstream projected twice: once as a
 fully-produced Stage-5 project (the Import target, e.g.
-`Stagecraft-ing/acme-example-portal`),
+`statecrafting/acme-example-portal`),
 once as the Adapters/Contracts/Processes (the modular flow the imported
 project is re-driven through after import). The lifecycle terminus is a
 deployd-api deployment via a future ACP "deploy" stage — out of scope for
@@ -144,7 +144,7 @@ this spec (§11).
 ### 1.1 What none of the prior specs answer
 
 Spec 108 made Factory a first-class platform feature (adapters / contracts /
-processes as stagecraft-owned entities). Spec 110 wired stagecraft-initiated
+processes as statecraft-owned entities). Spec 110 wired statecraft-initiated
 run dispatch to OPC. Spec 111 established the workspace-scoped catalog
 pattern for agents. What none of these specs answer:
 
@@ -158,14 +158,14 @@ Today there are three de-facto paths, none governed:
    in OPC (spec 076) assumes state it cannot detect.
 
 2. **External `template-distributor` service.** A separate Express app in
-   `Stagecraft-ing/template-distributor` provides an ad-hoc web UI for
+   `statecrafting/template-distributor` provides an ad-hoc web UI for
    cloning the `template` repo, applying a profile, creating a GitHub repo,
-   and pushing. It is not integrated with stagecraft — no workspace binding,
+   and pushing. It is not integrated with statecraft — no workspace binding,
    no policy gate, no audit, no adapter identity beyond the copied
    `template.json`.
 
 3. **`legacy-factory` 5-stage pipeline.** The upstream AI factory
-   (`ACME-OLD/the_factory`, mirrored at `Stagecraft-ing/legacy-factory`)
+   (`ACME-OLD/the_factory`, mirrored at `statecrafting/legacy-factory`)
    produces `requirements/` + code directly into a template-scaffolded repo.
    Its output shape — `requirements/audit/factory-manifest.json` (5 stages),
    `requirements/audit/working-state.json`, ad-hoc `requirements/{ui,api}/build-spec.json`
@@ -176,13 +176,13 @@ Symptoms:
 
 - Opening `acme-vendor-onboarding-portal` in OPC shows
   no factory cockpit even though it is a fully-produced factory project.
-- Stagecraft cannot list the projects it owns in a workspace until they are
+- Statecraft cannot list the projects it owns in a workspace until they are
   manually registered.
-- A user cannot click "Import Project" in stagecraft and have the platform
+- A user cannot click "Import Project" in statecraft and have the platform
   detect factory state, bind it to an adapter row, and make it available for
   reconciliation.
 - `template-distributor` duplicates OAuth, workspace context, and org
-  identity that stagecraft already owns, and emits scaffolds that are not
+  identity that statecraft already owns, and emits scaffolds that are not
   ACP-native (no `.factory/pipeline-state.json` seeded at generation time).
 
 ## 2. Decision
@@ -191,17 +191,17 @@ Define a single, contract-anchored lifecycle with three entry points. All
 three converge on the same state representation: a
 `pipeline-state.schema.yaml`-conformant document at
 `<repo-root>/.factory/pipeline-state.json`, with a workspace-scoped
-`projects` / `project_repos` row in stagecraft (spec 108) linking to the
+`projects` / `project_repos` row in statecraft (spec 108) linking to the
 `factory_adapters` and `factory_processes` rows used to produce it.
 
 ### 2.1 Three entry points
 
 1. **OPC Open** — open a local folder; detect via ACP conformance; surface
    the Factory Cockpit if positive.
-2. **Stagecraft Create** — pick an adapter, scaffold a new repo
+2. **Statecraft Create** — pick an adapter, scaffold a new repo
    ACP-natively, push to GitHub, register; OPC claims it when the user
    opens the local checkout.
-3. **Stagecraft Import** — paste a GitHub URL (or pick from App
+3. **Statecraft Import** — paste a GitHub URL (or pick from App
    installation); clone server-side, detect, translate legacy → ACP,
    register; OPC claims it on local open. **Scope bound (MVP):** Import
    accepts only fully-executed legacy projects — `LegacyProduced` with
@@ -217,8 +217,8 @@ three converge on the same state representation: a
 
 The external `template-distributor` service is retired. Its capabilities —
 clone the `template` repo, apply a profile via `template/scripts/setup-*.ts`,
-create a GitHub repo, push — are absorbed into stagecraft under
-`api/projects/scaffold/`. Stagecraft already owns the GitHub App, OAuth
+create a GitHub repo, push — are absorbed into statecraft under
+`api/projects/scaffold/`. Statecraft already owns the GitHub App, OAuth
 flow, org identity, and workspace context this code needs. No new OAuth,
 no new UI.
 
@@ -232,7 +232,7 @@ no new UI.
 
 This file is the single authoritative marker that a directory is a factory
 project. It is committed to the repo (it travels with the code). OPC,
-stagecraft, and the factory engine all read and write it through the
+statecraft, and the factory engine all read and write it through the
 consumer crate (§3.3) — never via ad-hoc JSON parsing (per
 `.claude/rules/governed-artifact-reads.md`).
 
@@ -247,7 +247,7 @@ standards/schemas/factory/
 ```
 
 Schemas are compiled into Rust types with a compile-time `SCHEMA_VERSION`
-const per the existing build-time schema rule. At runtime, stagecraft
+const per the existing build-time schema rule. At runtime, statecraft
 mirrors these schemas into the `factory_contracts` table (spec 108 §3)
 per-org for policy-scoped lookups. The schemas themselves are the source
 of truth; the DB mirror is an org-scoped projection.
@@ -290,14 +290,14 @@ completion status (schema: `completed` with a non-null
 `completedAt`); otherwise `Some(false)`. Detection reports the state
 truthfully; Import enforces the policy gate (§6.2).
 
-The crate is consumed by OPC (via a Tauri command) and by stagecraft (via
+The crate is consumed by OPC (via a Tauri command) and by statecraft (via
 a Node addon or by shelling the crate's CLI bin — see §6.2). Both paths
 read through the crate — no component parses the JSON directly.
 
 ### 3.4 Legacy translation
 
-Legacy detection (L1) routes through stagecraft's existing
-`platform/services/stagecraft/api/factory/translator.ts` (spec 108),
+Legacy detection (L1) routes through statecraft's existing
+`platform/services/statecraft/api/factory/translator.ts` (spec 108),
 extended with:
 
 ```ts
@@ -357,7 +357,7 @@ absent.
 ### 4.1 Detection on folder open
 
 When OPC opens a directory (via existing recents menu, File → Open, or
-workspace sync from stagecraft):
+workspace sync from statecraft):
 
 1. `product/apps/opc/src-tauri/src/commands/factory_project.rs` invokes
    `factory_project_detect.detect(path)` from the crate.
@@ -375,7 +375,7 @@ The cockpit reads pipeline-state (translated for L1) and shows:
   view with a "legacy" badge; the two synthesised stages (`pre-flight`,
   `adapter-handoff`) are marked as such.
 - **Adapter identity** — name + version from `pipeline.adapter`; links to
-  the `factory_adapters` row in stagecraft (via workspace context).
+  the `factory_adapters` row in statecraft (via workspace context).
 - **Drift indicator** — compares `pipeline.build_spec.hash` against the
   current Build Spec on disk (if present) and the adapter `source_sha`
   against the workspace's current adapter version in `factory_adapters`.
@@ -394,7 +394,7 @@ The cockpit reads pipeline-state (translated for L1) and shows:
     (see §4.3); no-op when raw inputs are absent (common for imported
     legacy projects — see §10 risk).
   - *Register with workspace* — if the project is not yet bound to a
-    stagecraft `projects` row, create the binding and dual-write. Edge
+    statecraft `projects` row, create the binding and dual-write. Edge
     case — Import already binds; relevant only for OPC Open of a
     never-imported repo.
 
@@ -403,7 +403,7 @@ The cockpit reads pipeline-state (translated for L1) and shows:
 The existing `.artifacts/extract_artifacts.py` script (raw → extracted)
 is replaced by a Rust binary `crates/factory-artifacts/src/bin/extract.rs`
 (matching the scripts-to-binaries direction of spec 105) and invoked
-**at project birth on stagecraft** (§5.2), not as an OPC pre-flight step.
+**at project birth on statecraft** (§5.2), not as an OPC pre-flight step.
 Rationale: the extractor needs only the uploaded raw documents and
 produces deterministic output; running it at Create time means the
 repo's first commit already contains `.artifacts/extracted/`, so the
@@ -412,7 +412,7 @@ intermediate state.
 
 Storage split:
 
-- **Raw uploads** live in stagecraft's workspace-scoped bucket
+- **Raw uploads** live in statecraft's workspace-scoped bucket
   (audit-durable, re-runnable). Binary originals do not enter git.
 - **Extracted outputs** live in the repo under `.artifacts/extracted/`
   and travel with the code. An `.artifacts/extracted/manifest.json`
@@ -431,12 +431,12 @@ specification is the sole execution target (§11 Non-Goals). Imported
 legacy projects retain their copies as historical artifacts; the engine
 ignores them.
 
-## 5. Stagecraft Create Path
+## 5. Statecraft Create Path
 
-> **Amended 2026-05-04 (record: 138-stagecraft-create-realised-scaffold).**
+> **Amended 2026-05-04 (record: 138-statecraft-create-realised-scaffold).**
 > When the absorbed scaffold subflow landed, four refinements settled
 > details this section had deferred to "the production implementation":
-> (1) the prebuild profile set is stagecraft-owned, not adapter-driven
+> (1) the prebuild profile set is statecraft-owned, not adapter-driven
 > (§5.3 row 2 below + spec 138 §2.1); (2) the Create transaction also
 > inserts an `environments` row (§5.2 step 7 + spec 138 §2.2); (3) the
 > form gates on a new `GET /api/projects/scaffold-readiness` endpoint
@@ -461,7 +461,7 @@ Form fields:
   owner (from the user's App installations; private-by-default).
 - **Seed inputs (optional)** — multifile upload of business documents
   (individual files, or a `.artifacts/raw/`-shaped directory archive).
-  Raw uploads land in the workspace-scoped bucket; stagecraft runs the
+  Raw uploads land in the workspace-scoped bucket; statecraft runs the
   extractor (§4.3) server-side; extracted outputs are written into
   `.artifacts/extracted/` in the generated tree and committed in commit
   #1. Binary originals remain in the bucket, not in git.
@@ -507,7 +507,7 @@ Flow:
    repo, pinned by the `factory_adapters.source_sha` column) and clone
    into a per-request temp dir.
 3. Run the adapter's scaffold entry point with the chosen variant and
-   module profile. **Runtime scope (MVP):** stagecraft executes only
+   module profile. **Runtime scope (MVP):** statecraft executes only
    Node-24 entry points shaped like the `template` repo's
    `scripts/setup-app.ts` / `scripts/setup-dual-app.ts` (see §5.3 for
    the concrete absorbed surface). Adapters declaring a
@@ -516,7 +516,7 @@ Flow:
    scaffolds to OPC over the spec 110 envelope.
 4. **Seed ACP state**: write `.factory/pipeline-state.json` at L0 shape
    per §3.5, with `pipeline.adapter` populated from the `factory_adapters`
-   row. Stagecraft is the sole author of this file; OPC never writes
+   row. Statecraft is the sole author of this file; OPC never writes
    commit #1.
 5. **Extract seed inputs (if any)**: store raw uploads in the
    workspace-scoped bucket, invoke `factory-artifacts extract` against
@@ -526,7 +526,7 @@ Flow:
    extracted files). Raw binaries are **not** written into the repo.
 6. Create the GitHub repo via the org's App installation and push the
    generated tree with a single initial commit. Commit author is the
-   stagecraft service identity; co-author is the user.
+   statecraft service identity; co-author is the user.
 7. Insert rows into `projects`, `project_repos`, `project_members`, and
    `environments` (spec 108) within a single DB transaction. The
    `projects` row carries `factory_adapter_id`; the `environments` row
@@ -552,22 +552,22 @@ already held the truth.
 
 ### 5.3 What is absorbed from template-distributor
 
-Stagecraft's server-side scaffold scope is **exactly** the six operations
+Statecraft's server-side scaffold scope is **exactly** the six operations
 that `template-distributor/src/server.ts` performs today. Line references
 point at the canonical implementation at the time this spec was drafted;
-the absorbing PR rewrites these in stagecraft idioms, it does not import
+the absorbing PR rewrites these in statecraft idioms, it does not import
 the code.
 
-| # | Template-distributor capability | Reference | Lands in stagecraft as |
+| # | Template-distributor capability | Reference | Lands in statecraft as |
 |---|---|---|---|
 | 1 | Template cache clone + `npm install` + upstream-SHA refresh | `ensureTemplateCache`, server.ts:329-375 | `api/projects/scaffold/templateCache.ts` (per-workspace cache, keyed on `factory_adapters.source_sha`) |
-| 2 | Profile prebuilds (minimal/public/internal/dual) | `ensurePrebuilts`, server.ts:377-446 | `api/projects/scaffold/templateCache.ts` (warm-on-startup; profile set is **stagecraft-owned**, mirroring template-distributor's hardcoded set in `moduleCatalog.ts` — amends 2026-05-04 per spec 138 §2.1. Manifest §8 `scaffold.profiles` remains forward-compat for non-template adapters) |
+| 2 | Profile prebuilds (minimal/public/internal/dual) | `ensurePrebuilts`, server.ts:377-446 | `api/projects/scaffold/templateCache.ts` (warm-on-startup; profile set is **statecraft-owned**, mirroring template-distributor's hardcoded set in `moduleCatalog.ts` — amends 2026-05-04 per spec 138 §2.1. Manifest §8 `scaffold.profiles` remains forward-compat for non-template adapters) |
 | 3 | Per-request scaffold: copy prebuilt + run `setup-*.ts` + `add-module.ts` for extras | server.ts:613-760 | `api/projects/scaffold/perRequestScaffold.ts` (Node-24 subprocess in a per-request temp dir, concurrency-bounded) |
 | 4 | Create GitHub repo + grant team admin (with retry) | `createRepo` + `teams.addOrUpdateRepoPermissionsInOrg`, server.ts:865-897 | `api/projects/scaffold/githubRepoCreate.ts` |
 | 5 | Initial git commit + authed push to `main` | server.ts:899-927 | `api/projects/scaffold/githubPushInitial.ts` — uses the existing App installation token via `authedGitUrl` pattern (server.ts:285-300) |
 | 6 | Post-push cleanup of server-side working tree | server.ts:929-931 | Inlined in the scaffold handler; temp dir is dropped after successful push |
 
-**Net additions** (stagecraft-owned, not in template-distributor):
+**Net additions** (statecraft-owned, not in template-distributor):
 
 - L0 `.factory/pipeline-state.json` seed written into the tree before
   commit #1 (§5.2 step 4).
@@ -608,33 +608,33 @@ The legacy single-profile case only worked by coincidence (the carried
 sentence now also lives in
 `standards/schemas/factory/adapter-manifest.schema.yaml` under
 `scaffold:`, so third-party adapter authors inherit the obligation —
-stagecraft's strip-at-any-depth remains the defensive enforcement.)*
+statecraft's strip-at-any-depth remains the defensive enforcement.)*
 
 **Net drops:**
 
-- The standalone web UI (`template-distributor/public/*`) — stagecraft
+- The standalone web UI (`template-distributor/public/*`) — statecraft
   `/app/projects/new` owns the UX.
 - OAuth login / session middleware (template-distributor server.ts:90-512) —
-  stagecraft already owns identity.
-- ZIP download (`/api/download-project`, server.ts:789-825) — stagecraft
+  statecraft already owns identity.
+- ZIP download (`/api/download-project`, server.ts:789-825) — statecraft
   does not offer a "download tree" path; the GitHub repo is the handoff.
 
 OAP does not import code from `template-distributor` — the absorbing
-PR rewrites the six operations above in stagecraft idioms. The
+PR rewrites the six operations above in statecraft idioms. The
 external repo lives outside this project's control; §9 Phase 9
 describes what OAP retires on its side, not the upstream repo's fate.
 
 **Deployment** *(amends 2026-05-04 per spec 138 §2.4)*: the absorbed
-scaffold subflow is mounted at `${STAGECRAFT_WORKSPACE_DIR}` (default
-`/var/stagecraft/workspace`). The path is backed by a `ReadWriteOnce`
+scaffold subflow is mounted at `${STATECRAFT_WORKSPACE_DIR}` (default
+`/var/statecraft/workspace`). The path is backed by a `ReadWriteOnce`
 `PersistentVolumeClaim` declared in
-`platform/charts/stagecraft/templates/workspace-pvc.yaml` (default
+`platform/charts/statecraft/templates/workspace-pvc.yaml` (default
 10Gi, cluster-default `StorageClass`). Persistence is togglable via
 `workspace.persistence.enabled` for dev clusters without a CSI driver;
 the chart fails at `helm install/upgrade` time when `replicaCount > 1`
 while persistence is enabled because RWO is incompatible with horizontal
 scaling. Per-cloud `StorageClass` overrides land in
-`platform/charts/stagecraft/values-{azure,aws,gcp,do,hetzner}.yaml`;
+`platform/charts/statecraft/values-{azure,aws,gcp,do,hetzner}.yaml`;
 Hetzner uses the `hcloud-volumes` cluster-default and needs no override.
 
 ### 5.3.1 Generator-product split: the two-cache warmup *(amended 2026-06-27, refined 2026-06-28)*
@@ -705,11 +705,11 @@ profile-default set) and avoids two places computing the same set. User-selected
 extras still compose per-request via operation 3 (`add-module.ts`); in
 factory-encore `setup-app` and `add-module` share one `install-module` path, so
 prebuild and per-request composition are identical. Reading the default set from
-the manifest rather than from a stagecraft-side table is the thin-consumer
-posture (spec 199): the manifest is the authority, the generator and stagecraft
+the manifest rather than from a statecraft-side table is the thin-consumer
+posture (spec 199): the manifest is the authority, the generator and statecraft
 consume it. `moduleCatalog.ts` remains the UI display/ordering catalog only (its
 module ids still mirror the adapter's `modules/`); the profile-default authority
-is the manifest read by the generator, not a stagecraft table.
+is the manifest read by the generator, not a statecraft table.
 
 **VCS-free output is preserved automatically.** Operations 2 and 3 already run
 under `NO_INSTALL=true`, which in the moved generator implies `--no-git`
@@ -737,7 +737,7 @@ copies its chosen prebuilt into a unique per-request temp dir
 two operators creating different profiles at the same time (e.g. `public` and
 `dual`) never share a tree. Warmup is single-pod by construction: the workspace
 PVC is `ReadWriteOnce` and the chart fails to render with `replicaCount > 1` when
-persistence is enabled (`platform/charts/stagecraft/templates/workspace-pvc.yaml`),
+persistence is enabled (`platform/charts/statecraft/templates/workspace-pvc.yaml`),
 so no second replica mutates the shared prebuilts; a single-flight guard prevents
 the startup warmup and the 30-minute refresher from regenerating concurrently
 in-pod. (Horizontal scaling requires `persistence.enabled=false`, in which case
@@ -768,25 +768,25 @@ combined cache key, dual-repo poll), `scheduler.ts` (resolve the
 `perRequestScaffold.ts` (repointed `add-module.ts` path, copy from the
 sha-stamped snapshot). `admission.ts`, `upstreams.ts`, `create.ts`, and
 `moduleCatalog.ts` are unchanged (the profile-default authority is the manifest,
-read by the generator, so stagecraft needs no module-translation table).
+read by the generator, so statecraft needs no module-translation table).
 
-### 5.4 Stagecraft–OPC boundary
+### 5.4 Statecraft–OPC boundary
 
 This spec establishes a crisp temporal boundary between the two planes:
 
-- **Stagecraft owns repo birth.** Template clone/cache, profile prebuild,
+- **Statecraft owns repo birth.** Template clone/cache, profile prebuild,
   module composition, Node-24 adapter scaffold, L0 pipeline-state seed,
   server-side artifact extraction, GitHub repo creation with team
-  grants, initial commit + authed push. Post-push, stagecraft deletes
+  grants, initial commit + authed push. Post-push, statecraft deletes
   its working copy.
 - **OPC owns everything else.** Open, claim, cockpit actions (Run Stage
   N, Reconcile, Re-extract, Register-with-workspace), all ACP engine
   runs, all writes to `.factory/pipeline-state.json` after commit #1.
-  Dispatch from stagecraft uses the spec 110 envelope
+  Dispatch from statecraft uses the spec 110 envelope
   (`factory.run.request` / `factory.run.ack`).
 
 Consequence: the **GitHub repo is the source-of-truth handoff**. After
-push, stagecraft returns `{ project_id, repo_url, clone_url,
+push, statecraft returns `{ project_id, repo_url, clone_url,
 opc_deep_link }`. The `opc_deep_link` is an
 `opc://project/open?url=<clone_url>&project_id=<id>` URI that, when
 clicked on a machine with OPC installed, clones the repo locally and
@@ -795,10 +795,10 @@ GitHub URL, (b) the deep link, and (c) an "install OPC" affordance
 visible when the user agent is not OPC and the deep link fails to
 resolve.
 
-No ongoing lifecycle operation executes on stagecraft. "Birth on
-stagecraft, life on OPC" is the invariant; a future spec may dispatch
+No ongoing lifecycle operation executes on statecraft. "Birth on
+statecraft, life on OPC" is the invariant; a future spec may dispatch
 non-Node-24 births to OPC but will not move post-birth execution onto
-stagecraft.
+statecraft.
 
 The clone-token mechanics described in §6.4 apply identically to the
 Create path: the success page's `opc_deep_link` resolves a fresh clone
@@ -809,7 +809,7 @@ just-created repo, the org's GitHub App installation is guaranteed
 present, so token resolution always lands on the installation-token
 branch (never the project-PAT fallback).
 
-## 6. Stagecraft Import Path
+## 6. Statecraft Import Path
 
 ### 6.1 UI — `/app/projects/import`
 
@@ -865,14 +865,14 @@ Flow:
 
 ### 6.3 Open-in-OPC handoff
 
-Once an Import succeeds, the stagecraft project menu surfaces an
+Once an Import succeeds, the statecraft project menu surfaces an
 **Open in OPC** action. Clicking it does not move data over the wire —
-it triggers a resolution on OPC against state stagecraft already owns.
+it triggers a resolution on OPC against state statecraft already owns.
 The same handoff is what Create's deep link (§5.4) drives; Import simply
 reuses it once the imported project has a `projects` row and a
 translated `.factory/pipeline-state.json` in the source repo.
 
-1. **Deep link.** Stagecraft emits
+1. **Deep link.** Statecraft emits
    `opc://project/open?project_id=<id>&workspace_id=<ws>&clone_url=<url>`.
    The success page renders this link plus an "install OPC" affordance
    for users without OPC installed.
@@ -895,7 +895,7 @@ translated `.factory/pipeline-state.json` in the source repo.
 4. **Bundle resolution.** OPC binds the local checkout to the workspace
    via the existing duplex channel (spec 087) using the four entities
    already retrieved in step 2 — none of which travel on the wire as a
-   new payload; they are reads against state stagecraft already maintains:
+   new payload; they are reads against state statecraft already maintains:
 
    - **Adapter** — the `factory_adapters` row referenced by
      `projects.factory_adapter_id` (set by Import per §6.2 step 5 from
@@ -929,7 +929,7 @@ only — never a token), and the bundle response is large (adapter +
 contracts + processes + agents pulled from the catalog the workspace
 already syncs, plus a short-lived clone token derived from spec 109
 state). The authority invariant from spec 087 holds: the GitHub repo
-is the source-of-truth handoff for project content; stagecraft is the
+is the source-of-truth handoff for project content; statecraft is the
 source-of-truth handoff for governance state, including the
 authoritative long-lived PAT; OPC composes the two, holds only
 short-lived derived credentials, and runs.
@@ -938,7 +938,7 @@ short-lived derived credentials, and runs.
 > Steps 2–6 above describe **OPC-the-desktop-client's** consumption of the
 > handoff: it legitimately needs the full bundle (adapter + contracts +
 > processes + agents + a short-lived clone token, §6.4) to clone and run.
-> The **stagecraft web UI** is a *second, lighter* consumer of the same
+> The **statecraft web UI** is a *second, lighter* consumer of the same
 > handoff: the project layout header renders the `opc://` deep link as an
 > "Open in OPC" button and needs only the deep-link string and the adapter's
 > display name — never the catalog payload, never a clone token.
@@ -950,7 +950,7 @@ short-lived derived credentials, and runs.
 > minting a fresh GitHub **installation token** (§6.4.1) per navigation and
 > loading the org substrate three times for data the header never reads.
 > During a bulk knowledge-directory upload this per-navigation churn stacked
-> with the extraction fan-out (spec 115) and OOMKilled the `stagecraft-api`
+> with the extraction fan-out (spec 115) and OOMKilled the `statecraft-api`
 > pod at its 1Gi limit.
 >
 > Resolution (two parts, both reflected in the `refines:` edge in
@@ -1004,7 +1004,7 @@ fires for `github_installation` — PATs do not expire on a schedule.
 
 #### 6.4.2 Bundle endpoint extension
 
-`platform/services/stagecraft/api/projects/opcBundle.ts` is extended:
+`platform/services/statecraft/api/projects/opcBundle.ts` is extended:
 
 ```ts
 type OpcBundle = {
@@ -1066,12 +1066,12 @@ Refresh policy:
   through this token.
 - **Project PATs** (no TTL): OPC re-fetches only on 401. PATs that
   fail are flagged in the cockpit with a "PAT may be invalid or
-  rotated" actionable error pointing the user at stagecraft's
+  rotated" actionable error pointing the user at statecraft's
   `/app/project/:id/settings/github-pat` page.
 - **Workspace switch / OPC restart**: cached tokens persist across
   restarts but are re-validated on first GitHub call after restart.
 
-The long-lived PAT NEVER crosses the Stagecraft → OPC boundary.
+The long-lived PAT NEVER crosses the Statecraft → OPC boundary.
 When `clone_token.source == "project_github_pat"`, OPC holds a copy
 of the same long-lived secret that lives in
 `project_github_pats` — this is an explicit MVP compromise (§10).
@@ -1105,12 +1105,12 @@ accordingly.
 
 #### 6.4.6 Audit and observability
 
-- **Stagecraft side**: every `resolveProjectToken` call already emits
+- **Statecraft side**: every `resolveProjectToken` call already emits
   the spec 109 §8 audit event (`project.token.resolved`) with
   `{ orgId, projectId, source, requestor }`. OPC bundle fetches
   reuse this — no new event type is introduced.
 - **OPC side**: token fetches and refreshes do not emit local audit
-  events. The Stagecraft-side trail is the authoritative record of
+  events. The Statecraft-side trail is the authoritative record of
   who minted what, when. OPC's only token-related observability is a
   cockpit indicator showing the current token's source and (for
   installation tokens) time-to-refresh.
@@ -1125,7 +1125,7 @@ OPC clones anonymously. The factory engine runs without
 `GITHUB_TOKEN` and is rate-limited per GitHub's anonymous-API rules.
 The cockpit surfaces a banner inviting the user to register a PAT or
 install the OAP App if rate-limit errors begin to surface. This is
-the only path that a Stagecraft 503 (token resolution hard failure)
+the only path that a Statecraft 503 (token resolution hard failure)
 must NOT be confused with — `null` is a valid resolution; 503 means
 the resolver itself failed.
 
@@ -1134,10 +1134,10 @@ the resolver itself failed.
 This spec inherits the workspace-as-atom authority model from spec 087:
 
 - **Authoritative state** for project identity, adapter binding, audit
-  trail: stagecraft Postgres (`projects`, `project_repos`,
+  trail: statecraft Postgres (`projects`, `project_repos`,
   `factory_adapters`, `scaffold_jobs`, `audit_events`).
 - **Authoritative state** for pipeline progress: `.factory/pipeline-state.json`
-  in the repo working tree (committed). Stagecraft caches the latest
+  in the repo working tree (committed). Statecraft caches the latest
   known state per-project for list views, but on conflict the repo wins.
 - **OPC** sees projects via the duplex channel sync (reuses spec 111's
   catalog envelope pattern). A new `ServerEnvelope::project.catalog.upsert`
@@ -1153,7 +1153,7 @@ carries `{ orgId, entryCount, generatedAt }`; payload is informational
 (the desktop reconciles by `projectId` regardless). The terminator lets
 the desktop's Projects panel distinguish "still connecting" from
 "connected; the org has zero projects" without an arbitrary client-side
-timeout. Stagecraft emission lives in
+timeout. Statecraft emission lives in
 `api/sync/projectCatalogRelay.ts::sendProjectCatalogSnapshot`; the
 desktop dispatches it in `commands::project_catalog_sync` and the
 frontend store (`projectCatalogStore.ts`) flips `hydrated=true` on the
@@ -1161,7 +1161,7 @@ first arriving event of either kind. This is a backward-compatible
 extension — desktops that pre-date the terminator simply ignore the
 unknown kind under their schema guard.
 
-No new duplex envelope variants for scaffold jobs — stagecraft's existing
+No new duplex envelope variants for scaffold jobs — statecraft's existing
 job-stream SSE (or the spec 109 PubSub pattern) is used for create/import
 progress.
 
@@ -1200,7 +1200,7 @@ Each phase is independently mergeable and ends in a runnable state.
   correct level for all three fixtures.
 
 **Phase 2 — Translator extension.**
-- Extend `platform/services/stagecraft/api/factory/translator.ts` with
+- Extend `platform/services/statecraft/api/factory/translator.ts` with
   `translateLegacyManifest`.
 - Integration test reads the example repo via a fixture and verifies the
   output conforms to `pipeline-state.schema.yaml`.
@@ -1223,7 +1223,7 @@ Each phase is independently mergeable and ends in a runnable state.
 - Exit criteria: `registry-consumer show acme-vue-node` (or equivalent)
   shows the new scaffold block and validates.
 
-**Phase 5 — Stagecraft Create.**
+**Phase 5 — Statecraft Create.**
 - **Sequencing:** depends on spec 108 Phase 2 (schema landed,
   `factory_adapters` table populated by a prior sync run). The
   `projects` row references `factory_adapter_id`, and the adapter
@@ -1247,11 +1247,11 @@ Each phase is independently mergeable and ends in a runnable state.
 **Phase 6 — Bundle authentication and pipeline token threading.**
 - **Sequencing:** depends on spec 109 (already shipped — `resolveProjectToken`,
   `project_github_pats`, installation broker). Lands before Phase 7
-  (Stagecraft Import) because external-org Imports cannot clone
+  (Statecraft Import) because external-org Imports cannot clone
   without a working PAT path; Create (Phase 5) can ship before this
   phase only because the immediate post-Create clone of a just-pushed
   repo runs in the same App-installation context that already exists.
-- Extend `platform/services/stagecraft/api/projects/opcBundle.ts` per
+- Extend `platform/services/statecraft/api/projects/opcBundle.ts` per
   §6.4.2: bundle response gains `clone_token`; new
   `GET /api/projects/:projectId/clone-token` refresh endpoint.
 - Extend `product/apps/opc/src-tauri/src/commands/factory_project.rs`:
@@ -1271,7 +1271,7 @@ Each phase is independently mergeable and ends in a runnable state.
   the actionable error pointing at
   `/app/project/:id/settings/github-pat`.
 
-**Phase 7 — Stagecraft Import.**
+**Phase 7 — Statecraft Import.**
 - Land `api/projects/import.ts` and the `/app/projects/import` route.
 - Exit criteria: importing acme-vendor-onboarding (fully executed — all 5
   legacy stages marked complete) via the web UI produces a `projects`
@@ -1287,7 +1287,7 @@ Each phase is independently mergeable and ends in a runnable state.
   pattern.
 - Add a "Projects" panel in OPC showing workspace projects with local
   clone state.
-- Exit criteria: creating or importing in stagecraft updates a connected
+- Exit criteria: creating or importing in statecraft updates a connected
   OPC's project list without a restart.
 
 **Phase 8a — Snapshot terminator (added 2026-05-25).**
@@ -1297,9 +1297,9 @@ Each phase is independently mergeable and ends in a runnable state.
 - Desktop dispatches via `commands::project_catalog_sync` and flips
   `hydrated=true` on the first event of either kind in
   `projectCatalogStore.ts`.
-- Exit criteria: opening the OPC Projects panel against a stagecraft org
+- Exit criteria: opening the OPC Projects panel against a statecraft org
   with zero projects renders the "No projects open" empty state rather
-  than spinning on "Connecting to stagecraft…" indefinitely. Backward
+  than spinning on "Connecting to statecraft…" indefinitely. Backward
   compatible — pre-Phase-8a desktops ignore the unknown kind under the
   envelope schema guard.
 
@@ -1308,7 +1308,7 @@ The OAP-side work absorbed the six scaffold operations into
 `api/projects/scaffold/` (Phase 5) and there are no remaining call
 sites or links to the external `template-distributor` service in
 this repo. Surviving mentions in `crates/factory-contracts/`,
-`platform/services/stagecraft/CLAUDE.md`, `api/projects/create.ts`,
+`platform/services/statecraft/CLAUDE.md`, `api/projects/create.ts`,
 and `api/db/schema.ts` are historical notes documenting the
 retirement — they describe what was absorbed, not active usage.
 Anything still living in the external `template-distributor`
@@ -1338,7 +1338,7 @@ this tree reads them.
   cockpit marks the legacy files as historical.
 
 - **Adapter scaffold entry-point portability.** *Resolved.*
-  Stagecraft-side scaffold is Node-24-only and uses the `template`
+  Statecraft-side scaffold is Node-24-only and uses the `template`
   repo's `setup-*.ts` shape (§5.2 step 3, §5.3, §5.4). Adapters
   declaring any other `scaffold.runtime` are not Create-eligible via
   the web UI. Non-Node-24 adapter outputs can still reach the platform
@@ -1346,9 +1346,9 @@ this tree reads them.
   this bound by dispatching non-Node-24 scaffolds to OPC through the
   spec 110 envelope without disturbing the post-birth invariant.
 
-- **Detection crate embedding in stagecraft.** §6.2 step 3 proposes a CLI
+- **Detection crate embedding in statecraft.** §6.2 step 3 proposes a CLI
   invocation of the detection crate from Node. Alternative: build a
-  stagecraft-owned Node-native detector that reads the same YAML schemas.
+  statecraft-owned Node-native detector that reads the same YAML schemas.
   The CLI approach preserves one source of truth and matches spec 105;
   the Node rewrite risks drift. Recommendation: CLI for MVP, revisit if
   latency is a problem.
@@ -1372,23 +1372,23 @@ this tree reads them.
 - **Orphan-repo recovery on partial Create failure.** If
   `githubRepoCreate` succeeds but `githubPushInitial` fails, an empty
   repo is left in the target org. The `scaffold_jobs` row captures the
-  partial state; stagecraft must implement an explicit policy —
+  partial state; statecraft must implement an explicit policy —
   preferred: automatic retry of the push (bounded), then on terminal
   failure either delete the orphan repo or mark it `orphaned` with a
   reclaim action in the admin UI. The Express predecessor leaves
   orphans silently; this regression must be closed in Phase 5.
 
-- **Long-lived PAT crossing the Stagecraft → OPC boundary.** When
+- **Long-lived PAT crossing the Statecraft → OPC boundary.** When
   the resolution source is `project_github_pat` (external-org Import
   with no App installation), §6.4.4 acknowledges OPC holds a copy of
   the same long-lived secret that lives in `project_github_pats`.
   This is an explicit MVP compromise — short-lived derivation of an
   arbitrary user-supplied PAT is not possible without a GitHub API
   affordance that does not exist. Mitigation: OPC keeps the PAT only
-  in OS keychain, never in plaintext config; rotation in Stagecraft's
+  in OS keychain, never in plaintext config; rotation in Statecraft's
   `/app/project/:id/settings/github-pat` invalidates the OPC copy on
-  next 401. A future spec MAY introduce a Stagecraft-mediated
-  short-lived clone proxy (Stagecraft proxies git operations using
+  next 401. A future spec MAY introduce a Statecraft-mediated
+  short-lived clone proxy (Statecraft proxies git operations using
   the PAT internally, returning a SAS-like URL to OPC) — out of
   scope for MVP given the operational complexity.
 
@@ -1529,7 +1529,7 @@ removed. Full rationale and the module descriptors live in spec 138's
 audit trail (2026-06-11 entry); the helper tests in
 `scaffold.test.ts` follow the new catalog.
 
-**Amendment 2026-05-04 (record: 138-stagecraft-create-realised-scaffold).**
+**Amendment 2026-05-04 (record: 138-statecraft-create-realised-scaffold).**
 Four refinements to §5 settled when the absorbed scaffold subflow
 landed. None contradicts the original design — each is a load-bearing
 detail this section had deferred to "the production implementation".
@@ -1537,7 +1537,7 @@ detail this section had deferred to "the production implementation".
 - **§5.3 row 2 — profile-set ownership.** The original wording had the
   prebuild profile set declared by the adapter manifest (§8). The
   landed code holds the four profiles (`minimal`, `public`, `internal`,
-  `dual`) in stagecraft's own `moduleCatalog.ts`, mirroring
+  `dual`) in statecraft's own `moduleCatalog.ts`, mirroring
   `template-distributor/src/server.ts:108-232`. Profiles are properties
   of the *template repo's* `setup-{app,dual-app}.ts` scripts (§5.3 row
   3 already binds the per-request scaffold to that shape via §10), so
@@ -1561,13 +1561,13 @@ detail this section had deferred to "the production implementation".
   banner copy is governed.
 
 - **§5.3 deployment note — workspace PVC.** The original §5.3 said
-  warmup runs on stagecraft startup; storage backing was unspecified.
-  The new note records that `${STAGECRAFT_WORKSPACE_DIR}` (default
-  `/var/stagecraft/workspace`) is backed by an RWO PVC declared in
-  `platform/charts/stagecraft/templates/workspace-pvc.yaml`, with
+  warmup runs on statecraft startup; storage backing was unspecified.
+  The new note records that `${STATECRAFT_WORKSPACE_DIR}` (default
+  `/var/statecraft/workspace`) is backed by an RWO PVC declared in
+  `platform/charts/statecraft/templates/workspace-pvc.yaml`, with
   per-cloud `StorageClass` overrides and a `replicaCount > 1`
   template-render guard.
 
-Spec 137 (`stagecraft-create-realised-scaffold`) carries the full
+Spec 137 (`statecraft-create-realised-scaffold`) carries the full
 rationale, the audit trail, and the `implements:` mapping for the
 landed code paths.

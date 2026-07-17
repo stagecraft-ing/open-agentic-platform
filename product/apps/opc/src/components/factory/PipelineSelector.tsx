@@ -70,7 +70,7 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
   const { state, startPipeline, cancelPipeline, resumePipeline } =
     useFactoryPipeline();
   const auth = useAuth();
-  // Pipeline runs go through stagecraft (org-scoped policy bundle, adapter
+  // Pipeline runs go through statecraft (org-scoped policy bundle, adapter
   // resolution, factory.run reservation). If the desktop doesn't have an
   // active org we'd hit `FactoryError::NoOrgId` after the user clicks
   // Start — pre-empt that with a clear sign-in CTA so they don't stare
@@ -275,7 +275,7 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
     setStartError(null);
     if (!effectiveProjectPath) {
       setStartError(
-        'Cannot start pipeline: no project path resolved. Open this project from the stagecraft handoff (Open in OPC) or the Projects tab so OPC knows where the local clone lives.',
+        'Cannot start pipeline: no project path resolved. Open this project from the statecraft handoff (Open in OPC) or the Projects tab so OPC knows where the local clone lives.',
       );
       return;
     }
@@ -328,7 +328,7 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
     try {
       await resumePipeline({
         adapterName: bundle?.adapter?.name ?? adapterName,
-        stagecraftProjectId: bundle?.project?.id,
+        statecraftProjectId: bundle?.project?.id,
       });
     } catch (err) {
       // Tauri's `invoke` rejects with the raw string from the Rust `Err`
@@ -405,10 +405,10 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
       {needsSignIn && (
         <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 space-y-1.5">
           <p className="text-xs text-amber-200 font-medium">
-            Not signed in to stagecraft
+            Not signed in to statecraft
           </p>
           <p className="text-[11px] text-amber-200/80 leading-snug">
-            Factory pipelines run against your stagecraft organization —
+            Factory pipelines run against your statecraft organization —
             policy bundle, adapter resolution, run reservation. Sign in to
             connect this OPC to your org.
           </p>
@@ -420,7 +420,7 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
             disabled={auth.status === 'loading'}
           >
             <LogIn className="h-3 w-3" />
-            {auth.status === 'loading' ? 'Signing in…' : 'Sign in to stagecraft'}
+            {auth.status === 'loading' ? 'Signing in…' : 'Sign in to statecraft'}
           </Button>
         </div>
       )}
@@ -486,7 +486,7 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
         disabled={
           starting || !adapterName.trim() || !effectiveProjectPath || needsSignIn
         }
-        title={needsSignIn ? 'Sign in to stagecraft first' : undefined}
+        title={needsSignIn ? 'Sign in to statecraft first' : undefined}
       >
         <Play className="h-3.5 w-3.5" />
         {starting ? 'Starting…' : 'Start Pipeline'}

@@ -62,9 +62,9 @@ choices and may amend the spec if material divergences surface.
       ran `kubectl get pvc -A` against the live `oap-hetzner-master1`
       cluster: all four existing `hcloud-volumes` PVCs allocated
       10 GiB or larger (`rauthy-system/data-rauthy-0` = 10Gi,
-      `stagecraft-system/data-postgresql-0` = 10Gi,
-      `stagecraft-system/minio` = 20Gi,
-      `stagecraft-system/stagecraft-api-workspace` = 10Gi). The
+      `statecraft-system/data-postgresql-0` = 10Gi,
+      `statecraft-system/minio` = 20Gi,
+      `statecraft-system/statecraft-api-workspace` = 10Gi). The
       hcloud CSI provisioner enforces a 10 GiB floor. Spec §2.1 and
       §6 (Resolved 1a) amended to `size: 10Gi`. Also amended values
       key from `storageClassName` (incorrect — chart uses

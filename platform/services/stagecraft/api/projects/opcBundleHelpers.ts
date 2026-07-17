@@ -109,7 +109,7 @@ export interface OpcBundleAgent {
  * The bundle returns a token OPC threads into the git clone subprocess
  * (`https://x-access-token:<value>@…`) and into the factory engine
  * launch as `GITHUB_TOKEN`. The long-lived PAT itself never crosses
- * Stagecraft → OPC except in the `project_github_pat` branch, where
+ * Statecraft → OPC except in the `project_github_pat` branch, where
  * GitHub does not offer a derived short-lived form (§10 risk).
  *
  * `expiresAt` is set for `github_installation` (≈1h TTL) and null for

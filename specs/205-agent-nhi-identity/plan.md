@@ -22,7 +22,7 @@ spec 198 FR-005 run-grant fabric.
 ## Flow decision (the question spec.md delegates here)
 
 **Decision.** NHIs are per-agent-session **dynamic clients** (RFC 7591)
-registered by stagecraft against Rauthy, authenticating via
+registered by statecraft against Rauthy, authenticating via
 **client_credentials**, with `CLIENT_CREDENTIALS_MAP_SUB=true` so the access
 token's `sub` is the distinct NHI subject (`dyn$<id>`). RFC 8693 token
 exchange is **rejected**.
@@ -42,7 +42,7 @@ Evidence (verified 2026-06-11):
   (2026-06-12) to behave differently than their names suggest in OAP's
   reg-token mode: the **inactive-client cleanup scheduler exits when
   `DYN_CLIENT_REG_TOKEN` is set** (`src/schedulers/src/dyn_clients.rs:24-27`
-  — orphan cleanup is therefore stagecraft's job, tasks.md T010);
+  — orphan cleanup is therefore statecraft's job, tasks.md T010);
   registration **rate limiting only guards the token-less mode**
   (`src/api/src/clients.rs:179-193`); and
   `DYN_CLIENT_SECRET_AUTO_ROTATE` rotates the **RFC 7592 registration
@@ -55,7 +55,7 @@ Evidence (verified 2026-06-11):
 | Leg | Issuer | Carries | Answers |
 |---|---|---|---|
 | **Identity** (NHI access token) | Rauthy — dyn client, client_credentials | `sub = dyn$<id>`, scopes = intersection(human scopes, profile ceiling), short `exp`, DPoP-bindable | *who is acting* |
-| **Capability** (session grant) | Platform — stagecraft JWS, generalizing spec 198 FR-005 run-grants | `on_behalf_of` chain, `agent_profile`, purpose / intent-capsule binding, audience, stage-renewal cadence | *what for, on whose behalf* |
+| **Capability** (session grant) | Platform — statecraft JWS, generalizing spec 198 FR-005 run-grants | `on_behalf_of` chain, `agent_profile`, purpose / intent-capsule binding, audience, stage-renewal cadence | *what for, on whose behalf* |
 
 Constitutional coherence: spec 106's "Rauthy is the sole **session**
 signer" is preserved — grants are not sessions, and spec 198 phase 4
@@ -72,22 +72,22 @@ unit.
 
 | FR | Mechanism |
 |---|---|
-| FR-001 issuance/lifecycle | Dyn client registered at session start (stagecraft holds `DYN_CLIENT_REG_TOKEN`), `client_secret` regenerated via RFC 7592 `PUT` update at renewal cadence, client deleted at session end / on demand (admin path — see Known gaps) |
-| FR-002 delegation, intersection | Stagecraft computes intersection(human scopes, profile ceiling) at mint, assigns exactly those scopes to the dyn client; `DYN_CLIENT_ALLOWED_SCOPES` is the Rauthy-side defense-in-depth ceiling; `on_behalf_of` carried in the session grant |
+| FR-001 issuance/lifecycle | Dyn client registered at session start (statecraft holds `DYN_CLIENT_REG_TOKEN`), `client_secret` regenerated via RFC 7592 `PUT` update at renewal cadence, client deleted at session end / on demand (admin path — see Known gaps) |
+| FR-002 delegation, intersection | Statecraft computes intersection(human scopes, profile ceiling) at mint, assigns exactly those scopes to the dyn client; `DYN_CLIENT_ALLOWED_SCOPES` is the Rauthy-side defense-in-depth ceiling; `on_behalf_of` carried in the session grant |
 | FR-003 task-scoped short-TTL | `DYN_CLIENT_DEFAULT_TOKEN_LIFETIME` at grant-renewal cadence; purpose + intent-capsule binding and audience carried in the session grant (Rauthy-side audience binding strengthens when RFC 8707 lands upstream — see upstream track) |
-| FR-004 bidirectional revocation | Agent kill = delete dyn client (TTL bounds residual tokens, per AC-5); human logout = walk the delegation index, delete all chained clients; index lives in stagecraft DB and is what spec 208 consumes |
-| FR-005 audit attribution | Two-principal audit rows (`nhi_sub` + `on_behalf_of`) in stagecraft; lands first — no Rauthy dependency |
+| FR-004 bidirectional revocation | Agent kill = delete dyn client (TTL bounds residual tokens, per AC-5); human logout = walk the delegation index, delete all chained clients; index lives in statecraft DB and is what spec 208 consumes |
+| FR-005 audit attribution | Two-principal audit rows (`nhi_sub` + `on_behalf_of`) in statecraft; lands first — no Rauthy dependency |
 
 ## Technical Context
 
-**Language/Version**: TypeScript (Encore.ts stagecraft, npm); Rust only on the upstream-patch track
-**Primary Dependencies**: Rauthy ≥ 0.36 (unreleased as of 2026-06-11 — see prerequisites), existing stagecraft JWS signing machinery (spec 198 phase 4), Rauthy admin API via `API-Key` auth
-**Storage**: stagecraft Postgres — delegation/revocation index table + audit columns (new migration)
-**Testing**: stagecraft service tests; AC-1..AC-5 as integration tests against a live Rauthy (encore test)
+**Language/Version**: TypeScript (Encore.ts statecraft, npm); Rust only on the upstream-patch track
+**Primary Dependencies**: Rauthy ≥ 0.36 (unreleased as of 2026-06-11 — see prerequisites), existing statecraft JWS signing machinery (spec 198 phase 4), Rauthy admin API via `API-Key` auth
+**Storage**: statecraft Postgres — delegation/revocation index table + audit columns (new migration)
+**Testing**: statecraft service tests; AC-1..AC-5 as integration tests against a live Rauthy (encore test)
 **Target Platform**: platform services (K8s); OPC consumes a display surface only (keyless posture unchanged)
 **Project Type**: web-service (platform control plane)
 **Performance Goals**: NHI mint path sub-second; NHI token validation adds exactly one indexed liveness lookup (delegation index, revocation check) per call — signature verification itself adds no round trip (JWKS already cached)
-**Constraints**: no long-lived secrets in OPC; revocation TOCTOU bounded by token TTL (AC-5); `DYN_CLIENT_REG_TOKEN` custody is stagecraft-only
+**Constraints**: no long-lived secrets in OPC; revocation TOCTOU bounded by token TTL (AC-5); `DYN_CLIENT_REG_TOKEN` custody is statecraft-only
 **Scale/Scope**: one NHI per live agent session; O(10–100) concurrent per org
 
 ### Deployment prerequisites (hard blockers, recorded 2026-06-11)
@@ -100,7 +100,7 @@ unit.
    image from `bartekus/rauthy` main (currently identical to upstream
    main); the fork doubles as a release-cadence hedge.
 2. **`ENABLE_DYN_CLIENT_REG`** must be enabled with `DYN_CLIENT_REG_TOKEN`
-   held exclusively by stagecraft — never OPC, never agents.
+   held exclusively by statecraft — never OPC, never agents.
 3. **`CLIENT_CREDENTIALS_MAP_SUB=true`** so NHI tokens carry `sub`.
 
 ### Known gaps and their carriers
@@ -119,10 +119,10 @@ unit.
   auth). The "registration token only" custody rule is therefore scoped
   to register/rotate; revocation-by-deletion necessarily uses the admin
   path. Upstream candidate patch (below) restores the symmetry later.
-- **Purpose binding stops at stagecraft** — deployd-api-rs validates
+- **Purpose binding stops at statecraft** — deployd-api-rs validates
   signature, expiry, audience, and scope only (`src/auth.rs`); it never
   sees session grants, so FR-003's intent binding is enforced at
-  stagecraft PEPs while deployd-api holds the coarser scope+TTL line.
+  statecraft PEPs while deployd-api holds the coarser scope+TTL line.
   Extending grant verification to deployd-api is post-205 candidate
   work, not part of this unit.
 - **OS-attribution leg** (rauthy-pam-nss; per-agent POSIX uid via
@@ -158,18 +158,18 @@ specs/205-agent-nhi-identity/
 ### Source Code (repository root)
 
 ```text
-platform/services/stagecraft/api/auth/
+platform/services/statecraft/api/auth/
 ├── sessionMint.ts          # extend: mintAgentNhi() — refines: agent-nhi-minting
 ├── rauthy.ts               # extend: dyn-client admin calls (register/rotate/delete) — refines: nhi-lifecycle
 ├── m2mAuth.ts              # precedent: client_credentials validation; add validateNhiJwt alongside
 └── rauthyAdminClients.ts   # precedent only (spec 137 programmatic client provisioning) — no edits expected
 
-platform/services/stagecraft/api/factory/grantDuplexHandlers.ts
+platform/services/statecraft/api/factory/grantDuplexHandlers.ts
                             # run-grant machinery remains parallel (no run-grant
                             # changes); Phase 0 threads the two-principal audit
                             # fields through its audit write sites only
 
-platform/services/stagecraft/migrations/
+platform/services/statecraft/migrations/
                             # new: delegation/revocation index table + audit columns
 
 product/apps/opc/src-tauri/src/commands/live_sessions.rs
@@ -179,7 +179,7 @@ crates/featuregraph/tests/golden/features_graph.json
                             # +1 row (extends: 034)
 ```
 
-**Structure Decision**: all behavior lands in stagecraft (the platform
+**Structure Decision**: all behavior lands in statecraft (the platform
 control plane). deployd-api-rs is unchanged — its scope gate consumes
 intersection-scoped tokens transparently. OPC changes are display-only,
 preserving the keyless posture.

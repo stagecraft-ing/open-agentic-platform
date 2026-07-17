@@ -12,11 +12,11 @@
     "establishes": [
       {
         "kind": "directory",
-        "path": "platform/services/stagecraft/api/github"
+        "path": "platform/services/statecraft/api/github"
       },
       {
         "kind": "directory",
-        "path": "platform/services/stagecraft/api/auth"
+        "path": "platform/services/statecraft/api/auth"
       }
     ],
     "extraFrontmatter": {

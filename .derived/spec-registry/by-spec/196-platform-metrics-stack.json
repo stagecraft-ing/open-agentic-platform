@@ -60,7 +60,7 @@
         "aspect": "metrics-export",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/infra.config.json"
+          "path": "platform/services/statecraft/infra.config.json"
         }
       },
       {
@@ -128,7 +128,7 @@
       "Current-state corrections *(implementation findings, 2026-06-12)*",
       "Architecture — hybrid ingestion *(normative)*",
       "User Scenarios & Testing",
-      "User Story 1 — Operator sees stagecraft health (Priority: P1)",
+      "User Story 1 — Operator sees statecraft health (Priority: P1)",
       "User Story 2 — Previously-unconsumed scrape targets become visible (Priority: P1)",
       "User Story 3 — Identity-scoped Grafana access (Priority: P2)",
       "Edge Cases",
@@ -151,7 +151,7 @@
     ],
     "specPath": "specs/196-platform-metrics-stack/spec.md",
     "status": "draft",
-    "summary": "Stand up a Prometheus + Grafana metrics stack for the platform control plane. Stagecraft (Encore.ts) already auto-instruments every API, PubSub, cron, and DB call but emits nowhere; deployd-api, Flux, and ingress-nginx already carry scrape annotations nobody consumes. This spec wires a full kube-prometheus-stack (Prometheus server + Grafana + node-exporter + kube-state-metrics) that RECEIVES stagecraft's Prometheus remote_write, SCRAPES the annotated pull targets, and SERVES Grafana — with Grafana fronted by native Rauthy OIDC. Metrics only: logs and distributed tracing (Encore's other two pillars) are out of scope and owned by later specs. Hetzner is implemented; the Azure binding is declared-but-deferred. Zero stagecraft application-code change.\n",
+    "summary": "Stand up a Prometheus + Grafana metrics stack for the platform control plane. Statecraft (Encore.ts) already auto-instruments every API, PubSub, cron, and DB call but emits nowhere; deployd-api, Flux, and ingress-nginx already carry scrape annotations nobody consumes. This spec wires a full kube-prometheus-stack (Prometheus server + Grafana + node-exporter + kube-state-metrics) that RECEIVES statecraft's Prometheus remote_write, SCRAPES the annotated pull targets, and SERVES Grafana — with Grafana fronted by native Rauthy OIDC. Metrics only: logs and distributed tracing (Encore's other two pillars) are out of scope and owned by later specs. Hetzner is implemented; the Azure binding is declared-but-deferred. Zero statecraft application-code change.\n",
     "title": "Platform metrics stack — Prometheus + Grafana for the platform control plane"
   },
   "shardHash": "c0541249fa4a5035a2cbfadb514062245e2766cc7f5833d6207fcf858c3b54ab",

@@ -1,7 +1,7 @@
 /**
  * @opc/workspace-sdk — Shared workspace domain types (spec 087).
  *
- * Consumed by both the Stagecraft web UI and the OPC React frontend,
+ * Consumed by both the Statecraft web UI and the OPC React frontend,
  * ensuring identical domain models and state rendering across planes.
  */
 

@@ -1,4 +1,4 @@
-# [open-agentic-platform](https://stagecraft-ing.github.io/open-agentic-platform/) [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE) [![Specs: 225](https://img.shields.io/badge/specs-225-informational)](specs/) [![Languages](https://img.shields.io/badge/lang-Rust%20%7C%20TypeScript-orange)](#) [![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-yellow)](#status)
+# [open-agentic-platform](https://statecrafting.github.io/open-agentic-platform/) [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE) [![Specs: 225](https://img.shields.io/badge/specs-225-informational)](specs/) [![Languages](https://img.shields.io/badge/lang-Rust%20%7C%20TypeScript-orange)](#) [![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-yellow)](#status)
 ![OAP Control Plane and OPC Execution Plane](.github/img/open-agentic-platform-github-banner.jpg)
 
 **Frozen, hash-verifiable specs as the unit of governance for agent
@@ -55,7 +55,7 @@ which makes the spec corpus a typed, query-able surface
 The **platform layer** (`platform/`) is the organisational control plane:
 [Rauthy](platform/charts/rauthy/) for OIDC identity,
 [`deployd-api-rs`](platform/services/deployd-api-rs/) for scope-gated
-deployment orchestration, [Encore.ts stagecraft](platform/services/stagecraft/)
+deployment orchestration, [Encore.ts statecraft](platform/services/statecraft/)
 for governance UX, and Helm charts for managed-K8s deployment.
 
 The **OPC desktop** (`product/apps/opc/`) is a Tauri v2 + React cockpit where
@@ -133,10 +133,10 @@ unless you put it there.
 The factory engine generates code through pluggable adapters that
 implement a shared contract. Adapter manifests historically lived in
 the repo-root `factory/adapters/*/manifest.yaml` directory; spec 108
-retired that directory and moved the canonical store into stagecraft's
+retired that directory and moved the canonical store into statecraft's
 `factory_adapters` table, then spec 139 absorbed those rows into the
 universal `factory_artifact_substrate` table. The file-backed scope
-snapshot at `platform/services/stagecraft/api/factory/adapter-scopes.json`
+snapshot at `platform/services/statecraft/api/factory/adapter-scopes.json`
 is the static fallback that `spec-spine index` hashes per spec 160; per-org
 content is materialised at runtime via the substrate.
 
@@ -149,7 +149,7 @@ content is materialised at runtime via the substrate.
   active scaffold
   target, used end-to-end by the tenant onboarding path; the earlier
   `acme-vue-node` hardening specs
-  ([138](specs/138-stagecraft-create-realised-scaffold/spec.md),
+  ([138](specs/138-statecraft-create-realised-scaffold/spec.md),
   [140](specs/140-acme-vue-node-scaffold-source-id-cutover/spec.md),
   [141](specs/141-acme-vue-node-source-id-template-name-alignment/spec.md))
   are its lineage.
@@ -174,7 +174,7 @@ others' governance, it is the right one.
 ## Install
 
 Prebuilt OPC desktop installers ship with each
-[release](https://github.com/stagecraft-ing/open-agentic-platform/releases):
+[release](https://github.com/statecrafting/open-agentic-platform/releases):
 
 - **macOS (Apple Silicon)** — `opc_<version>_aarch64.dmg`
 - **Windows** — `opc_<version>_x64-setup.exe` (NSIS) or
@@ -358,7 +358,7 @@ today vs. what is staged and what is roadmap, by spec ID.
 | `tools/` | Rust CLIs: `spec-lint` (OAP-specific), OAP overlay tools (`oap-registry-enrich`, `oap-code-index-enrich`, `policy-compiler`, others). The generic spec engine is the published `spec-spine` CLI (crates.io). |
 | `crates/` | Library crates: `factory-engine`, `factory-contracts`, `policy-kernel`, `orchestrator`, `agent`, `tool-registry`, `axiomregent`, `xray`, others. |
 | `product/apps/opc/` | OPC desktop (Tauri v2 + React + TypeScript). |
-| `platform/` | Identity, deployd-api, stagecraft, Helm charts, Terraform infra. |
+| `platform/` | Identity, deployd-api, statecraft, Helm charts, Terraform infra. |
 | `.derived/` | Compiler-emitted machine truth: `spec-registry/`, `codebase-index/`. Read through consumer binaries only. |
 | `.claude/` | Agent and command definitions used by the development environment. See `CLAUDE.md` and `AGENTS.md`. |
 

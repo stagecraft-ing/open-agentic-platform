@@ -208,7 +208,7 @@ agree, and that neither has acquired a GoA-specific concept spec 197 FR-005 forb
 ## Why not extend the existing schema-parity-check (§4 of the design)
 
 The instinct is to extend `tools/oap/schema-parity-check` (specs 125/191).
-It does not fit. That tool compares a **stagecraft TypeScript** descriptor
+It does not fit. That tool compares a **statecraft TypeScript** descriptor
 (`SchemaNode`, walked by `walk-descriptor.mjs`) against a **Rust**
 fingerprint emitted by `crates/factory-contracts` during `cargo test`. It
 never reads `standards/schemas/factory/*.yaml` — its inputs are `.ts`
@@ -217,7 +217,7 @@ modules and `.derived/schema-parity/*.json`, and it requires a TS runtime
 none of that machinery: no Rust fingerprint, no TS import, no descriptor
 export. Bolting a YAML-vs-YAML mode onto it would mean a second,
 unrelated comparison engine wearing the same name, and would entangle the
-spec-191 `schema_parity` route (scoped to `factory-contracts` + stagecraft
+spec-191 `schema_parity` route (scoped to `factory-contracts` + statecraft
 `knowledge/governance/sync`) with a route that has nothing to do with
 those paths. A **separate, focused check** with its own route and its own
 `ENFORCING_WORKFLOWS` entry is cleaner and keeps spec 191's gate
@@ -232,7 +232,7 @@ What this gate enforces is **contract structure** (the schema shape and the
 folder layout of `contract/schemas/**`), not the identity of the repository
 that carries it. The repo is resolved at runtime from the
 `UPSTREAM_FACTORY_SOURCE` Actions variable (today
-`stagecraft-ing/factory-encore`); the spec deliberately does not name it. The
+`statecrafting/factory-encore`); the spec deliberately does not name it. The
 name is irrelevant: today it is `factory-encore`, tomorrow it may be `factory`
 again, and the gate behaves identically either way as long as the schema set
 and folder structure agree.
@@ -260,7 +260,7 @@ mechanism.
 **Decision: a committed pin file lives in OAP, read at PR-time; a second
 scheduled lane checks the upstream source @ main directly.**
 
-The admitted `factory_sha` (spec 198) lives in the deployed stagecraft DB,
+The admitted `factory_sha` (spec 198) lives in the deployed statecraft DB,
 which CI cannot reach — rejected as the pin source. Three viable homes for
 a committed pin were weighed:
 
@@ -292,7 +292,7 @@ to do with the drift).
 
 A `gh api` fetch of the configured upstream source returns **404** for the
 authenticated CI identity at spec time — the repo is private or org-gated
-to the stagecraft-ing CI token's scope. The check therefore cannot assume
+to the statecrafting CI token's scope. The check therefore cannot assume
 anonymous fetch. **Decision:** the workflow fetches via an authenticated
 sparse checkout / `gh api` using a repo-scoped PAT stored as an Actions
 secret (working name `UPSTREAM_SOURCES_RO_TOKEN`, read-only contents scope on
@@ -566,7 +566,7 @@ review note.
   on different files; this spec adds the third (OAP↔factory) axis and
   does not touch the first.
 - **Admitted-`factory_sha` reconciliation** (spec 198). The deployed
-  admission SHA is a runtime fact in the stagecraft DB; this gate's pin is a
+  admission SHA is a runtime fact in the statecraft DB; this gate's pin is a
   build-time, CI-reachable surrogate. Aligning the two is a separate concern.
 - **Generalizing `schema-parity-check`** — recorded and rejected in §4.
 

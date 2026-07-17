@@ -26,13 +26,13 @@ depends_on:
   - "198-factory-governance-envelope"
   - "166-opc-stop-hook-gate-chain"
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalSummary.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalSummary-pure.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalSummary.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/approvalSummary.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/approvalSummary-pure.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/approvalSummary.test.ts }
   # Phase 2 — override-verify surface:
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalSummaryEndpoint.test.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/approval-basis-helpers.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/approval-basis-helpers.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/api/factory/approvalSummaryEndpoint.test.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/approval-basis-helpers.ts }
+  - unit: { kind: file, path: platform/services/statecraft/web/app/lib/approval-basis-helpers.test.ts }
 extends:
   # Status flips move this spec's featuregraph golden entry; carry the edge so
   # the golden change is coupling-clean (same precedent as 198/207/214/215).
@@ -41,28 +41,28 @@ extends:
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
   - aspect: "hitl-approval-presentation"
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.factory.runs.$runId.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.factory.runs.$runId.tsx }
   - aspect: "hitl-approval-presentation"
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx }
+    unit: { kind: file, path: platform/services/statecraft/web/app/routes/app.factory.artifacts.tsx }
   - aspect: "hitl-approval-presentation"
-    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/factory-api.server.ts }
+    unit: { kind: file, path: platform/services/statecraft/web/app/lib/factory-api.server.ts }
   - aspect: "encore-test-gating"
-    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+    unit: { kind: file, path: platform/services/statecraft/vite.config.ts }
   - aspect: "hitl-approval-policy-read"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/factory.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/factory.ts }
   - aspect: "hitl-approval-audit"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/auditActions.ts }
   - aspect: "hitl-approval-audit"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/artifacts.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/artifacts.ts }
 references:
   - role: context
     unit: { kind: file, path: docs/owasp-agentic-top-10-2026.md }
   - role: gate-declaration
     unit: { kind: file, path: standards/schemas/factory/governance-envelope.schema.yaml }
   - role: override-trust-class
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideGate.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/factory/overrideGate.ts }
   - role: run-schema
-    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/db/schema.ts }
 ---
 
 # Feature Specification: Anti-Blind-Approval UI
@@ -144,7 +144,7 @@ The spec 198 ASI09 table entry is explicit: "**partial — declared gap**
 ### FR-001 — Approval summary contract (server-side assembly, typed shape)
 
 A typed `ApprovalSummary` shape MUST be defined in
-`platform/services/stagecraft/api/factory/approvalSummary.ts` (new file)
+`platform/services/statecraft/api/factory/approvalSummary.ts` (new file)
 and assembled server-side from recorded facts, **never from model output**.
 The shape MUST carry:
 
@@ -228,7 +228,7 @@ The assembly function (`assembleApprovalSummary`) MUST:
 3. Compute `summaryHash` as `sha256Hex(JSON.stringify(hashedFields))`
    over the serialised field set excluding `summaryHash` itself **and
    `assembledAt`** — matching the `sha256Hex` helper already in
-   `platform/services/stagecraft/api/factory/substrate.ts`. *(Amendment
+   `platform/services/statecraft/api/factory/substrate.ts`. *(Amendment
    2026-06-11: `assembledAt` must be outside the hash — the FR-003 (b)
    replay guard compares a freshly-assembled hash against the
    client-presented one across page-load boundaries, and AC-4 requires
@@ -260,10 +260,10 @@ Every approval surface that calls `assembleApprovalSummary` MUST:
 This contract applies to both identified approval surfaces:
 
 - The run-level HITL gate surface within
-  `platform/services/stagecraft/web/app/routes/app.factory.runs.$runId.tsx`
+  `platform/services/statecraft/web/app/routes/app.factory.runs.$runId.tsx`
   (FR-003 defines the approve endpoint this wires to).
 - The override-verify surface within
-  `platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx`
+  `platform/services/statecraft/web/app/routes/app.factory.artifacts.tsx`
   (the "Verify override" button in `ArtifactDrawer`).
 
 ### FR-003 — Preview purity (GET semantics; separate POST for approve)
@@ -335,7 +335,7 @@ captures the pre-verify state — exactly the basis the verifier saw.
 
 **For run-level HITL gate approvals:** A new audit action constant
 `FACTORY_RUN_GATE_APPROVED = "factory.run.gate_approved"` MUST be added
-to `platform/services/stagecraft/api/factory/auditActions.ts`. The
+to `platform/services/statecraft/api/factory/auditActions.ts`. The
 approval endpoint MUST write an `audit_log` row with:
 
 ```typescript
@@ -453,7 +453,7 @@ from the approval basis under this FR.
 
 1. **Server summary contract.** Define `ApprovalSummary` type and
    `assembleApprovalSummary` in
-   `platform/services/stagecraft/api/factory/approvalSummary.ts`; add
+   `platform/services/statecraft/api/factory/approvalSummary.ts`; add
    `FACTORY_RUN_GATE_APPROVED` to `auditActions.ts`; extend
    `verifyOverrideCore` to record `summaryHash` in the audit `after`
    payload. Add unit tests for hash stability and fail-closed conditions.
@@ -586,7 +586,7 @@ renders).
     enforcing encore-test lane merged to `main` in `a58755be` (PR
     #347): `approvalSummaryEndpoint.test.ts` (10 tests) and
     `overrideTrustClass.test.ts` (7 tests) now execute on every PR
-    touching stagecraft and in `merge_group`, gated by ci-gate, with a
+    touching statecraft and in `merge_group`, gated by ci-gate, with a
     lane-coverage guard that fails CI if either file ever stops
     executing (skip-as-pass forbidden). Live evidence: PR-lane run
     27419049946 and merge-queue run 27419855931, both green. AC-1–AC-5

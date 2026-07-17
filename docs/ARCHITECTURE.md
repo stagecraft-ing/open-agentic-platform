@@ -18,7 +18,7 @@ Refresh after manifest changes:
 spec-spine index && spec-spine index render
 ```
 
-Layer 1 of the index covers Rust crates (`crates/`, `tools/spec-spine/`, `tools/oap/`, `tools/shared/`, `tools/vendor/grammars/`, `platform/services/deployd-api-rs/`) and npm packages (`product/apps/opc/`, `product/packages/*`, `platform/services/stagecraft/`). Layer 2 maps each spec to its implementing paths. Spec narrative for any crate: open the spec id from its inventory row.
+Layer 1 of the index covers Rust crates (`crates/`, `tools/spec-spine/`, `tools/oap/`, `tools/shared/`, `tools/vendor/grammars/`, `platform/services/deployd-api-rs/`) and npm packages (`product/apps/opc/`, `product/packages/*`, `platform/services/statecraft/`). Layer 2 maps each spec to its implementing paths. Spec narrative for any crate: open the spec id from its inventory row.
 
 ## Factory Pipeline
 
@@ -60,10 +60,10 @@ Each step runs post-verification commands (compile, test) and retries up to 3 ti
 Four pluggable tech adapters are registered against the factory contract.
 Adapter manifests historically lived as files in the repo-root
 `factory/adapters/*/manifest.yaml` directory; spec 108 retired that
-directory and moved the canonical store into stagecraft, and spec 139
+directory and moved the canonical store into statecraft, and spec 139
 absorbed those rows into the universal `factory_artifact_substrate`
 table. The file-backed scope snapshot at
-`platform/services/stagecraft/api/factory/adapter-scopes.json` is the
+`platform/services/statecraft/api/factory/adapter-scopes.json` is the
 static fallback the `spec-spine index` command hashes per spec 160; per-org full
 manifest content is materialised at runtime via the substrate.
 
@@ -101,11 +101,11 @@ Key traits:
 
 Located in `platform/`:
 
-- **Stagecraft** (`platform/services/stagecraft/`) — Encore.ts SaaS: auth, admin, monitoring, Slack integration, GitHub webhooks, Factory lifecycle API
+- **Statecraft** (`platform/services/statecraft/`) — Encore.ts SaaS: auth, admin, monitoring, Slack integration, GitHub webhooks, Factory lifecycle API
 - **deployd-api-rs** (`platform/services/deployd-api-rs/`) — Rust (axum + hiqlite) Kubernetes deployment orchestration
 - **Rauthy** — OIDC identity provider
 - **Infrastructure** (`platform/infra/`) — Terraform modules for Azure AKS, ACR, KeyVault
-- **Helm charts** (`platform/charts/`) — stagecraft, deployd-api, rauthy
+- **Helm charts** (`platform/charts/`) — statecraft, deployd-api, rauthy
 
 ## Spec System
 

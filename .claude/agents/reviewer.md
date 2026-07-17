@@ -143,7 +143,7 @@ This agent has `memory: project` and writes to `.claude/agent-memory/reviewer/ME
 
 **Record patterns that recur across reviews**, not single-PR specifics:
 
-- **Drift signatures** — when you see the same class of defect twice. Examples: AC numbering gaps in spec PRs, `Cargo.toml` version bumps shipping without corresponding spec coverage, Encore.ts handler signatures drifting from the stagecraft conventions in `platform/services/stagecraft/CLAUDE.md`, `[package.metadata.oap].spec` claims pointing at superseded specs, `.derived/codebase-index/index.json` left stale in PRs.
+- **Drift signatures** — when you see the same class of defect twice. Examples: AC numbering gaps in spec PRs, `Cargo.toml` version bumps shipping without corresponding spec coverage, Encore.ts handler signatures drifting from the statecraft conventions in `platform/services/statecraft/CLAUDE.md`, `[package.metadata.oap].spec` claims pointing at superseded specs, `.derived/codebase-index/index.json` left stale in PRs.
 - **Stable preferences** — author conventions that aren't in CLAUDE.md but are consistently applied. Example: "this team prefers `#[tracing::instrument]` on public crate functions over manual `tracing::info!` calls in handler bodies."
 - **Spec-spine quirks**: non-obvious behaviors of the toolchain you only discover by reviewing many PRs. Example: "the spec-spine indexer hashes `.github/workflows/*.yml` but not `.github/actions/`, so action edits never trip the staleness gate."
 - **Recurring CONST-005 triggers** — patterns of "spec edit to satisfy an action" that need extra scrutiny.

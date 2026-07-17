@@ -32,7 +32,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs",
+        "path": "product/apps/opc/src-tauri/src/commands/statecraft_client.rs",
         "source": "spec-edge"
       },
       {
@@ -137,14 +137,14 @@
       {
         "locations": [
           {
-            "file": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs"
+            "file": "product/apps/opc/src-tauri/src/commands/statecraft_client.rs"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs"
+          "path": "product/apps/opc/src-tauri/src/commands/statecraft_client.rs"
         }
       },
       {

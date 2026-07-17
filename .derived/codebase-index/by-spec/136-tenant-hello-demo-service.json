@@ -59,11 +59,11 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/deploy/chartSelector.test.ts",
+        "path": "platform/services/statecraft/api/deploy/chartSelector.test.ts",
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/deploy/chartSelector.ts",
+        "path": "platform/services/statecraft/api/deploy/chartSelector.ts",
         "source": "spec-edge"
       }
     ],
@@ -71,27 +71,27 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/chartSelector.test.ts"
+            "file": "platform/services/statecraft/api/deploy/chartSelector.test.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/chartSelector.test.ts"
+          "path": "platform/services/statecraft/api/deploy/chartSelector.test.ts"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/chartSelector.ts"
+            "file": "platform/services/statecraft/api/deploy/chartSelector.ts"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/chartSelector.ts"
+          "path": "platform/services/statecraft/api/deploy/chartSelector.ts"
         }
       },
       {

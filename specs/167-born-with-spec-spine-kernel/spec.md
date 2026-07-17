@@ -24,15 +24,15 @@ amendment_record: |
   committed .derived/ + spec-spine.yml CI), proven shipping reality
   (template PR #56, 2026-06), retiring §2.2's vendored
   tools/spec-spine/ binaries. The emission layer is corrected from the
-  dormant factory-engine Rust transition to the live stagecraft prebuilt
+  dormant factory-engine Rust transition to the live statecraft prebuilt
   Create flow; the one additive write (the .kernel-version stamp) lands in
   the follow-up implementation PR. implementation flipped complete →
   in-progress: the contract is amended ahead of the code swap. Distribution
   shape stays adapter-determined (npm is the first realized mode); spec 209
   owns enforcement activation, not this amendment.
   self-amended (2026-06-12) — PR-2 implementation. The .kernel-version stamp
-  is now WRITTEN by the live stagecraft Create flow
-  (platform/services/stagecraft/api/projects/scaffold/kernelVersionStamp.ts,
+  is now WRITTEN by the live statecraft Create flow
+  (platform/services/statecraft/api/projects/scaffold/kernelVersionStamp.ts,
   wired into perRequestScaffold.ts before push): it records the resolved
   spec-spine npm pin (read from the scaffolded package.json; root for single
   profiles, public/ for dual), adapter identity + manifest hash, source SHA,
@@ -78,11 +78,11 @@ extends:
     nature: additive
     unit: { kind: file, path: crates/factory-engine/src/lib.rs }
   # The .kernel-version born-with stamp is 167's concept, written into the live
-  # stagecraft Create flow (spec 112's scaffold path). 167 claims the new
+  # statecraft Create flow (spec 112's scaffold path). 167 claims the new
   # helper additively; 112 carries the narrative self-amend (PR-2 / plan G4).
   - spec: "112-factory-project-lifecycle"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/kernelVersionStamp.ts }
+    unit: { kind: file, path: platform/services/statecraft/api/projects/scaffold/kernelVersionStamp.ts }
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
@@ -435,7 +435,7 @@ scaffold materialization; it copies the prebuilt tree.
   `.kernel-version`'s `emitted_at` / source SHA excluded —
   FR-009).
 - **SC-005** A born-with project displays its initial specs
-  in stagecraft's Requirements view (spec 163), the corpus
+  in statecraft's Requirements view (spec 163), the corpus
   carrying its declared provenance.
 
 ## 5. Scope
@@ -445,7 +445,7 @@ scaffold materialization; it copies the prebuilt tree.
 - The kernel content definition (the npm distribution shape —
   §2.1).
 - The emission layer: the prebuilt template carries the kernel;
-  the live stagecraft Create flow copies it and writes the
+  the live statecraft Create flow copies it and writes the
   `.kernel-version` stamp (§2.4).
 - The tenant-side gate wiring template (`spec-spine.yml` /
   `pr-prep`).
@@ -556,7 +556,7 @@ scaffold materialization; it copies the prebuilt tree.
 > contract now describes the npm shape. The code swap — retiring
 > the vendored templates and the `build_scaffold_claim_spec`
 > generator, repointing the `establishes:` rows, and adding the
-> stagecraft `.kernel-version` stamp helper (claimed by this spec
+> statecraft `.kernel-version` stamp helper (claimed by this spec
 > via a new `extends:` edge into the scaffold path) — lands in the
 > follow-up implementation PR. No claim below is deleted; this
 > record corrects which design is canonical.
@@ -615,7 +615,7 @@ release-engineering plumbing.
   reachable on `FactoryEngine` and unit-tested, but no
   `transition_to_*` hook fires it automatically. *(2026-06-11
   correction: this auto-fire is deliberately NOT wired — §2.4 —
-  because the live emission layer is the stagecraft Create flow,
+  because the live emission layer is the statecraft Create flow,
   not the engine transition. Wiring it would double-emit
   silently. The engine path is orthogonal to production.)*
 - **Tenant binary vending (FR-005 binaries side).** Cross-target
@@ -631,7 +631,7 @@ release-engineering plumbing.
   context the alternate templates would need.
 - **SC-001 / SC-005 full E2E.** Driving a real adapter factory
   run end-to-end and verifying the produced project's CI passes
-  and its specs surface in stagecraft's Requirements view (spec
+  and its specs surface in statecraft's Requirements view (spec
   163). The contract tests demonstrate the kernel content is
   well-formed.
 
@@ -649,7 +649,7 @@ The amendment lands the contract; the code swap lands next:
 - **`.kernel-version` stamp (the one new write).** A
   `buildKernelVersionStamp` helper (sibling of the L0
   pipeline-state seed under
-  `platform/services/stagecraft/api/projects/scaffold/`) writes
+  `platform/services/statecraft/api/projects/scaffold/`) writes
   `.kernel-version` into the scaffold tree before push, recording
   the resolved `spec-spine` pin (read from the scaffolded
   `package.json`), adapter identity + manifest hash, source SHA,
@@ -704,7 +704,7 @@ committed `.derived/` compiled from the tenant's own corpus, and a
 binary shape (original §2.2) is retired; the proven shipping reality
 is template PR #56 (2026-06), which carries no
 `tools/spec-spine/` tree. The emission layer is corrected from the
-dormant `factory-engine` Rust transition to the live stagecraft
+dormant `factory-engine` Rust transition to the live statecraft
 prebuilt Create flow (spec 112); the one additive write — the
 `.kernel-version` stamp — lands in the follow-up implementation PR.
 `implementation:` flipped `complete → in-progress`: the contract is
