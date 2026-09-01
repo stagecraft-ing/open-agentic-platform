@@ -32,7 +32,7 @@ tokio-util = { version = "0.7", features = ["rt"] }
 # `/api/factory/artifacts/by-path` query parameters.
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
 urlencoding = "2"
-infer = "0.19"
+infer = "0.22"
 uuid = { version = "1", features = ["v4", "serde"] }
 sha2 = "0.10"
 # Spec 102 FR-008.1 — Ed25519 signing for governance certificates.
