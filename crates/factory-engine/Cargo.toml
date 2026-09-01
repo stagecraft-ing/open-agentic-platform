@@ -44,7 +44,7 @@ sha2 = "0.10"
 ed25519-dalek = "3"
 getrandom = "0.4.2"
 base64 = "0.22"
-jsonschema = "0.47"
+jsonschema = "0.48"
 regex = "1"
 walkdir = "2"
 clap = { version = "4", features = ["derive"] }
