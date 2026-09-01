@@ -9,6 +9,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
 
 [[package]]
+name = "action-gate-core"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a0c828e53a7a5648d0555dfd8208df7fc9231bb32371078eeabb03c691e4145"
+dependencies = [
+ "action-gate-types",
+ "canonical-keysort-json",
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+]
+
+[[package]]
+name = "action-gate-types"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f06b181e4649459d2fafaf0ffe087ee29f467d04044e50f9d1c0738564c63264"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "adler2"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -484,6 +508,33 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
+name = "attest-ledger-core"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cdf835c5e3680ddaf4dd9c4da525a8762ce5803e1f3245889a7393f3ccd5f183"
+dependencies = [
+ "attest-ledger-types",
+ "base64 0.22.1",
+ "canonical-keysort-json",
+ "ed25519-dalek",
+ "getrandom 0.4.3",
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+]
+
+[[package]]
+name = "attest-ledger-types"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16b5cb6e21a7f0342be61b4cf42bfdad81360f2efdf4eeec4dc33c32734691d7"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "auto-launch"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -952,6 +1003,15 @@ dependencies = [
 [[package]]
 name = "canonical-json"
 version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
+name = "canonical-keysort-json"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05b39d732daeef9a1bff08849dfaa3217be9a9765024d494f6a5707e987e1043"
 dependencies = [
  "serde_json",
 ]
@@ -5112,7 +5172,10 @@ dependencies = [
 name = "open_agentic_policy_kernel"
 version = "0.1.0"
 dependencies = [
+ "action-gate-core",
+ "attest-ledger-core",
  "base64 0.22.1",
+ "canonical-keysort-json",
  "chrono",
  "dirs 6.0.0",
  "ed25519-dalek",
@@ -5124,6 +5187,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "trust-window",
 ]
 
 [[package]]
@@ -7937,9 +8001,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-mcp-bridge"
-version = "0.11.2"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c97bb0d4c68e94ef4d132b6d572416b9d9144144ab185fe3c421f02340fee96e"
+checksum = "ee9c726f2293f54dc9a61739886967a75c9f1701d17a3dcb8a4544f7353d4861"
 dependencies = [
  "base64 0.22.1",
  "block2 0.5.1",
@@ -8810,6 +8874,15 @@ dependencies = [
  "memchr",
  "nom 8.0.0",
  "petgraph",
+]
+
+[[package]]
+name = "trust-window"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7daa9ad05701c68b73db55a248a6ae3e948c41a7da5f2a08c8cdea2821d34dc2"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
